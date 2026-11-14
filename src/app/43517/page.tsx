@@ -35,6 +35,10 @@ import {
   Maximize2,
   Users,
   Plus,
+  Minus,
+  GripVertical,
+  Camera,
+  Crown,
   Trash2,
   Pencil,
 } from "lucide-react";
@@ -136,6 +140,9 @@ export default function SuperAdminPortalPage() {
   const [isSubmittingDirect, setIsSubmittingDirect] = useState(false);
   const [directSuccess, setDirectSuccess] = useState(false);
   const [directError, setDirectError] = useState("");
+  const [directOrderedTeamIds, setDirectOrderedTeamIds] = useState<string[]>([]);
+  const [directDraggedIndex, setDirectDraggedIndex] = useState<number | null>(null);
+  const [directDragOverIndex, setDirectDragOverIndex] = useState<number | null>(null);
 
   // Reset State
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -251,6 +258,7 @@ export default function SuperAdminPortalPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setTeams(data.teams);
+        setDirectOrderedTeamIds(data.teams.map((t: TeamEntry) => t.id));
 
         const initialScores: Record<string, TeamScoreInput> = {};
         data.teams.forEach((t: TeamEntry, idx: number) => {
@@ -658,6 +666,59 @@ export default function SuperAdminPortalPage() {
       });
       return updated;
     });
+  };
+
+  const reorderDirectTeams = (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= directOrderedTeamIds.length ||
+      toIndex >= directOrderedTeamIds.length
+    ) {
+      return;
+    }
+
+    const newOrder = [...directOrderedTeamIds];
+    const [movedId] = newOrder.splice(fromIndex, 1);
+    newOrder.splice(toIndex, 0, movedId);
+    setDirectOrderedTeamIds(newOrder);
+
+    setScores((prev) => {
+      const updated = { ...prev };
+      newOrder.forEach((teamId, idx) => {
+        const place = idx + 1;
+        const current = updated[teamId] || {
+          teamId,
+          placement: place,
+          kills: 0,
+          placementPoints: 0,
+          matchTotal: 0,
+        };
+        const pts = calcMatchPoints(place, current.kills, directGame);
+        updated[teamId] = {
+          ...current,
+          placement: place,
+          placementPoints: pts.placementPoints,
+          matchTotal: pts.matchTotal,
+        };
+      });
+      return updated;
+    });
+  };
+
+  const pinDirectToFirst = (teamId: string) => {
+    const fromIndex = directOrderedTeamIds.indexOf(teamId);
+    if (fromIndex > 0) {
+      reorderDirectTeams(fromIndex, 0);
+    }
+  };
+
+  const moveDirectOneSlot = (teamId: string, direction: "UP" | "DOWN") => {
+    const curIdx = directOrderedTeamIds.indexOf(teamId);
+    if (curIdx === -1) return;
+    const targetIdx = direction === "UP" ? curIdx - 1 : curIdx + 1;
+    reorderDirectTeams(curIdx, targetIdx);
   };
 
   // Direct Upload with Canvas compression
@@ -1487,99 +1548,144 @@ export default function SuperAdminPortalPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
-                        {[...teams]
-                          .sort((a, b) => (scores[a.id]?.placement || 999) - (scores[b.id]?.placement || 999))
-                          .map((t) => {
-                            const sc = scores[t.id] || { placement: 1, kills: 0, placementPoints: 0, matchTotal: 0 };
-                            const place = sc.placement || 1;
-                            const isFirst = place === 1;
-                            const isSecond = place === 2;
-                            const isThird = place === 3;
+                        {(directOrderedTeamIds.length > 0 ? directOrderedTeamIds : teams.map((t) => t.id)).map((teamId) => {
+                          const actualIndex = (directOrderedTeamIds.length > 0 ? directOrderedTeamIds : teams.map((t) => t.id)).indexOf(teamId);
+                          const t = teams.find((item) => item.id === teamId);
+                          if (!t) return null;
 
-                            return (
-                              <tr
-                                key={t.id}
-                                className={`transition ${
-                                  isFirst
-                                    ? "bg-amber-500/10 hover:bg-amber-500/15"
-                                    : isSecond
-                                    ? "bg-slate-800/40 hover:bg-slate-800/60"
-                                    : isThird
-                                    ? "bg-amber-900/10 hover:bg-amber-900/20"
-                                    : "hover:bg-slate-800/30"
-                                }`}
-                              >
-                                <td className="py-2.5 px-3">
-                                  <div className="flex items-center gap-2">
-                                    <span
-                                      className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black border ${
-                                        isFirst
-                                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-500/20"
-                                          : isSecond
-                                          ? "bg-slate-300/20 text-slate-200 border-slate-400/40"
-                                          : isThird
-                                          ? "bg-amber-700/20 text-amber-400 border-amber-700/40"
-                                          : "bg-slate-800 text-slate-400 border-slate-700"
-                                      }`}
-                                    >
-                                      {isFirst ? "🥇" : isSecond ? "🥈" : isThird ? "🥉" : `#${place}`}
-                                    </span>
-                                    <div>
-                                      <div className="font-bold text-white text-xs">{t.teamName}</div>
-                                      <div className="text-[10px] text-slate-500">
-                                        Overall: {t.totalPoints} pts • {t.matchesPlayed} matches
-                                      </div>
+                          const sc = scores[teamId] || { placement: actualIndex + 1, kills: 0, placementPoints: 0, matchTotal: 0 };
+                          const place = actualIndex + 1;
+                          const isFirst = place === 1;
+                          const isSecond = place === 2;
+                          const isThird = place === 3;
+                          const isDragging = directDraggedIndex === actualIndex;
+                          const isDragOver = directDragOverIndex === actualIndex;
+
+                          return (
+                            <tr
+                              key={t.id}
+                              draggable
+                              onDragStart={(e) => {
+                                setDirectDraggedIndex(actualIndex);
+                                e.dataTransfer.setData("text/plain", String(actualIndex));
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                if (directDragOverIndex !== actualIndex) {
+                                  setDirectDragOverIndex(actualIndex);
+                                }
+                              }}
+                              onDragLeave={() => {
+                                if (directDragOverIndex === actualIndex) {
+                                  setDirectDragOverIndex(null);
+                                }
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                if (directDraggedIndex !== null && directDraggedIndex !== actualIndex) {
+                                  reorderDirectTeams(directDraggedIndex, actualIndex);
+                                }
+                                setDirectDraggedIndex(null);
+                                setDirectDragOverIndex(null);
+                              }}
+                              onDragEnd={() => {
+                                setDirectDraggedIndex(null);
+                                setDirectDragOverIndex(null);
+                              }}
+                              className={`transition select-none ${
+                                isDragging
+                                  ? "opacity-40 border-blue-500 scale-[0.98] bg-blue-950/20"
+                                  : isDragOver
+                                  ? "border-blue-400 bg-blue-500/10 shadow-md"
+                                  : isFirst
+                                  ? "bg-amber-500/10 hover:bg-amber-500/15"
+                                  : isSecond
+                                  ? "bg-slate-800/40 hover:bg-slate-800/60"
+                                  : isThird
+                                  ? "bg-amber-900/10 hover:bg-amber-900/20"
+                                  : "hover:bg-slate-800/30"
+                              }`}
+                            >
+                              <td className="py-2.5 px-3">
+                                <div className="flex items-center gap-2">
+                                  {/* Drag Grip Handle */}
+                                  <div
+                                    className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-slate-500 hover:text-slate-300 transition"
+                                    title="Drag up or down to reorder rank"
+                                  >
+                                    <GripVertical className="w-4 h-4" />
+                                  </div>
+
+                                  <span
+                                    className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black border ${
+                                      isFirst
+                                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-500/20"
+                                        : isSecond
+                                        ? "bg-slate-300/20 text-slate-200 border-slate-400/40"
+                                        : isThird
+                                        ? "bg-amber-700/20 text-amber-400 border-amber-700/40"
+                                        : "bg-slate-800 text-slate-400 border-slate-700"
+                                    }`}
+                                  >
+                                    {isFirst ? "🥇" : isSecond ? "🥈" : isThird ? "🥉" : `#${place}`}
+                                  </span>
+                                  <div>
+                                    <div className="font-bold text-white text-xs">{t.teamName}</div>
+                                    <div className="text-[10px] text-slate-500">
+                                      Overall: {t.totalPoints} pts • {t.matchesPlayed} matches
                                     </div>
                                   </div>
-                                </td>
+                                </div>
+                              </td>
 
+                              <td className="py-2.5 px-2 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  {/* Quick nudge up */}
+                                  <button
+                                    type="button"
+                                    onClick={() => moveDirectOneSlot(t.id, "UP")}
+                                    disabled={actualIndex <= 0}
+                                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 text-[10px]"
+                                    title="Move Rank Up"
+                                  >
+                                    ▲
+                                  </button>
+
+                                  {!isFirst && (
+                                    <button
+                                      type="button"
+                                      onClick={() => pinDirectToFirst(t.id)}
+                                      className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-[10px] border border-slate-700"
+                                      title="Pin to 1st place"
+                                    >
+                                      #1
+                                    </button>
+                                  )}
+
+                                  {/* Quick nudge down */}
+                                  <button
+                                    type="button"
+                                    onClick={() => moveDirectOneSlot(t.id, "DOWN")}
+                                    disabled={actualIndex >= teams.length - 1}
+                                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 text-[10px]"
+                                    title="Move Rank Down"
+                                  >
+                                    ▼
+                                  </button>
+                                </div>
+                              </td>
+
+                              {directGame !== "VALORANT" && (
                                 <td className="py-2.5 px-2 text-center">
                                   <div className="flex items-center justify-center gap-1">
-                                    {/* Quick nudge up */}
                                     <button
                                       type="button"
-                                      onClick={() => handleMoveRank(t.id, "UP")}
-                                      disabled={place <= 1}
-                                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 text-[10px]"
-                                      title="Move Rank Up"
+                                      onClick={() => handleScoreChange(t.id, "kills", Math.max(0, (sc.kills || 0) - 1))}
+                                      disabled={(sc.kills || 0) <= 0}
+                                      className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 font-bold text-xs flex items-center justify-center border border-slate-700"
                                     >
-                                      ▲
+                                      -
                                     </button>
-
-                                    {/* Rank Selector */}
-                                    <select
-                                      value={place}
-                                      onChange={(e) =>
-                                        handleScoreChange(t.id, "placement", parseInt(e.target.value) || 1)
-                                      }
-                                      className={`px-2 py-1 rounded-lg border font-bold text-xs text-center outline-none ${
-                                        isFirst
-                                          ? "bg-amber-950/80 border-amber-500 text-amber-300"
-                                          : "bg-slate-950 border-slate-700 text-white"
-                                      }`}
-                                    >
-                                      {teams.map((_, idx) => (
-                                        <option key={idx + 1} value={idx + 1}>
-                                          Rank #{idx + 1}
-                                        </option>
-                                      ))}
-                                    </select>
-
-                                    {/* Quick nudge down */}
-                                    <button
-                                      type="button"
-                                      onClick={() => handleMoveRank(t.id, "DOWN")}
-                                      disabled={place >= teams.length}
-                                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 text-[10px]"
-                                      title="Move Rank Down"
-                                    >
-                                      ▼
-                                    </button>
-                                  </div>
-                                </td>
-
-                                {directGame !== "VALORANT" && (
-                                  <td className="py-2.5 px-2 text-center">
                                     <input
                                       type="number"
                                       min="0"
@@ -1587,24 +1693,32 @@ export default function SuperAdminPortalPage() {
                                       onChange={(e) =>
                                         handleScoreChange(t.id, "kills", parseInt(e.target.value) || 0)
                                       }
-                                      className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
+                                      className="w-10 px-1 py-0.5 rounded bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
                                     />
-                                  </td>
-                                )}
-
-                                <td className="py-2.5 px-3 text-right">
-                                  <div className="font-extrabold text-blue-400 font-mono text-xs">
-                                    +{sc.matchTotal}
-                                  </div>
-                                  <div className="text-[10px] text-slate-500 font-mono">
-                                    {directGame === "VALORANT"
-                                      ? `${sc.placementPoints} pts`
-                                      : `(${sc.placementPoints}p + ${sc.kills}k)`}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleScoreChange(t.id, "kills", (sc.kills || 0) + 1)}
+                                      className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center border border-slate-700"
+                                    >
+                                      +
+                                    </button>
                                   </div>
                                 </td>
-                              </tr>
-                            );
-                          })}
+                              )}
+
+                              <td className="py-2.5 px-3 text-right">
+                                <div className="font-extrabold text-blue-400 font-mono text-xs">
+                                  +{sc.matchTotal}
+                                </div>
+                                <div className="text-[10px] text-slate-500 font-mono">
+                                  {directGame === "VALORANT"
+                                    ? `${sc.placementPoints} pts`
+                                    : `(${sc.placementPoints}p + ${sc.kills}k)`}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
