@@ -56,15 +56,21 @@ export default function MatchResultsPage() {
 
       {/* Filter Tabs & Search */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-          {["ALL", "FREE_FIRE", "BGMI", "FIFA", "MATIKS"].map((key) => {
+        <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 flex-wrap">
+          {["ALL", "FREE_FIRE", "BGMI", "VALORANT", "EFOOTBALL", "MATIKS"].map((key) => {
             const isSelected = selectedGameFilter === key;
             const label =
               key === "ALL"
                 ? "All Games"
                 : key === "FREE_FIRE"
                 ? "Free Fire"
-                : key;
+                : key === "BGMI"
+                ? "BGMI"
+                : key === "VALORANT"
+                ? "Valorant"
+                : key === "EFOOTBALL"
+                ? "eFootball"
+                : "MATIKS";
 
             return (
               <button
@@ -112,7 +118,8 @@ export default function MatchResultsPage() {
               const gameId: GameId = m.game_id;
               const isFF = gameId === "FREE_FIRE";
               const isBGMI = gameId === "BGMI";
-              const isFIFA = gameId === "FIFA";
+              const isVAL = gameId === "VALORANT";
+              const isEF = gameId === "EFOOTBALL";
 
               return (
                 <tr key={m.result_id} className="transition-colors hover:bg-slate-50/80">
@@ -123,12 +130,22 @@ export default function MatchResultsPage() {
                           ? "bg-amber-50 text-amber-700 border border-amber-200"
                           : isBGMI
                           ? "bg-blue-50 text-blue-700 border border-blue-200"
-                          : isFIFA
+                          : isVAL
+                          ? "bg-rose-50 text-rose-700 border border-rose-200"
+                          : isEF
                           ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                           : "bg-purple-50 text-purple-700 border border-purple-200"
                       }`}
                     >
-                      {isFF ? "Free Fire" : isBGMI ? "BGMI" : isFIFA ? "FIFA" : "MATIKS"}
+                      {isFF
+                        ? "Free Fire"
+                        : isBGMI
+                        ? "BGMI"
+                        : isVAL
+                        ? "Valorant"
+                        : isEF
+                        ? "eFootball"
+                        : "MATIKS"}
                     </span>
                   </td>
 

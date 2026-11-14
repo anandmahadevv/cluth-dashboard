@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Flame, Crosshair, Trophy, Brain, ArrowRight } from 'lucide-react';
+import { Flame, Crosshair, Trophy, Brain, ArrowRight, Target, Gamepad2 } from 'lucide-react';
 import type { GameConfig } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -16,10 +16,20 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Crosshair,
   Trophy,
   Brain,
+  Target,
+  Gamepad2,
+  FREE_FIRE: Flame,
+  BGMI: Crosshair,
+  VALORANT: Target,
+  EFOOTBALL: Gamepad2,
+  MATIKS: Brain,
 };
 
 export function GameCard({ game, matchCount, status }: GameCardProps) {
-  const Icon = (game.icon ? iconMap[game.icon] : null) || Trophy;
+  const Icon =
+    (game.icon ? iconMap[game.icon] : null) ||
+    iconMap[game.id] ||
+    Trophy;
 
   return (
     <Link href={`/games/${game.slug}`} className="group block">

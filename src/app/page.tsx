@@ -5,6 +5,7 @@ import {
   Trophy,
   Flame,
   Crosshair,
+  Target,
   Gamepad2,
   Brain,
   Maximize2,
@@ -35,10 +36,9 @@ export default function HomePage() {
 
   const { data: ffLeaderboard } = useGameLeaderboard("FREE_FIRE");
   const { data: bgmiLeaderboard } = useGameLeaderboard("BGMI");
-  const { data: fifaLeaderboard } = useGameLeaderboard("FIFA");
+  const { data: valLeaderboard } = useGameLeaderboard("VALORANT");
+  const { data: efLeaderboard } = useGameLeaderboard("EFOOTBALL");
   const { data: matiksLeaderboard } = useGameLeaderboard("MATIKS");
-  const { data: fifaMatches } = useGameMatches("FIFA");
-  const { data: matiksResults } = useGameMatches("MATIKS");
 
   // Determine current active leaderboard
   let first, second, third;
@@ -99,32 +99,60 @@ export default function HomePage() {
       stat2Value: bgmiLeaderboard[2].totalPoints,
       stat2Label: "total\npoints",
     };
-  } else if (selectedGame === "FIFA" && fifaLeaderboard && fifaLeaderboard.length >= 3) {
+  } else if (selectedGame === "VALORANT" && valLeaderboard && valLeaderboard.length >= 3) {
     first = {
       rank: 1 as const,
-      name: fifaLeaderboard[0].teamName,
-      subtext: "FIFA Champion",
-      stat1Value: fifaLeaderboard[0].killPoints,
-      stat1Label: "goals\nscored",
-      stat2Value: fifaLeaderboard[0].totalPoints,
+      name: valLeaderboard[0].teamName,
+      subtext: "Valorant Champion",
+      stat1Value: valLeaderboard[0].killPoints,
+      stat1Label: "combat\nscore",
+      stat2Value: valLeaderboard[0].totalPoints,
       stat2Label: "total\npoints",
     };
     second = {
       rank: 2 as const,
-      name: fifaLeaderboard[1].teamName,
+      name: valLeaderboard[1].teamName,
       subtext: "1st Runner-Up",
-      stat1Value: fifaLeaderboard[1].killPoints,
-      stat1Label: "goals\nscored",
-      stat2Value: fifaLeaderboard[1].totalPoints,
+      stat1Value: valLeaderboard[1].killPoints,
+      stat1Label: "combat\nscore",
+      stat2Value: valLeaderboard[1].totalPoints,
       stat2Label: "total\npoints",
     };
     third = {
       rank: 3 as const,
-      name: fifaLeaderboard[2].teamName,
+      name: valLeaderboard[2].teamName,
       subtext: "2nd Runner-Up",
-      stat1Value: fifaLeaderboard[2].killPoints,
+      stat1Value: valLeaderboard[2].killPoints,
+      stat1Label: "combat\nscore",
+      stat2Value: valLeaderboard[2].totalPoints,
+      stat2Label: "total\npoints",
+    };
+  } else if (selectedGame === "EFOOTBALL" && efLeaderboard && efLeaderboard.length >= 3) {
+    first = {
+      rank: 1 as const,
+      name: efLeaderboard[0].teamName,
+      subtext: "eFootball Champion",
+      stat1Value: efLeaderboard[0].killPoints,
       stat1Label: "goals\nscored",
-      stat2Value: fifaLeaderboard[2].totalPoints,
+      stat2Value: efLeaderboard[0].totalPoints,
+      stat2Label: "total\npoints",
+    };
+    second = {
+      rank: 2 as const,
+      name: efLeaderboard[1].teamName,
+      subtext: "1st Runner-Up",
+      stat1Value: efLeaderboard[1].killPoints,
+      stat1Label: "goals\nscored",
+      stat2Value: efLeaderboard[1].totalPoints,
+      stat2Label: "total\npoints",
+    };
+    third = {
+      rank: 3 as const,
+      name: efLeaderboard[2].teamName,
+      subtext: "2nd Runner-Up",
+      stat1Value: efLeaderboard[2].killPoints,
+      stat1Label: "goals\nscored",
+      stat2Value: efLeaderboard[2].totalPoints,
       stat2Label: "total\npoints",
     };
   } else if (selectedGame === "MATIKS" && matiksLeaderboard && matiksLeaderboard.length >= 3) {
@@ -230,15 +258,26 @@ export default function HomePage() {
               <span>BGMI</span>
             </button>
             <button
-              onClick={() => setSelectedGame("FIFA")}
+              onClick={() => setSelectedGame("VALORANT")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
-                selectedGame === "FIFA"
+                selectedGame === "VALORANT"
+                  ? "bg-white text-slate-900 shadow-xs border border-slate-200"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <Target className="w-3.5 h-3.5 text-rose-500" />
+              <span>Valorant</span>
+            </button>
+            <button
+              onClick={() => setSelectedGame("EFOOTBALL")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
+                selectedGame === "EFOOTBALL"
                   ? "bg-white text-slate-900 shadow-xs border border-slate-200"
                   : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <Gamepad2 className="w-3.5 h-3.5 text-emerald-500" />
-              <span>FIFA</span>
+              <span>eFootball</span>
             </button>
             <button
               onClick={() => setSelectedGame("MATIKS")}
@@ -304,10 +343,18 @@ export default function HomePage() {
           />
         )}
 
-        {selectedGame === "FIFA" && (
+        {selectedGame === "VALORANT" && (
           <LeaderboardTable
-            entries={(fifaLeaderboard as any[]) || []}
-            gameName="FIFA 24"
+            entries={valLeaderboard || []}
+            gameName="Valorant"
+            isProjector={isProjectorMode}
+          />
+        )}
+
+        {selectedGame === "EFOOTBALL" && (
+          <LeaderboardTable
+            entries={(efLeaderboard as any[]) || []}
+            gameName="eFootball"
             isProjector={isProjectorMode}
           />
         )}

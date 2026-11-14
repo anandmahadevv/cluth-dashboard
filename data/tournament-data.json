@@ -1,454 +1,536 @@
 {
+  "lastUpdated": "2026-11-14T07:22:47.442Z",
   "teams": {
+    "FREE_FIRE": [
+      {
+        "id": "free_fire-1",
+        "teamName": "Yenepoya Phantoms",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 1
+      },
+      {
+        "id": "free_fire-2",
+        "teamName": "Mangalore Vipers",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 2
+      },
+      {
+        "id": "free_fire-3",
+        "teamName": "Coastal Strikers",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 3
+      },
+      {
+        "id": "free_fire-4",
+        "teamName": "NIAT Predators",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 4
+      },
+      {
+        "id": "free_fire-5",
+        "teamName": "Apex Hawks Mangalore",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 5
+      },
+      {
+        "id": "free_fire-6",
+        "teamName": "Thunderbolts Karavali",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 6
+      },
+      {
+        "id": "free_fire-7",
+        "teamName": "Delta Force Kudla",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 7
+      },
+      {
+        "id": "free_fire-8",
+        "teamName": "Vanguard Mangalore",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 8
+      },
+      {
+        "id": "free_fire-9",
+        "teamName": "Shadow Ravens",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 9
+      },
+      {
+        "id": "free_fire-10",
+        "teamName": "Titan Squad",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 10
+      },
+      {
+        "id": "free_fire-11",
+        "teamName": "Rogue Assassins",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 11
+      },
+      {
+        "id": "free_fire-12",
+        "teamName": "Neon Storm",
+        "gameId": "FREE_FIRE",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 12
+      }
+    ],
     "BGMI": [
       {
         "id": "bgmi-1",
-        "rank": 1,
+        "teamName": "Godlike Karavali",
         "gameId": "BGMI",
-        "teamName": "Kudla Kings Esports",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 1
       },
       {
         "id": "bgmi-2",
-        "rank": 2,
-        "gameId": "BGMI",
         "teamName": "Yenepoya Gladiators",
+        "gameId": "BGMI",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 2
       },
       {
         "id": "bgmi-3",
-        "rank": 3,
+        "teamName": "Mangalore Mayhem",
         "gameId": "BGMI",
-        "teamName": "Mangalore Outlaws",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 3
       },
       {
         "id": "bgmi-4",
-        "rank": 4,
+        "teamName": "Sahyadri Titans",
         "gameId": "BGMI",
-        "teamName": "Coastal Warriors",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 4
       },
       {
         "id": "bgmi-5",
-        "rank": 5,
+        "teamName": "Kudla Esports Squad",
         "gameId": "BGMI",
-        "teamName": "Karavali Crusaders",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 5
       },
       {
         "id": "bgmi-6",
-        "rank": 6,
+        "teamName": "Inferno Gaming",
         "gameId": "BGMI",
-        "teamName": "Deccan Hunters",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 6
       },
       {
         "id": "bgmi-7",
-        "rank": 7,
+        "teamName": "Recon Phantoms",
         "gameId": "BGMI",
-        "teamName": "Apex Legends Mangalore",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 7
       },
       {
         "id": "bgmi-8",
-        "rank": 8,
+        "teamName": "Zero Tolerance",
         "gameId": "BGMI",
-        "teamName": "Shadow Ninjas Kudla",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 8
       },
       {
         "id": "bgmi-9",
-        "rank": 9,
+        "teamName": "Blaze Legion",
         "gameId": "BGMI",
-        "teamName": "Inferno Strikers",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 9
       },
       {
         "id": "bgmi-10",
-        "rank": 10,
+        "teamName": "Nightmare Gaming",
         "gameId": "BGMI",
-        "teamName": "GodLike Mangalore",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 10
       },
       {
         "id": "bgmi-11",
-        "rank": 11,
+        "teamName": "Cyber Sentinels",
         "gameId": "BGMI",
-        "teamName": "Soul Kudla",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 11
       },
       {
         "id": "bgmi-12",
-        "rank": 12,
+        "teamName": "Vortex Gaming",
         "gameId": "BGMI",
-        "teamName": "Team Insane Karnataka",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 12
       },
       {
         "id": "bgmi-13",
-        "rank": 13,
+        "teamName": "Falcon Claw",
         "gameId": "BGMI",
-        "teamName": "Revenant Coastal",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 13
       },
       {
         "id": "bgmi-14",
-        "rank": 14,
+        "teamName": "Red Line Esports",
         "gameId": "BGMI",
-        "teamName": "Blind Mangalore",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 14
       },
       {
         "id": "bgmi-15",
-        "rank": 15,
+        "teamName": "Tectonic Titans",
         "gameId": "BGMI",
-        "teamName": "Hydra Coastal",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 15
       },
       {
         "id": "bgmi-16",
-        "rank": 16,
+        "teamName": "Dark Horse Mangalore",
         "gameId": "BGMI",
-        "teamName": "True Rippers Yenepoya",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 16
       }
     ],
-    "FIFA": [
+    "VALORANT": [
       {
-        "id": "fifa-1",
-        "rank": 1,
-        "gameId": "FIFA",
-        "teamName": "Rohan D'Souza (Yenepoya)",
+        "id": "valorant-1",
+        "teamName": "Team Liquid Kudla",
+        "gameId": "VALORANT",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 1
       },
       {
-        "id": "fifa-2",
-        "rank": 2,
-        "gameId": "FIFA",
-        "teamName": "Aditya Rao (Mangalore)",
+        "id": "valorant-2",
+        "teamName": "Sentinels Mangalore",
+        "gameId": "VALORANT",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 2
       },
       {
-        "id": "fifa-3",
-        "rank": 3,
-        "gameId": "FIFA",
-        "teamName": "Mohammed Zaid (Kudla)",
+        "id": "valorant-3",
+        "teamName": "Fnatic Yenepoya",
+        "gameId": "VALORANT",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 3
       },
       {
-        "id": "fifa-4",
-        "rank": 4,
-        "gameId": "FIFA",
-        "teamName": "Karthik Shenoy (Coastal)",
+        "id": "valorant-4",
+        "teamName": "Paper Rex Coastal",
+        "gameId": "VALORANT",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 4
       },
       {
-        "id": "fifa-5",
-        "rank": 5,
-        "gameId": "FIFA",
-        "teamName": "Faizan Ahmed (NIAT)",
+        "id": "valorant-5",
+        "teamName": "Optic Gaming NIAT",
+        "gameId": "VALORANT",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 5
       },
       {
-        "id": "fifa-6",
-        "rank": 6,
-        "gameId": "FIFA",
-        "teamName": "Sharath Kumar (Udupi)",
+        "id": "valorant-6",
+        "teamName": "Global Esports Karnataka",
+        "gameId": "VALORANT",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 6
       },
       {
-        "id": "fifa-7",
-        "rank": 7,
-        "gameId": "FIFA",
-        "teamName": "Kevin Lobo (Mangalore)",
+        "id": "valorant-7",
+        "teamName": "Velocity Gaming Mangalore",
+        "gameId": "VALORANT",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 7
       },
       {
-        "id": "fifa-8",
-        "rank": 8,
-        "gameId": "FIFA",
-        "teamName": "Abhishek Shetty (Karavali)",
+        "id": "valorant-8",
+        "teamName": "Enigma Gaming Kudla",
+        "gameId": "VALORANT",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
+        "rank": 8
+      }
+    ],
+    "EFOOTBALL": [
+      {
+        "id": "efootball-1",
+        "teamName": "Zayd Khan (FC Barcelona)",
+        "gameId": "EFOOTBALL",
         "matchesPlayed": 0,
-        "placementPoints": 0
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 1
+      },
+      {
+        "id": "efootball-2",
+        "teamName": "Rohit Shetty (Manchester City)",
+        "gameId": "EFOOTBALL",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 2
+      },
+      {
+        "id": "efootball-3",
+        "teamName": "Neil D'Souza (Bayern Munich)",
+        "gameId": "EFOOTBALL",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 3
+      },
+      {
+        "id": "efootball-4",
+        "teamName": "Farhan Ahmed (Arsenal)",
+        "gameId": "EFOOTBALL",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 4
+      },
+      {
+        "id": "efootball-5",
+        "teamName": "Kevin Rodrigues (PSG)",
+        "gameId": "EFOOTBALL",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 5
+      },
+      {
+        "id": "efootball-6",
+        "teamName": "Aakash Rao (Real Madrid)",
+        "gameId": "EFOOTBALL",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 6
+      },
+      {
+        "id": "efootball-7",
+        "teamName": "Danish Sheikh (Inter Milan)",
+        "gameId": "EFOOTBALL",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 7
+      },
+      {
+        "id": "efootball-8",
+        "teamName": "Pratham Naik (Liverpool)",
+        "gameId": "EFOOTBALL",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "killPoints": 0,
+        "totalPoints": 0,
+        "rank": 8
       }
     ],
     "MATIKS": [
       {
         "id": "matiks-1",
-        "rank": 1,
+        "teamName": "Aditya Rao",
         "gameId": "MATIKS",
-        "teamName": "Team Matrix Algorithms",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 1
       },
       {
         "id": "matiks-2",
-        "rank": 2,
+        "teamName": "Sanjana Pai",
         "gameId": "MATIKS",
-        "teamName": "Binary Bosses Yenepoya",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 2
       },
       {
         "id": "matiks-3",
-        "rank": 3,
+        "teamName": "Rohan Kamath",
         "gameId": "MATIKS",
-        "teamName": "Quantum Coders Mangalore",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 3
       },
       {
         "id": "matiks-4",
-        "rank": 4,
+        "teamName": "Nidhi Shenoy",
         "gameId": "MATIKS",
-        "teamName": "Logic Hackers Coastal",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 4
       },
       {
         "id": "matiks-5",
-        "rank": 5,
+        "teamName": "Vignesh Bhat",
         "gameId": "MATIKS",
-        "teamName": "Kudla Turing Titans",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 5
       },
       {
         "id": "matiks-6",
-        "rank": 6,
+        "teamName": "Karthik Prabhu",
         "gameId": "MATIKS",
-        "teamName": "Syntax Strikers NIAT",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 6
       },
       {
         "id": "matiks-7",
-        "rank": 7,
+        "teamName": "Ananya Hegde",
         "gameId": "MATIKS",
-        "teamName": "Algorithmic Aces",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 7
       },
       {
         "id": "matiks-8",
-        "rank": 8,
+        "teamName": "Suhas Nayak",
         "gameId": "MATIKS",
-        "teamName": "Data Dynamos Karavali",
+        "matchesPlayed": 0,
+        "placementPoints": 0,
         "killPoints": 0,
         "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      }
-    ],
-    "FREE_FIRE": [
-      {
-        "id": "free_fire-1",
-        "rank": 1,
-        "gameId": "FREE_FIRE",
-        "teamName": "Yenepoya Phantoms",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-2",
-        "rank": 2,
-        "gameId": "FREE_FIRE",
-        "teamName": "Mangalore Vipers",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-3",
-        "rank": 3,
-        "gameId": "FREE_FIRE",
-        "teamName": "Coastal Strikers",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-4",
-        "rank": 4,
-        "gameId": "FREE_FIRE",
-        "teamName": "NIAT Predators",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-5",
-        "rank": 5,
-        "gameId": "FREE_FIRE",
-        "teamName": "Apex Hawks Mangalore",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-6",
-        "rank": 6,
-        "gameId": "FREE_FIRE",
-        "teamName": "Thunderbolts Karavali",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-7",
-        "rank": 7,
-        "gameId": "FREE_FIRE",
-        "teamName": "Delta Force Kudla",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-8",
-        "rank": 8,
-        "gameId": "FREE_FIRE",
-        "teamName": "Vanguard Mangalore",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-9",
-        "rank": 9,
-        "gameId": "FREE_FIRE",
-        "teamName": "Shadow Ravens",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-10",
-        "rank": 10,
-        "gameId": "FREE_FIRE",
-        "teamName": "Titan Squad",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-11",
-        "rank": 11,
-        "gameId": "FREE_FIRE",
-        "teamName": "Rogue Assassins",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
-      },
-      {
-        "id": "free_fire-12",
-        "rank": 12,
-        "gameId": "FREE_FIRE",
-        "teamName": "Neon Storm",
-        "killPoints": 0,
-        "totalPoints": 0,
-        "matchesPlayed": 0,
-        "placementPoints": 0
+        "rank": 8
       }
     ]
   },
-  "matches": [],
-  "lastUpdated": "2026-11-14T06:52:48.337Z"
+  "matches": []
 }

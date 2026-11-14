@@ -70,7 +70,8 @@ function createInitialStoreData(): TournamentStoreData {
   const teamsMap: Record<GameId, TeamScoreEntry[]> = {
     FREE_FIRE: [],
     BGMI: [],
-    FIFA: [],
+    VALORANT: [],
+    EFOOTBALL: [],
     MATIKS: [],
   };
 

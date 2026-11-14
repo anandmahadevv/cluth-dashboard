@@ -5,6 +5,7 @@ import {
   Trophy,
   Flame,
   Crosshair,
+  Target,
   Gamepad2,
   Brain,
   ShieldCheck,
@@ -44,12 +45,20 @@ export default function LeaderboardsPage() {
   } = useGameLeaderboard("BGMI");
 
   const {
-    data: fifaLeaderboard,
-    lastUpdated: fifaUpdated,
-    isRefreshing: fifaRefreshing,
-    refresh: fifaRefresh,
-    isTabActive: fifaActive,
-  } = useGameLeaderboard("FIFA");
+    data: valLeaderboard,
+    lastUpdated: valUpdated,
+    isRefreshing: valRefreshing,
+    refresh: valRefresh,
+    isTabActive: valActive,
+  } = useGameLeaderboard("VALORANT");
+
+  const {
+    data: efLeaderboard,
+    lastUpdated: efUpdated,
+    isRefreshing: efRefreshing,
+    refresh: efRefresh,
+    isTabActive: efActive,
+  } = useGameLeaderboard("EFOOTBALL");
 
   const {
     data: matiksLeaderboard,
@@ -70,11 +79,16 @@ export default function LeaderboardsPage() {
     currentIsRefreshing = bgmiRefreshing;
     currentRefresh = bgmiRefresh;
     currentIsTabActive = bgmiActive;
-  } else if (selectedGame === "FIFA") {
-    currentLastUpdated = fifaUpdated;
-    currentIsRefreshing = fifaRefreshing;
-    currentRefresh = fifaRefresh;
-    currentIsTabActive = fifaActive;
+  } else if (selectedGame === "VALORANT") {
+    currentLastUpdated = valUpdated;
+    currentIsRefreshing = valRefreshing;
+    currentRefresh = valRefresh;
+    currentIsTabActive = valActive;
+  } else if (selectedGame === "EFOOTBALL") {
+    currentLastUpdated = efUpdated;
+    currentIsRefreshing = efRefreshing;
+    currentRefresh = efRefresh;
+    currentIsTabActive = efActive;
   } else if (selectedGame === "MATIKS") {
     currentLastUpdated = matiksUpdated;
     currentIsRefreshing = matiksRefreshing;
@@ -141,32 +155,60 @@ export default function LeaderboardsPage() {
       stat2Value: bgmiLeaderboard[2].totalPoints,
       stat2Label: "total\npoints",
     };
-  } else if (selectedGame === "FIFA" && fifaLeaderboard && fifaLeaderboard.length >= 3) {
+  } else if (selectedGame === "VALORANT" && valLeaderboard && valLeaderboard.length >= 3) {
     first = {
       rank: 1 as const,
-      name: fifaLeaderboard[0].teamName,
-      subtext: "FIFA Champion",
-      stat1Value: fifaLeaderboard[0].killPoints,
-      stat1Label: "goals\nscored",
-      stat2Value: fifaLeaderboard[0].totalPoints,
+      name: valLeaderboard[0].teamName,
+      subtext: "Valorant Champion",
+      stat1Value: valLeaderboard[0].killPoints,
+      stat1Label: "combat\nscore",
+      stat2Value: valLeaderboard[0].totalPoints,
       stat2Label: "total\npoints",
     };
     second = {
       rank: 2 as const,
-      name: fifaLeaderboard[1].teamName,
+      name: valLeaderboard[1].teamName,
       subtext: "1st Runner-Up",
-      stat1Value: fifaLeaderboard[1].killPoints,
-      stat1Label: "goals\nscored",
-      stat2Value: fifaLeaderboard[1].totalPoints,
+      stat1Value: valLeaderboard[1].killPoints,
+      stat1Label: "combat\nscore",
+      stat2Value: valLeaderboard[1].totalPoints,
       stat2Label: "total\npoints",
     };
     third = {
       rank: 3 as const,
-      name: fifaLeaderboard[2].teamName,
+      name: valLeaderboard[2].teamName,
       subtext: "2nd Runner-Up",
-      stat1Value: fifaLeaderboard[2].killPoints,
+      stat1Value: valLeaderboard[2].killPoints,
+      stat1Label: "combat\nscore",
+      stat2Value: valLeaderboard[2].totalPoints,
+      stat2Label: "total\npoints",
+    };
+  } else if (selectedGame === "EFOOTBALL" && efLeaderboard && efLeaderboard.length >= 3) {
+    first = {
+      rank: 1 as const,
+      name: efLeaderboard[0].teamName,
+      subtext: "eFootball Champion",
+      stat1Value: efLeaderboard[0].killPoints,
       stat1Label: "goals\nscored",
-      stat2Value: fifaLeaderboard[2].totalPoints,
+      stat2Value: efLeaderboard[0].totalPoints,
+      stat2Label: "total\npoints",
+    };
+    second = {
+      rank: 2 as const,
+      name: efLeaderboard[1].teamName,
+      subtext: "1st Runner-Up",
+      stat1Value: efLeaderboard[1].killPoints,
+      stat1Label: "goals\nscored",
+      stat2Value: efLeaderboard[1].totalPoints,
+      stat2Label: "total\npoints",
+    };
+    third = {
+      rank: 3 as const,
+      name: efLeaderboard[2].teamName,
+      subtext: "2nd Runner-Up",
+      stat1Value: efLeaderboard[2].killPoints,
+      stat1Label: "goals\nscored",
+      stat2Value: efLeaderboard[2].totalPoints,
       stat2Label: "total\npoints",
     };
   } else if (selectedGame === "MATIKS" && matiksLeaderboard && matiksLeaderboard.length >= 3) {
@@ -245,7 +287,8 @@ export default function LeaderboardsPage() {
             >
               {gId === "FREE_FIRE" && <Flame className="w-4 h-4 text-amber-500" />}
               {gId === "BGMI" && <Crosshair className="w-4 h-4 text-blue-500" />}
-              {gId === "FIFA" && <Gamepad2 className="w-4 h-4 text-emerald-500" />}
+              {gId === "VALORANT" && <Target className="w-4 h-4 text-rose-500" />}
+              {gId === "EFOOTBALL" && <Gamepad2 className="w-4 h-4 text-emerald-500" />}
               {gId === "MATIKS" && <Brain className="w-4 h-4 text-purple-500" />}
               <span>{config.name}</span>
             </button>
@@ -288,10 +331,18 @@ export default function LeaderboardsPage() {
           />
         )}
 
-        {selectedGame === "FIFA" && (
+        {selectedGame === "VALORANT" && (
           <LeaderboardTable
-            entries={(fifaLeaderboard as any[]) || []}
-            gameName="FIFA 24"
+            entries={valLeaderboard || []}
+            gameName="Valorant"
+            gameColor="#ef4444"
+          />
+        )}
+
+        {selectedGame === "EFOOTBALL" && (
+          <LeaderboardTable
+            entries={(efLeaderboard as any[]) || []}
+            gameName="eFootball"
             gameColor="#10b981"
           />
         )}

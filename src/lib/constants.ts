@@ -14,7 +14,7 @@ export const EVENT_DETAILS = {
   tagline: "The Pinnacle of Collegiate E-Sports in Coastal Karnataka",
   organizer: "NIAT in association with Yenepoya University",
   description:
-    "Official public broadcast companion for CLUTCH 2026. Real-time verified leaderboards, live match results, and Super Admin-approved standings for Free Fire, BGMI, FIFA, and MATIKS.",
+    "Official public broadcast companion for CLUTCH 2026. Real-time verified leaderboards, live match results, and Super Admin-approved standings for Free Fire, BGMI, Valorant, eFootball, and MATIKS.",
 };
 
 export const GAMES_CONFIG: Record<GameId, GameConfig> = {
@@ -31,7 +31,7 @@ export const GAMES_CONFIG: Record<GameId, GameConfig> = {
     bgGradient: "from-amber-950/40 via-zinc-900/60 to-black",
     bannerImage: "/images/freefire-banner.jpg",
     rulesOverview:
-      "Official 10-point scoring matrix. Points awarded for rank placement + 1 kill point per confirmed elimination.",
+      "Official 12-point scoring matrix. Points awarded for rank placement + 1 kill point per confirmed elimination.",
     scoringFormat: "Placement Points + Kill Points",
   },
   BGMI: {
@@ -47,23 +47,39 @@ export const GAMES_CONFIG: Record<GameId, GameConfig> = {
     bgGradient: "from-blue-950/40 via-zinc-900/60 to-black",
     bannerImage: "/images/bgmi-banner.jpg",
     rulesOverview:
-      "Standard BGIS/BMSD scoring matrix. Rank 1 receives 10 pts, Rank 2 receives 6 pts, down to 0, plus 1 point per kill.",
+      "Standard 15-point scoring matrix. Rank 1 receives 15 pts, Rank 2 receives 12 pts, down to 0, plus 1 point per kill.",
     scoringFormat: "Placement Points + Kill Points",
   },
-  FIFA: {
-    id: "FIFA",
-    name: "FIFA",
-    slug: "fifa",
+  VALORANT: {
+    id: "VALORANT",
+    name: "Valorant",
+    slug: "valorant",
+    badge: "TACTICAL 5v5 FPS",
+    tagline: "Defy the Limits • Precision Gunplay & Tactical Abilities",
+    genre: "Character-Based Tactical Shooter (5v5)",
+    format: "5v5 Squads • Spike Rush / Standard Tournament Bracket",
+    color: "#ef4444", // Crimson Red
+    accentGlow: "rgba(239, 68, 68, 0.35)",
+    bgGradient: "from-rose-950/40 via-zinc-900/60 to-black",
+    bannerImage: "/images/valorant-banner.jpg",
+    rulesOverview:
+      "First to 13 rounds wins the match. Standings determined by Match Wins (10 pts for 1st, 6 for 2nd) + Round differential/eliminations.",
+    scoringFormat: "Round Wins • Combat Score + Match Points",
+  },
+  EFOOTBALL: {
+    id: "EFOOTBALL",
+    name: "eFootball",
+    slug: "efootball",
     badge: "CONSOLE 1v1",
-    tagline: "Precision Virtual Football • Knockout Tournament",
-    genre: "Sports Simulation (1v1)",
+    tagline: "Precision Virtual Football • Championship Knockout",
+    genre: "Sports Football Simulation (1v1)",
     format: "1v1 Matches • Single Elimination Bracket",
-    color: "#10b981", // Emerald Green / Pitch
+    color: "#10b981", // Pitch Green
     accentGlow: "rgba(16, 185, 129, 0.35)",
     bgGradient: "from-emerald-950/40 via-zinc-900/60 to-black",
     bannerImage: "/images/fifa-banner.jpg",
     rulesOverview:
-      "Standard 12-minute halves (6 mins real-time). Draw rule: Extra time followed by penalty shootout in knockout stages.",
+      "Standard 10-minute exhibition matches. Draw rule: Extra time followed by penalty shootout in knockout stages. 10 pts for 1st place.",
     scoringFormat: "Goals Scored • Head-to-Head W/D/L",
   },
   MATIKS: {
@@ -79,7 +95,7 @@ export const GAMES_CONFIG: Record<GameId, GameConfig> = {
     bgGradient: "from-purple-950/40 via-zinc-900/60 to-black",
     bannerImage: "/images/matiks-banner.jpg",
     rulesOverview:
-      "Scoring calculated via the official tournament accuracy vs. speed coefficient. Configured dynamically from approved admin rules.",
+      "Scoring calculated via accuracy and speed solving rounds. 10 pts for 1st place, plus bonus challenge points.",
     scoringFormat: "Accuracy & Velocity Matrix Score",
   },
 };

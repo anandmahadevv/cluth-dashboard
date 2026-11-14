@@ -1,4 +1,4 @@
-export type GameId = "FREE_FIRE" | "BGMI" | "FIFA" | "MATIKS";
+export type GameId = "FREE_FIRE" | "BGMI" | "VALORANT" | "EFOOTBALL" | "MATIKS";
 
 export type TournamentStatus = "Upcoming" | "Live" | "Completed" | "upcoming" | "live" | "completed";
 
@@ -48,6 +48,26 @@ export interface FreeFireLeaderboardEntry {
 }
 
 export interface BgmiLeaderboardEntry {
+  rank: number;
+  teamName: string;
+  matchesPlayed: number;
+  placementPoints: number;
+  killPoints: number;
+  totalPoints: number;
+  lastMatchRank?: number;
+}
+
+export interface ValorantLeaderboardEntry {
+  rank: number;
+  teamName: string;
+  matchesPlayed: number;
+  placementPoints: number;
+  killPoints: number;
+  totalPoints: number;
+  lastMatchRank?: number;
+}
+
+export interface EfootballLeaderboardEntry {
   rank: number;
   teamName: string;
   matchesPlayed: number;

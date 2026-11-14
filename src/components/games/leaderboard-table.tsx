@@ -2,10 +2,22 @@
 
 import { useState } from "react";
 import { Search, ArrowUpDown } from "lucide-react";
-import { FreeFireLeaderboardEntry, BgmiLeaderboardEntry } from "@/types";
+import {
+  FreeFireLeaderboardEntry,
+  BgmiLeaderboardEntry,
+  ValorantLeaderboardEntry,
+  EfootballLeaderboardEntry,
+  LeaderboardEntry,
+} from "@/types";
 import { cn } from "@/lib/utils";
 
-type LeaderboardRow = FreeFireLeaderboardEntry | BgmiLeaderboardEntry;
+type LeaderboardRow =
+  | FreeFireLeaderboardEntry
+  | BgmiLeaderboardEntry
+  | ValorantLeaderboardEntry
+  | EfootballLeaderboardEntry
+  | LeaderboardEntry
+  | any;
 
 interface LeaderboardTableProps {
   entries: LeaderboardRow[];

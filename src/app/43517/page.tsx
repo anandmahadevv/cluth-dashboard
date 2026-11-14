@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   Flame,
   Crosshair,
+  Target,
   Gamepad2,
   Brain,
   UploadCloud,
@@ -798,7 +799,8 @@ export default function SuperAdminPortalPage() {
                   <option value="ALL">All Games</option>
                   <option value="FREE_FIRE">Free Fire</option>
                   <option value="BGMI">BGMI</option>
-                  <option value="FIFA">FIFA</option>
+                  <option value="VALORANT">Valorant</option>
+                  <option value="EFOOTBALL">eFootball</option>
                   <option value="MATIKS">MATIKS</option>
                 </select>
               </div>
@@ -846,7 +848,9 @@ export default function SuperAdminPortalPage() {
                                 ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
                                 : sub.gameId === "BGMI"
                                 ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                : sub.gameId === "FIFA"
+                                : sub.gameId === "VALORANT"
+                                ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                : sub.gameId === "EFOOTBALL"
                                 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                 : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
                             }`}
@@ -1064,11 +1068,12 @@ export default function SuperAdminPortalPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
                 {[
                   { id: "FREE_FIRE" as GameId, label: "Free Fire", icon: Flame, color: "text-orange-400" },
                   { id: "BGMI" as GameId, label: "BGMI", icon: Crosshair, color: "text-amber-400" },
-                  { id: "FIFA" as GameId, label: "FIFA", icon: Gamepad2, color: "text-emerald-400" },
+                  { id: "VALORANT" as GameId, label: "Valorant", icon: Target, color: "text-red-400" },
+                  { id: "EFOOTBALL" as GameId, label: "eFootball", icon: Gamepad2, color: "text-emerald-400" },
                   { id: "MATIKS" as GameId, label: "MATIKS", icon: Brain, color: "text-purple-400" },
                 ].map((g) => {
                   const Icon = g.icon;
@@ -1100,14 +1105,12 @@ export default function SuperAdminPortalPage() {
                     {directGame} Team Roster ({teams.length} Squads)
                   </h3>
 
-                  {(directGame === "FREE_FIRE" || directGame === "BGMI") && (
-                    <button
-                      onClick={handleAutoFillPlacements}
-                      className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold"
-                    >
-                      Auto-Fill (1 to {teams.length})
-                    </button>
-                  )}
+                  <button
+                    onClick={handleAutoFillPlacements}
+                    className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold"
+                  >
+                    Auto-Fill (1 to {teams.length})
+                  </button>
                 </div>
 
                 {isLoadingTeams ? (
@@ -1122,7 +1125,7 @@ export default function SuperAdminPortalPage() {
                           <th className="py-2.5 px-3">Team (Rank Ordered)</th>
                           <th className="py-2.5 px-2 text-center w-28">Match Rank</th>
                           <th className="py-2.5 px-2 text-center w-24">
-                            {directGame === "FIFA" ? "Goals" : directGame === "MATIKS" ? "Bonus Pts" : "Kills"}
+                            {directGame === "EFOOTBALL" ? "Goals" : directGame === "MATIKS" ? "Bonus Pts" : "Kills"}
                           </th>
                           <th className="py-2.5 px-3 text-right">Points</th>
                         </tr>

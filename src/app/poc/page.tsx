@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Flame,
   Crosshair,
+  Target,
   Gamepad2,
   Brain,
   Loader2,
@@ -381,7 +382,8 @@ export default function PocPortalPage() {
                   {[
                     { id: "FREE_FIRE" as GameId, label: "Free Fire", icon: Flame, color: "text-orange-400" },
                     { id: "BGMI" as GameId, label: "BGMI", icon: Crosshair, color: "text-amber-400" },
-                    { id: "FIFA" as GameId, label: "FIFA 24", icon: Gamepad2, color: "text-emerald-400" },
+                    { id: "VALORANT" as GameId, label: "Valorant", icon: Target, color: "text-red-400" },
+                    { id: "EFOOTBALL" as GameId, label: "eFootball", icon: Gamepad2, color: "text-emerald-400" },
                     { id: "MATIKS" as GameId, label: "MATIKS", icon: Brain, color: "text-purple-400" },
                   ].map((g) => {
                     const Icon = g.icon;
@@ -542,7 +544,7 @@ export default function PocPortalPage() {
                           <th className="py-2.5 px-3">Team (Rank Ordered)</th>
                           <th className="py-2.5 px-2 text-center w-28">Match Rank</th>
                           <th className="py-2.5 px-2 text-center w-24">
-                            {selectedGame === "FIFA" ? "Goals" : selectedGame === "MATIKS" ? "Bonus Pts" : "Kills"}
+                            {selectedGame === "EFOOTBALL" ? "Goals" : selectedGame === "MATIKS" ? "Bonus Pts" : "Kills"}
                           </th>
                           <th className="py-2.5 px-3 text-right">Match Points</th>
                         </tr>

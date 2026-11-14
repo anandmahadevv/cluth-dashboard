@@ -11,7 +11,9 @@ export const VALID_GAME_CODES: Record<string, GameId | "ALL"> = {
   "CLUTCH-SUPER-2026": "ALL", // Master Super Admin Fallback
   "CLT-FF-2026X": "FREE_FIRE",
   "CLT-BG-2026X": "BGMI",
-  "CLT-FI-2026X": "FIFA",
+  "CLT-VL-2026X": "VALORANT",
+  "CLT-EF-2026X": "EFOOTBALL",
+  "CLT-FI-2026X": "EFOOTBALL", // Backward compatibility alias
   "CLT-MT-2026X": "MATIKS",
 };
 
@@ -19,7 +21,8 @@ export const VALID_GAME_CODES: Record<string, GameId | "ALL"> = {
 export const PLACEMENT_POINTS: Record<GameId, number[]> = {
   FREE_FIRE: [12, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0], // 12 Squads: 1st=12, 2nd=9, 3rd=8, 4th=7...
   BGMI: [15, 12, 10, 8, 6, 4, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0], // 16 Squads: 1st=15, 2nd=12, 3rd=10...
-  FIFA: [10, 6, 4, 2, 1, 1, 1, 1], // 8 Players: 1st (Winner)=10, 2nd=6, 3rd=4, 4th=2...
+  VALORANT: [10, 6, 4, 2, 1, 1, 1, 1], // 8 Squads: 1st=10, 2nd=6, 3rd=4, 4th=2...
+  EFOOTBALL: [10, 6, 4, 2, 1, 1, 1, 1], // 8 Players: 1st (Winner)=10, 2nd=6, 3rd=4, 4th=2...
   MATIKS: [10, 8, 6, 4, 3, 2, 1, 0], // 8 Speed/Logic Solvers: 1st=10, 2nd=8, 3rd=6...
 };
 
@@ -57,15 +60,25 @@ export const INITIAL_TEAMS: Record<GameId, string[]> = {
     "Tectonic Titans",
     "Dark Horse Mangalore",
   ],
-  FIFA: [
-    "Zayd Khan (Real Madrid)",
-    "Rohit Shetty (Man City)",
+  VALORANT: [
+    "Team Liquid Kudla",
+    "Sentinels Mangalore",
+    "Fnatic Yenepoya",
+    "Paper Rex Coastal",
+    "Optic Gaming NIAT",
+    "Global Esports Karnataka",
+    "Velocity Gaming Mangalore",
+    "Enigma Gaming Kudla",
+  ],
+  EFOOTBALL: [
+    "Zayd Khan (FC Barcelona)",
+    "Rohit Shetty (Manchester City)",
     "Neil D'Souza (Bayern Munich)",
     "Farhan Ahmed (Arsenal)",
     "Kevin Rodrigues (PSG)",
-    "Aakash Rao (Liverpool)",
-    "Danish Sheikh (Barcelona)",
-    "Pratham Naik (Inter Milan)",
+    "Aakash Rao (Real Madrid)",
+    "Danish Sheikh (Inter Milan)",
+    "Pratham Naik (Liverpool)",
   ],
   MATIKS: [
     "Aditya Rao",

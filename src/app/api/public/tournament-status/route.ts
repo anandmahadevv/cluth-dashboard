@@ -28,7 +28,7 @@ export async function GET() {
       statusMessage: matchesCount > 0 
         ? `${matchesCount} verified matches recorded across championship arenas.` 
         : "Tournament open. Teams initialized at 0 score, awaiting match results.",
-      totalGames: 4,
+      totalGames: 5,
       matchesCompleted: matchesCount,
       approvedResultsCount: matchesCount,
       totalParticipatingTeams: totalTeams,

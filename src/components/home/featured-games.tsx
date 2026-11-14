@@ -21,14 +21,14 @@ export function FeaturedGames({ matchCounts, isLoading = false }: FeaturedGamesP
             Featured Games
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Compete across four thrilling titles in the ultimate esports showdown.
+            Compete across five thrilling titles in the ultimate esports showdown.
           </p>
         </div>
 
         {/* Games grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
                 className="rounded-xl border border-border bg-card p-6 animate-pulse"
@@ -42,7 +42,7 @@ export function FeaturedGames({ matchCounts, isLoading = false }: FeaturedGamesP
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {games.map((game) => (
               <GameCard
                 key={game.id}

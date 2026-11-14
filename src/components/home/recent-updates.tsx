@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, Flame, Crosshair, Trophy, Brain, Inbox } from 'lucide-react';
+import { Clock, Flame, Crosshair, Trophy, Brain, Inbox, Target, Gamepad2 } from 'lucide-react';
 import { GAMES } from '@/lib/constants';
 import type { MatchResult, GameConfig } from '@/types';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,13 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Crosshair,
   Trophy,
   Brain,
+  Target,
+  Gamepad2,
+  FREE_FIRE: Flame,
+  BGMI: Crosshair,
+  VALORANT: Target,
+  EFOOTBALL: Gamepad2,
+  MATIKS: Brain,
 };
 
 function getRelativeTime(dateStr: string): string {

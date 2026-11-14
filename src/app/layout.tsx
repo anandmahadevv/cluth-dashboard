@@ -13,7 +13,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: `${EVENT_DETAILS.brand} – Live Public E-Sports Leaderboard`,
-  description: `${EVENT_DETAILS.fullName} at ${EVENT_DETAILS.venue} on ${EVENT_DETAILS.dateFormatted}. Real-time verified standings for Free Fire, BGMI, FIFA, and MATIKS.`,
+  description: `${EVENT_DETAILS.fullName} at ${EVENT_DETAILS.venue} on ${EVENT_DETAILS.dateFormatted}. Real-time verified standings for Free Fire, BGMI, Valorant, eFootball, and MATIKS.`,
   keywords: [
     "CLUTCH",
     "NIAT",
@@ -22,7 +22,8 @@ export const metadata: Metadata = {
     "Yenepoya University",
     "Free Fire",
     "BGMI",
-    "FIFA",
+    "Valorant",
+    "eFootball",
     "MATIKS",
     "Leaderboards",
   ],

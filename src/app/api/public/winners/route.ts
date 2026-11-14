@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
-  const games: GameId[] = ["FREE_FIRE", "BGMI", "FIFA", "MATIKS"];
+  const games: GameId[] = ["FREE_FIRE", "BGMI", "VALORANT", "EFOOTBALL", "MATIKS"];
   const winners: any[] = [];
 
   for (const g of games) {
