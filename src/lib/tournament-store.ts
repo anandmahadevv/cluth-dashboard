@@ -406,9 +406,33 @@ export function recordMatchSubmission(params: {
 /**
  * Super Admin review action: APPROVE or REJECT a submission
  */
+/**
+ * Helper to rollback points awarded by an approved match
+ */
+function rollbackMatchScores(store: TournamentStoreData, match: MatchSubmission) {
+  if (match.status === "APPROVED") {
+    const teams = store.teams[match.gameId];
+    if (teams && match.teamResults) {
+      match.teamResults.forEach((res) => {
+        const team = teams.find((t) => t.id === res.teamId);
+        if (team) {
+          team.matchesPlayed = Math.max(0, team.matchesPlayed - 1);
+          team.placementPoints = Math.max(0, team.placementPoints - res.placementPoints);
+          team.killPoints = Math.max(0, team.killPoints - res.kills);
+          team.totalPoints = Math.max(0, team.totalPoints - res.matchPoints);
+        }
+      });
+      store.teams[match.gameId] = sortAndRankTeams(teams);
+    }
+  }
+}
+
+/**
+ * Super Admin Review/Action on a submission: APPROVE, REJECT, UNDO (revert to pending), or DELETE
+ */
 export function reviewMatchSubmission(params: {
   submissionId: string;
-  action: "APPROVE" | "REJECT";
+  action: "APPROVE" | "REJECT" | "UNDO" | "DELETE";
   adminPassword: string;
   rejectionReason?: string;
 }): { success: boolean; match?: MatchSubmission; leaderboard?: TeamScoreEntry[]; error?: string } {
@@ -423,10 +447,9 @@ export function reviewMatchSubmission(params: {
   }
 
   if (params.action === "APPROVE") {
-    // Only apply points if not already approved
     if (match.status !== "APPROVED") {
       const teams = store.teams[match.gameId];
-      if (teams) {
+      if (teams && match.teamResults) {
         match.teamResults.forEach((res) => {
           const team = teams.find((t) => t.id === res.teamId);
           if (team) {
@@ -444,6 +467,7 @@ export function reviewMatchSubmission(params: {
     match.status = "APPROVED";
     match.reviewedAt = new Date().toISOString();
     match.reviewedBy = "SuperAdmin";
+    match.rejectionReason = undefined;
     saveStore(store);
 
     return {
@@ -451,31 +475,43 @@ export function reviewMatchSubmission(params: {
       match,
       leaderboard: store.teams[match.gameId],
     };
-  } else {
-    // REJECT action: if it was previously approved, revert points
-    if (match.status === "APPROVED") {
-      const teams = store.teams[match.gameId];
-      if (teams) {
-        match.teamResults.forEach((res) => {
-          const team = teams.find((t) => t.id === res.teamId);
-          if (team) {
-            team.matchesPlayed = Math.max(0, team.matchesPlayed - 1);
-            team.placementPoints = Math.max(0, team.placementPoints - res.placementPoints);
-            team.killPoints = Math.max(0, team.killPoints - res.kills);
-            team.totalPoints = Math.max(0, team.totalPoints - res.matchPoints);
-          }
-        });
-        store.teams[match.gameId] = sortAndRankTeams(teams);
-      }
-    }
+  } else if (params.action === "UNDO") {
+    // Revert approved match back to PENDING and rollback points
+    rollbackMatchScores(store, match);
+    match.status = "PENDING";
+    match.reviewedAt = undefined;
+    match.reviewedBy = undefined;
+    match.rejectionReason = undefined;
+    saveStore(store);
 
+    return {
+      success: true,
+      match,
+      leaderboard: store.teams[match.gameId],
+    };
+  } else if (params.action === "DELETE") {
+    // Permanently delete match and rollback points if approved
+    rollbackMatchScores(store, match);
+    const idx = store.matches.findIndex((m) => m.id === params.submissionId);
+    if (idx !== -1) {
+      store.matches.splice(idx, 1);
+    }
+    saveStore(store);
+
+    return {
+      success: true,
+      leaderboard: store.teams[match.gameId],
+    };
+  } else {
+    // REJECT action: rollback points if it was approved
+    rollbackMatchScores(store, match);
     match.status = "REJECTED";
     match.reviewedAt = new Date().toISOString();
     match.reviewedBy = "SuperAdmin";
     match.rejectionReason = params.rejectionReason || "Submission rejected by Super Admin.";
     saveStore(store);
 
-    return { success: true, match };
+    return { success: true, match, leaderboard: store.teams[match.gameId] };
   }
 }
 
@@ -611,11 +647,11 @@ export async function recordMatchSubmissionAsync(params: {
 }
 
 /**
- * Super Admin review action: APPROVE or REJECT a submission (async with Supabase persistence)
+ * Super Admin review action: APPROVE, REJECT, UNDO, or DELETE a submission (async with Supabase persistence)
  */
 export async function reviewMatchSubmissionAsync(params: {
   submissionId: string;
-  action: "APPROVE" | "REJECT";
+  action: "APPROVE" | "REJECT" | "UNDO" | "DELETE";
   adminPassword: string;
   rejectionReason?: string;
 }): Promise<{ success: boolean; match?: MatchSubmission; leaderboard?: TeamScoreEntry[]; error?: string }> {
@@ -632,7 +668,7 @@ export async function reviewMatchSubmissionAsync(params: {
   if (params.action === "APPROVE") {
     if (match.status !== "APPROVED") {
       const teams = store.teams[match.gameId];
-      if (teams) {
+      if (teams && match.teamResults) {
         match.teamResults.forEach((res) => {
           const team = teams.find((t) => t.id === res.teamId);
           if (team) {
@@ -650,6 +686,7 @@ export async function reviewMatchSubmissionAsync(params: {
     match.status = "APPROVED";
     match.reviewedAt = new Date().toISOString();
     match.reviewedBy = "SuperAdmin";
+    match.rejectionReason = undefined;
     await saveStoreAsync(store);
 
     return {
@@ -657,30 +694,43 @@ export async function reviewMatchSubmissionAsync(params: {
       match,
       leaderboard: store.teams[match.gameId],
     };
-  } else {
-    if (match.status === "APPROVED") {
-      const teams = store.teams[match.gameId];
-      if (teams) {
-        match.teamResults.forEach((res) => {
-          const team = teams.find((t) => t.id === res.teamId);
-          if (team) {
-            team.matchesPlayed = Math.max(0, team.matchesPlayed - 1);
-            team.placementPoints = Math.max(0, team.placementPoints - res.placementPoints);
-            team.killPoints = Math.max(0, team.killPoints - res.kills);
-            team.totalPoints = Math.max(0, team.totalPoints - res.matchPoints);
-          }
-        });
-        store.teams[match.gameId] = sortAndRankTeams(teams);
-      }
-    }
+  } else if (params.action === "UNDO") {
+    // Rollback points and restore match status to PENDING
+    rollbackMatchScores(store, match);
+    match.status = "PENDING";
+    match.reviewedAt = undefined;
+    match.reviewedBy = undefined;
+    match.rejectionReason = undefined;
+    await saveStoreAsync(store);
 
+    return {
+      success: true,
+      match,
+      leaderboard: store.teams[match.gameId],
+    };
+  } else if (params.action === "DELETE") {
+    // Rollback points if approved and remove match from store
+    rollbackMatchScores(store, match);
+    const idx = store.matches.findIndex((m) => m.id === params.submissionId);
+    if (idx !== -1) {
+      store.matches.splice(idx, 1);
+    }
+    await saveStoreAsync(store);
+
+    return {
+      success: true,
+      leaderboard: store.teams[match.gameId],
+    };
+  } else {
+    // REJECT action: rollback points if previously approved
+    rollbackMatchScores(store, match);
     match.status = "REJECTED";
     match.reviewedAt = new Date().toISOString();
     match.reviewedBy = "SuperAdmin";
     match.rejectionReason = params.rejectionReason || "Submission rejected by Super Admin.";
     await saveStoreAsync(store);
 
-    return { success: true, match };
+    return { success: true, match, leaderboard: store.teams[match.gameId] };
   }
 }
 

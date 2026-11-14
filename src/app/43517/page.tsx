@@ -114,7 +114,7 @@ export default function SuperAdminPortalPage() {
   const [submissions, setSubmissions] = useState<SubmissionRecord[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
-  const [reviewAction, setReviewAction] = useState<"APPROVE" | "REJECT" | null>(null);
+  const [reviewAction, setReviewAction] = useState<"APPROVE" | "REJECT" | "UNDO" | "DELETE" | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState("");
   const [actionErrorMsg, setActionErrorMsg] = useState("");
   const [rejectionModalSub, setRejectionModalSub] = useState<SubmissionRecord | null>(null);
@@ -449,6 +449,82 @@ export default function SuperAdminPortalPage() {
       setTimeout(() => setActionSuccessMsg(""), 4000);
     } catch (err: any) {
       setActionErrorMsg(err.message || "Error approving submission.");
+    } finally {
+      setReviewingId(null);
+      setReviewAction(null);
+    }
+  };
+
+  // Super Admin: Undo Approval (Revert to Pending & Subtract Points)
+  const handleUndoSubmission = async (submissionId: string) => {
+    if (!confirm("Are you sure you want to UNDO this approval? All points will be deducted from team scores and this submission will return to the Pending queue.")) {
+      return;
+    }
+
+    setReviewingId(submissionId);
+    setReviewAction("UNDO");
+    setActionErrorMsg("");
+    setActionSuccessMsg("");
+
+    try {
+      const res = await fetch("/api/poc/review-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionId,
+          action: "UNDO",
+          adminPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to undo approval.");
+      }
+
+      setActionSuccessMsg("Approval UNDONE! Points rolled back from leaderboard and match returned to Pending queue.");
+      await fetchSubmissions();
+      setTimeout(() => setActionSuccessMsg(""), 4000);
+    } catch (err: any) {
+      setActionErrorMsg(err.message || "Error undoing submission.");
+    } finally {
+      setReviewingId(null);
+      setReviewAction(null);
+    }
+  };
+
+  // Super Admin: Permanently Delete Match Submission
+  const handleDeleteSubmission = async (submissionId: string) => {
+    if (!confirm("Are you sure you want to PERMANENTLY DELETE this match submission? If it was approved, all points will be subtracted from the leaderboard immediately.")) {
+      return;
+    }
+
+    setReviewingId(submissionId);
+    setReviewAction("DELETE");
+    setActionErrorMsg("");
+    setActionSuccessMsg("");
+
+    try {
+      const res = await fetch("/api/poc/review-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionId,
+          action: "DELETE",
+          adminPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete submission.");
+      }
+
+      setActionSuccessMsg("Match submission permanently deleted and team scores recalculated!");
+      await fetchSubmissions();
+      setTimeout(() => setActionSuccessMsg(""), 4000);
+    } catch (err: any) {
+      setActionErrorMsg(err.message || "Error deleting submission.");
     } finally {
       setReviewingId(null);
       setReviewAction(null);
@@ -1182,9 +1258,22 @@ export default function SuperAdminPortalPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {isPending && (
                             <>
+                              <button
+                                onClick={() => handleDeleteSubmission(sub.id)}
+                                disabled={isProcessing}
+                                className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700/60 transition disabled:opacity-50"
+                                title="Delete Submission"
+                              >
+                                {isProcessing && reviewAction === "DELETE" ? (
+                                  <Loader2 className="w-4 h-4 animate-spin text-red-400" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </button>
+
                               <button
                                 onClick={() => setRejectionModalSub(sub)}
                                 disabled={isProcessing}
@@ -1214,14 +1303,58 @@ export default function SuperAdminPortalPage() {
                             </>
                           )}
 
-                          {!isPending && (
-                            <button
-                              onClick={() => handleApproveSubmission(sub.id)}
-                              disabled={isProcessing}
-                              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
-                            >
-                              Re-Publish / Sync Standings
-                            </button>
+                          {isApproved && (
+                            <>
+                              <button
+                                onClick={() => handleUndoSubmission(sub.id)}
+                                disabled={isProcessing}
+                                className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
+                                title="Revert points and return submission to Pending review"
+                              >
+                                {isProcessing && reviewAction === "UNDO" ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                )}
+                                <span>Undo Approval (Revert)</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteSubmission(sub.id)}
+                                disabled={isProcessing}
+                                className="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold transition flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
+                                title="Permanently delete this match and subtract points from leaderboard"
+                              >
+                                {isProcessing && reviewAction === "DELETE" ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                                <span>Delete Match</span>
+                              </button>
+                            </>
+                          )}
+
+                          {isRejected && (
+                            <>
+                              <button
+                                onClick={() => handleUndoSubmission(sub.id)}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition flex items-center gap-1.5"
+                              >
+                                <RotateCcw className="w-3 h-3 text-amber-400" />
+                                <span>Re-open as Pending</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteSubmission(sub.id)}
+                                disabled={isProcessing}
+                                className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition text-xs"
+                                title="Delete Rejected Record"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>

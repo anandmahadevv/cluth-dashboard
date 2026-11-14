@@ -124,3 +124,4 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: false, error: err.message || "Failed to remove team." }, { status: 500 });
   }
 }
+
