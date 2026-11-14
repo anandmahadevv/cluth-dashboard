@@ -1,8 +1,13 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  return createClient(request);
+  try {
+    return createClient(request);
+  } catch (error) {
+    console.warn("Middleware caught error, continuing request:", error);
+    return NextResponse.next();
+  }
 }
 
 export const config = {
@@ -17,4 +22,5 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
+
 
