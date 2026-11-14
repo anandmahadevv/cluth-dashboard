@@ -21,7 +21,6 @@ import { LeaderboardTable } from "@/components/games/leaderboard-table";
 import { FifaTable } from "@/components/games/fifa-table";
 import { MatiksTable } from "@/components/games/matiks-table";
 import { ShareModal } from "@/components/shared/share-modal";
-import { PocScoringModal } from "@/components/poc/poc-scoring-modal";
 
 export default function HomePage() {
   const [selectedGame, setSelectedGame] = useState<GameId>("FREE_FIRE");
@@ -36,6 +35,8 @@ export default function HomePage() {
 
   const { data: ffLeaderboard } = useGameLeaderboard("FREE_FIRE");
   const { data: bgmiLeaderboard } = useGameLeaderboard("BGMI");
+  const { data: fifaLeaderboard } = useGameLeaderboard("FIFA");
+  const { data: matiksLeaderboard } = useGameLeaderboard("MATIKS");
   const { data: fifaMatches } = useGameMatches("FIFA");
   const { data: matiksResults } = useGameMatches("MATIKS");
 
@@ -98,62 +99,60 @@ export default function HomePage() {
       stat2Value: bgmiLeaderboard[2].totalPoints,
       stat2Label: "total\npoints",
     };
-  } else if (selectedGame === "FIFA" && fifaMatches && fifaMatches.length >= 3) {
-    const fList = fifaMatches as unknown as import("@/types").FifaMatchResult[];
+  } else if (selectedGame === "FIFA" && fifaLeaderboard && fifaLeaderboard.length >= 3) {
     first = {
       rank: 1 as const,
-      name: fList[0].player1 || fList[0].winner || "1st Place",
+      name: fifaLeaderboard[0].teamName,
       subtext: "FIFA Champion",
-      stat1Value: fList[0].goals1 ?? 0,
+      stat1Value: fifaLeaderboard[0].killPoints,
       stat1Label: "goals\nscored",
-      stat2Value: fList[0].winner || "Winner",
-      stat2Label: "match\nwinner",
+      stat2Value: fifaLeaderboard[0].totalPoints,
+      stat2Label: "total\npoints",
     };
     second = {
       rank: 2 as const,
-      name: fList[1].player1 || "2nd Place",
+      name: fifaLeaderboard[1].teamName,
       subtext: "1st Runner-Up",
-      stat1Value: fList[1].goals1 ?? 0,
+      stat1Value: fifaLeaderboard[1].killPoints,
       stat1Label: "goals\nscored",
-      stat2Value: "Finalist",
-      stat2Label: "result",
+      stat2Value: fifaLeaderboard[1].totalPoints,
+      stat2Label: "total\npoints",
     };
     third = {
       rank: 3 as const,
-      name: fList[2].player1 || "3rd Place",
+      name: fifaLeaderboard[2].teamName,
       subtext: "2nd Runner-Up",
-      stat1Value: fList[2].goals1 ?? 0,
+      stat1Value: fifaLeaderboard[2].killPoints,
       stat1Label: "goals\nscored",
-      stat2Value: "3rd",
-      stat2Label: "result",
+      stat2Value: fifaLeaderboard[2].totalPoints,
+      stat2Label: "total\npoints",
     };
-  } else if (selectedGame === "MATIKS" && matiksResults && matiksResults.length >= 3) {
-    const mList = matiksResults as unknown as import("@/types").MatiksMatchResult[];
+  } else if (selectedGame === "MATIKS" && matiksLeaderboard && matiksLeaderboard.length >= 3) {
     first = {
       rank: 1 as const,
-      name: mList[0].playerName,
-      subtext: mList[0].teamName || "Championship Rank 1",
-      stat1Value: "98.8%",
-      stat1Label: "accuracy\nrate",
-      stat2Value: mList[0].score,
+      name: matiksLeaderboard[0].teamName,
+      subtext: "MATIKS 1st Place",
+      stat1Value: matiksLeaderboard[0].matchesPlayed,
+      stat1Label: "rounds\nplayed",
+      stat2Value: matiksLeaderboard[0].totalPoints,
       stat2Label: "matrix\nscore",
     };
     second = {
       rank: 2 as const,
-      name: mList[1].playerName,
-      subtext: mList[1].teamName || "Championship Rank 2",
-      stat1Value: "96.4%",
-      stat1Label: "accuracy\nrate",
-      stat2Value: mList[1].score,
+      name: matiksLeaderboard[1].teamName,
+      subtext: "1st Runner-Up",
+      stat1Value: matiksLeaderboard[1].matchesPlayed,
+      stat1Label: "rounds\nplayed",
+      stat2Value: matiksLeaderboard[1].totalPoints,
       stat2Label: "matrix\nscore",
     };
     third = {
       rank: 3 as const,
-      name: mList[2].playerName,
-      subtext: mList[2].teamName || "Championship Rank 3",
-      stat1Value: "94.0%",
-      stat1Label: "accuracy\nrate",
-      stat2Value: mList[2].score,
+      name: matiksLeaderboard[2].teamName,
+      subtext: "2nd Runner-Up",
+      stat1Value: matiksLeaderboard[2].matchesPlayed,
+      stat1Label: "rounds\nplayed",
+      stat2Value: matiksLeaderboard[2].totalPoints,
       stat2Label: "matrix\nscore",
     };
   }
@@ -275,10 +274,7 @@ export default function HomePage() {
 
           {!isProjectorMode && (
             <div className="flex items-center gap-2">
-              <PocScoringModal initialGame={selectedGame} onSuccess={ffRefresh} />
-              <div className="hidden sm:inline-flex">
-                <ShareModal label="Share" />
-              </div>
+              <ShareModal label="Share" />
             </div>
           )}
         </div>
@@ -309,15 +305,17 @@ export default function HomePage() {
         )}
 
         {selectedGame === "FIFA" && (
-          <FifaTable
-            matches={(fifaMatches as any[]) || []}
+          <LeaderboardTable
+            entries={(fifaLeaderboard as any[]) || []}
+            gameName="FIFA 24"
             isProjector={isProjectorMode}
           />
         )}
 
         {selectedGame === "MATIKS" && (
-          <MatiksTable
-            results={(matiksResults as any[]) || []}
+          <LeaderboardTable
+            entries={(matiksLeaderboard as any[]) || []}
+            gameName="MATIKS"
             isProjector={isProjectorMode}
           />
         )}
