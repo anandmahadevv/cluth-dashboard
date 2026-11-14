@@ -20,6 +20,18 @@ import {
   History,
   FileImage,
   Award,
+  Lock,
+  Unlock,
+  Check,
+  X,
+  Eye,
+  EyeOff,
+  Filter,
+  Inbox,
+  Clock,
+  UserCheck,
+  Ban,
+  Maximize2,
 } from "lucide-react";
 import { GameId } from "@/types";
 import { PLACEMENT_POINTS } from "@/lib/tournament-constants";
@@ -43,13 +55,18 @@ interface TeamScoreInput {
   matchTotal: number;
 }
 
-interface MatchRecord {
+interface SubmissionRecord {
   id: string;
   gameId: GameId;
   matchNumber: number | string;
   timestamp: string;
+  pocCode: string;
   proofUrl: string;
   notes?: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reviewedAt?: string;
+  reviewedBy?: string;
+  rejectionReason?: string;
   teamResults: {
     teamId: string;
     teamName: string;
@@ -63,46 +80,122 @@ interface MatchRecord {
 const SUPER_CODE = "43517";
 
 export default function SuperAdminPortalPage() {
-  const [selectedGame, setSelectedGame] = useState<GameId>("FREE_FIRE");
-  const [teams, setTeams] = useState<TeamEntry[]>([]);
-  const [isLoadingTeams, setIsLoadingTeams] = useState(true);
-  const [loadError, setLoadError] = useState("");
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  // Match Scoring State
+  // Main UI Mode
+  const [mainTab, setMainTab] = useState<"inbox" | "direct" | "history">("inbox");
+  const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  // Submissions Inbox State
+  const [submissions, setSubmissions] = useState<SubmissionRecord[]>([]);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [reviewAction, setReviewAction] = useState<"APPROVE" | "REJECT" | null>(null);
+  const [actionSuccessMsg, setActionSuccessMsg] = useState("");
+  const [actionErrorMsg, setActionErrorMsg] = useState("");
+  const [rejectionModalSub, setRejectionModalSub] = useState<SubmissionRecord | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+
+  // Lightbox for Proof Image
+  const [activeProofModal, setActiveProofModal] = useState<string | null>(null);
+
+  // Direct Scoring State
+  const [directGame, setDirectGame] = useState<GameId>("FREE_FIRE");
+  const [teams, setTeams] = useState<TeamEntry[]>([]);
+  const [isLoadingTeams, setIsLoadingTeams] = useState(false);
   const [matchNumber, setMatchNumber] = useState<number>(1);
   const [scores, setScores] = useState<Record<string, TeamScoreInput>>({});
-  const [proofUrl, setProofUrl] = useState("");
+  const [directProofUrl, setDirectProofUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [notes, setNotes] = useState("");
-
-  // Submission State
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-
-  // History State
-  const [matches, setMatches] = useState<MatchRecord[]>([]);
-  const [activeTab, setActiveTab] = useState<"scoring" | "history">("scoring");
+  const [directNotes, setDirectNotes] = useState("");
+  const [isSubmittingDirect, setIsSubmittingDirect] = useState(false);
+  const [directSuccess, setDirectSuccess] = useState(false);
+  const [directError, setDirectError] = useState("");
 
   // Reset State
-  const [isResetting, setIsResetting] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch Teams & Match History when selectedGame changes
+  // Check sessionStorage on mount
   useEffect(() => {
-    fetchGameData(selectedGame);
-  }, [selectedGame]);
+    const saved = sessionStorage.getItem("clutch_admin_auth");
+    if (saved) {
+      setAdminPassword(saved);
+      setIsAuthenticated(true);
+    }
+  }, []);
 
-  const fetchGameData = async (gameId: GameId) => {
-    setIsLoadingTeams(true);
-    setLoadError("");
-    setSubmitSuccess(false);
+  // Fetch submissions and game data when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSubmissions();
+      fetchTeamsForDirectGame(directGame);
+    }
+  }, [isAuthenticated, directGame]);
+
+  // Handle Admin Password Login
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    setIsAuthenticating(true);
 
     try {
-      // 1. Verify / Fetch teams via verify-code using Super Admin code 43517
+      const res = await fetch("/api/poc/admin-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Incorrect Super Admin password.");
+      }
+
+      setIsAuthenticated(true);
+      sessionStorage.setItem("clutch_admin_auth", adminPassword);
+      fetchSubmissions();
+    } catch (err: any) {
+      setAuthError(err.message || "Authentication failed");
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("clutch_admin_auth");
+    setIsAuthenticated(false);
+    setAdminPassword("");
+  };
+
+  // Fetch all POC submissions
+  const fetchSubmissions = async () => {
+    setIsLoadingSubmissions(true);
+    try {
+      const res = await fetch("/api/poc/submissions");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSubmissions(data.submissions || []);
+      }
+    } catch (err) {
+      console.error("Error fetching submissions:", err);
+    } finally {
+      setIsLoadingSubmissions(false);
+    }
+  };
+
+  // Fetch Teams for direct scoring
+  const fetchTeamsForDirectGame = async (gameId: GameId) => {
+    setIsLoadingTeams(true);
+    try {
       const res = await fetch("/api/poc/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -110,54 +203,112 @@ export default function SuperAdminPortalPage() {
       });
 
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to load teams");
+      if (res.ok && data.success) {
+        setTeams(data.teams);
+
+        const initialScores: Record<string, TeamScoreInput> = {};
+        data.teams.forEach((t: TeamEntry, idx: number) => {
+          const matrix = PLACEMENT_POINTS[gameId as "FREE_FIRE" | "BGMI"];
+          const defaultPlace = idx + 1;
+          const defaultPlacePts = matrix && defaultPlace <= matrix.length ? matrix[defaultPlace - 1] : 0;
+          initialScores[t.id] = {
+            teamId: t.id,
+            placement: defaultPlace,
+            kills: 0,
+            placementPoints: defaultPlacePts,
+            matchTotal: defaultPlacePts,
+          };
+        });
+        setScores(initialScores);
       }
-
-      setTeams(data.teams);
-
-      // Initialize score inputs
-      const initialScores: Record<string, TeamScoreInput> = {};
-      data.teams.forEach((t: TeamEntry, idx: number) => {
-        const matrix = PLACEMENT_POINTS[gameId as "FREE_FIRE" | "BGMI"];
-        const defaultPlace = idx + 1;
-        const defaultPlacePts = matrix && defaultPlace <= matrix.length ? matrix[defaultPlace - 1] : 0;
-        initialScores[t.id] = {
-          teamId: t.id,
-          placement: defaultPlace,
-          kills: 0,
-          placementPoints: defaultPlacePts,
-          matchTotal: defaultPlacePts,
-        };
-      });
-      setScores(initialScores);
-
-      // 2. Fetch match history
-      const matchRes = await fetch(`/api/public/matches?game=${gameId}`);
-      if (matchRes.ok) {
-        const matchData = await matchRes.json();
-        const gameMatches = (matchData.matches || []).filter((m: any) => m.gameId === gameId);
-        setMatches(gameMatches);
-        if (gameMatches.length > 0) {
-          setMatchNumber(gameMatches.length + 1);
-        } else {
-          setMatchNumber(1);
-        }
-      }
-    } catch (err: any) {
-      setLoadError(err.message || "Could not fetch tournament data.");
+    } catch (err) {
+      console.error("Error loading teams for direct scoring", err);
     } finally {
       setIsLoadingTeams(false);
     }
   };
 
+  // Super Admin: Approve Match Submission
+  const handleApproveSubmission = async (submissionId: string) => {
+    setReviewingId(submissionId);
+    setReviewAction("APPROVE");
+    setActionErrorMsg("");
+    setActionSuccessMsg("");
+
+    try {
+      const res = await fetch("/api/poc/review-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionId,
+          action: "APPROVE",
+          adminPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Approval failed.");
+      }
+
+      setActionSuccessMsg("Submission APPROVED & published live to the public dashboard!");
+      await fetchSubmissions();
+      setTimeout(() => setActionSuccessMsg(""), 4000);
+    } catch (err: any) {
+      setActionErrorMsg(err.message || "Error approving submission.");
+    } finally {
+      setReviewingId(null);
+      setReviewAction(null);
+    }
+  };
+
+  // Super Admin: Reject Match Submission
+  const handleConfirmReject = async () => {
+    if (!rejectionModalSub) return;
+
+    setReviewingId(rejectionModalSub.id);
+    setReviewAction("REJECT");
+    setActionErrorMsg("");
+    setActionSuccessMsg("");
+
+    try {
+      const res = await fetch("/api/poc/review-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionId: rejectionModalSub.id,
+          action: "REJECT",
+          adminPassword,
+          rejectionReason: rejectReason || "Rejected by Super Admin",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Rejection failed.");
+      }
+
+      setRejectionModalSub(null);
+      setRejectReason("");
+      setActionSuccessMsg("Submission rejected. Leaderboards remain unchanged.");
+      await fetchSubmissions();
+      setTimeout(() => setActionSuccessMsg(""), 4000);
+    } catch (err: any) {
+      setActionErrorMsg(err.message || "Error rejecting submission.");
+    } finally {
+      setReviewingId(null);
+      setReviewAction(null);
+    }
+  };
+
+  // Direct Scoring Change Handlers
   const handleScoreChange = (teamId: string, field: "placement" | "kills", value: number) => {
     setScores((prev) => {
       const current = prev[teamId] || { teamId, placement: 1, kills: 0, placementPoints: 0, matchTotal: 0 };
       const updated = { ...current, [field]: value };
 
-      if (selectedGame === "FREE_FIRE" || selectedGame === "BGMI") {
-        const matrix = PLACEMENT_POINTS[selectedGame];
+      if (directGame === "FREE_FIRE" || directGame === "BGMI") {
+        const matrix = PLACEMENT_POINTS[directGame];
         const placePts = updated.placement >= 1 && updated.placement <= matrix.length ? matrix[updated.placement - 1] : 0;
         updated.placementPoints = placePts;
         updated.matchTotal = placePts + (updated.kills || 0);
@@ -174,7 +325,7 @@ export default function SuperAdminPortalPage() {
       const updated = { ...prev };
       teams.forEach((t, idx) => {
         const place = idx + 1;
-        const matrix = PLACEMENT_POINTS[selectedGame as "FREE_FIRE" | "BGMI"];
+        const matrix = PLACEMENT_POINTS[directGame as "FREE_FIRE" | "BGMI"];
         const placePts = matrix && place <= matrix.length ? matrix[place - 1] : 0;
         const currentKills = updated[t.id]?.kills || 0;
         updated[t.id] = {
@@ -189,7 +340,7 @@ export default function SuperAdminPortalPage() {
     });
   };
 
-  // Client-Side Canvas Image Compression
+  // Direct Upload with Canvas compression
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -198,14 +349,9 @@ export default function SuperAdminPortalPage() {
     setUploadError("");
 
     try {
-      if (file.size > 15 * 1024 * 1024) {
-        throw new Error("File is too large (>15MB). Please upload a smaller screenshot.");
-      }
-
       const reader = new FileReader();
       reader.onload = (event) => {
         const rawDataUrl = event.target?.result as string;
-
         const img = new Image();
         img.onload = () => {
           try {
@@ -230,30 +376,26 @@ export default function SuperAdminPortalPage() {
             if (ctx) {
               ctx.drawImage(img, 0, 0, width, height);
               const compressed = canvas.toDataURL("image/jpeg", 0.75);
-              setProofUrl(compressed);
+              setDirectProofUrl(compressed);
             } else {
-              setProofUrl(rawDataUrl);
+              setDirectProofUrl(rawDataUrl);
             }
           } catch {
-            setProofUrl(rawDataUrl);
+            setDirectProofUrl(rawDataUrl);
           } finally {
             setIsUploading(false);
           }
         };
-
         img.onerror = () => {
-          setProofUrl(rawDataUrl);
+          setDirectProofUrl(rawDataUrl);
           setIsUploading(false);
         };
-
         img.src = rawDataUrl;
       };
-
       reader.onerror = () => {
         setUploadError("Failed to read image file.");
         setIsUploading(false);
       };
-
       reader.readAsDataURL(file);
     } catch (err: any) {
       setUploadError(err.message || "Image upload failed.");
@@ -261,15 +403,15 @@ export default function SuperAdminPortalPage() {
     }
   };
 
-  // Submit Match Results
-  const handleSubmitMatch = async () => {
-    if (!proofUrl) {
-      setSubmitError("Mandatory Proof Required: Please upload a match result screenshot or enter a proof URL.");
+  // Direct Match Submission (Auto-approved)
+  const handleSubmitDirect = async () => {
+    if (!directProofUrl) {
+      setDirectError("Screenshot or evidence proof is required.");
       return;
     }
 
-    setIsSubmitting(true);
-    setSubmitError("");
+    setIsSubmittingDirect(true);
+    setDirectError("");
 
     try {
       const teamResults = Object.values(scores).map((s) => ({
@@ -283,11 +425,12 @@ export default function SuperAdminPortalPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          gameId: selectedGame,
+          gameId: directGame,
           pocCode: SUPER_CODE,
-          matchNumber: matchNumber,
-          proofUrl: proofUrl,
-          notes: notes,
+          matchNumber,
+          proofUrl: directProofUrl,
+          notes: directNotes,
+          autoApprove: true,
           teamResults,
         }),
       });
@@ -297,34 +440,34 @@ export default function SuperAdminPortalPage() {
         throw new Error(data.error || "Submission failed");
       }
 
-      setSubmitSuccess(true);
-      setProofUrl("");
-      setNotes("");
-
-      // Refresh data
-      await fetchGameData(selectedGame);
+      setDirectSuccess(true);
+      setDirectProofUrl("");
+      setDirectNotes("");
+      await fetchTeamsForDirectGame(directGame);
+      await fetchSubmissions();
     } catch (err: any) {
-      setSubmitError(err.message || "Error submitting match results.");
+      setDirectError(err.message || "Error submitting match results.");
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingDirect(false);
     }
   };
 
-  // Reset Scores (Super Admin Only)
+  // Reset Game Data
   const handleResetScores = async () => {
     setIsResetting(true);
     try {
       const res = await fetch("/api/poc/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: SUPER_CODE, gameId: selectedGame }),
+        body: JSON.stringify({ code: SUPER_CODE, gameId: directGame }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Reset failed");
       }
       setResetModalOpen(false);
-      await fetchGameData(selectedGame);
+      await fetchTeamsForDirectGame(directGame);
+      await fetchSubmissions();
     } catch (err: any) {
       alert("Reset error: " + err.message);
     } finally {
@@ -332,44 +475,148 @@ export default function SuperAdminPortalPage() {
     }
   };
 
+  // Filter Submissions
+  const filteredSubmissions = submissions.filter((s) => {
+    if (selectedGameFilter !== "ALL" && s.gameId !== selectedGameFilter) return false;
+    if (statusFilter !== "ALL" && s.status !== statusFilter) return false;
+    return true;
+  });
+
+  const pendingCount = submissions.filter((s) => s.status === "PENDING").length;
+
+  // ----------------------------------------------------
+  // SCREEN 1: SUPER ADMIN PASSWORD LOCK SCREEN
+  // ----------------------------------------------------
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center px-4 py-12">
+        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
+          <div className="text-center space-y-2">
+            <div className="inline-flex p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-1">
+              <ShieldCheck className="w-8 h-8" />
+            </div>
+            <h1 className="text-xl font-black tracking-tight text-white uppercase">
+              Super Admin Gateway
+            </h1>
+            <p className="text-xs text-slate-400">
+              NIAT E-Sports Championship • Authoritative Match Approval & Publishing Console
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                <span>Security Master Password</span>
+                <span className="text-[11px] font-normal text-slate-500">(Slug: 43517)</span>
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Enter admin password (e.g. 43517)"
+                  required
+                  autoFocus
+                  className="w-full pl-10 pr-10 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-sm focus:border-emerald-500 outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {authError && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isAuthenticating || !adminPassword}
+              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isAuthenticating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Verifying Credentials...</span>
+                </>
+              ) : (
+                <>
+                  <Unlock className="w-4 h-4" />
+                  <span>Unlock Admin Portal</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="pt-2 text-center border-t border-slate-800">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Public Broadcast Dashboard</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // SCREEN 2: AUTHENTICATED SUPER ADMIN CONSOLE
+  // ----------------------------------------------------
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Top Banner & Header */}
       <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link
               href="/"
               className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition px-2.5 py-1.5 rounded-lg hover:bg-slate-800"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to Public Dashboard</span>
+              <span>Live Dashboard</span>
             </Link>
             <div className="h-4 w-px bg-slate-800" />
             <div className="flex items-center gap-2">
               <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold font-mono">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>SLUG: /43517 • SUPER ADMIN UNLOCKED</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold font-mono">
+                <ShieldCheck className="w-4 h-4" />
+                <span>SLUG: /43517 • SUPER ADMIN LOGGED IN</span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
+            {pendingCount > 0 && (
+              <span className="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold animate-pulse flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                <span>{pendingCount} Pending Approvals</span>
+              </span>
+            )}
             <button
-              onClick={() => fetchGameData(selectedGame)}
+              onClick={fetchSubmissions}
               className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-xs flex items-center gap-1.5"
-              title="Refresh Data"
+              title="Refresh Queue"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Refresh</span>
             </button>
             <button
-              onClick={() => setResetModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold flex items-center gap-1.5 transition"
+              onClick={handleLogout}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Game Data</span>
+              <Lock className="w-3.5 h-3.5" />
+              <span>Log Out</span>
             </button>
           </div>
         </div>
@@ -377,168 +624,439 @@ export default function SuperAdminPortalPage() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Title & Game Selection Row */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400">
-                <ShieldCheck className="w-6 h-6" />
-              </span>
-              CLUTCH Referee & Super Admin Scoring Engine
-            </h1>
-            <p className="text-xs text-slate-400 mt-1">
-              Authoritative Point Scoring • Proof Verification • Live Broadcast Synchronization
-            </p>
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMainTab("inbox")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+                mainTab === "inbox"
+                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
+                  : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              <Inbox className="w-4 h-4" />
+              <span>POC Submissions Queue</span>
+              {pendingCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-slate-950">
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setMainTab("direct")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+                mainTab === "direct"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                  : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              <Award className="w-4 h-4" />
+              <span>Direct Score Entry</span>
+            </button>
           </div>
 
-          {/* Game Switcher Tabs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
-            {[
-              { id: "FREE_FIRE" as GameId, label: "Free Fire", icon: Flame, color: "text-orange-400" },
-              { id: "BGMI" as GameId, label: "BGMI", icon: Crosshair, color: "text-amber-400" },
-              { id: "FIFA" as GameId, label: "FIFA 24", icon: Gamepad2, color: "text-emerald-400" },
-              { id: "MATIKS" as GameId, label: "MATIKS", icon: Brain, color: "text-purple-400" },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = selectedGame === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setSelectedGame(tab.id)}
-                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition ${
-                    isActive
-                      ? "bg-slate-800 text-white shadow-sm border border-slate-700"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/50"
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${tab.color}`} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
+          <div className="text-xs text-slate-400 hidden md:block">
+            Verified Submissions: {submissions.filter((s) => s.status === "APPROVED").length} Approved • {submissions.filter((s) => s.status === "REJECTED").length} Rejected
           </div>
         </div>
 
-        {/* View Switcher: Scoring Entry vs. Match History */}
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <button
-            onClick={() => setActiveTab("scoring")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
-              activeTab === "scoring"
-                ? "bg-blue-600 text-white shadow"
-                : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
-            }`}
-          >
-            <Trophy className="w-4 h-4" />
-            <span>Score Current Match</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
-              activeTab === "history"
-                ? "bg-blue-600 text-white shadow"
-                : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
-            }`}
-          >
-            <History className="w-4 h-4" />
-            <span>Past Matches & Proofs ({matches.length})</span>
-          </button>
-        </div>
-
-        {/* Feedback Alert Messages */}
-        {submitSuccess && (
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
+        {/* Global Action Alerts */}
+        {actionSuccessMsg && (
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-between animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 shrink-0" />
-              <span>
-                <strong>Match results verified & committed!</strong> The public dashboard and leaderboards have been updated.
-              </span>
+              <span>{actionSuccessMsg}</span>
             </div>
             <Link
               href="/"
               target="_blank"
-              className="text-xs font-bold underline flex items-center gap-1 hover:text-emerald-300 ml-4 shrink-0"
+              className="underline flex items-center gap-1 hover:text-emerald-300"
             >
-              <span>View Live Dashboard</span>
+              <span>View Leaderboard</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
           </div>
         )}
 
-        {loadError && (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2.5">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <span>{loadError}</span>
+        {actionErrorMsg && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{actionErrorMsg}</span>
           </div>
         )}
 
-        {/* TAB 1: Scoring Entry View */}
-        {activeTab === "scoring" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left 2 Cols: Team Scores Table */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
-                  <div>
-                    <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                      <span>Participating Teams Roster</span>
-                      <span className="text-[11px] font-normal text-slate-400">({teams.length} teams pre-loaded)</span>
-                    </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Assign placement and kills. Points are auto-calculated using official rulebooks.
-                    </p>
-                  </div>
+        {/* ---------------------------------------------------- */}
+        {/* TAB 1: POC SUBMISSIONS QUEUE & APPROVAL PIPELINE     */}
+        {/* ---------------------------------------------------- */}
+        {mainTab === "inbox" && (
+          <div className="space-y-4">
+            {/* Filter Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 rounded-xl p-3">
+              <div className="flex items-center gap-2">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-xs font-bold text-slate-300">Filter Submissions:</span>
+              </div>
 
-                  {(selectedGame === "FREE_FIRE" || selectedGame === "BGMI") && (
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Status Filter */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-slate-200 outline-none"
+                >
+                  <option value="ALL">All Statuses ({submissions.length})</option>
+                  <option value="PENDING">Pending Review ({pendingCount})</option>
+                  <option value="APPROVED">Approved ({submissions.filter((s) => s.status === "APPROVED").length})</option>
+                  <option value="REJECTED">Rejected ({submissions.filter((s) => s.status === "REJECTED").length})</option>
+                </select>
+
+                {/* Game Filter */}
+                <select
+                  value={selectedGameFilter}
+                  onChange={(e) => setSelectedGameFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-slate-200 outline-none"
+                >
+                  <option value="ALL">All Games</option>
+                  <option value="FREE_FIRE">Free Fire</option>
+                  <option value="BGMI">BGMI</option>
+                  <option value="FIFA">FIFA</option>
+                  <option value="MATIKS">MATIKS</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Submissions List */}
+            {isLoadingSubmissions ? (
+              <div className="py-24 text-center text-slate-400 space-y-3">
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-400 mx-auto" />
+                <p className="text-xs">Loading POC submissions pipeline...</p>
+              </div>
+            ) : filteredSubmissions.length === 0 ? (
+              <div className="py-20 text-center bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-3">
+                <Inbox className="w-12 h-12 text-slate-600 mx-auto" />
+                <h3 className="text-sm font-bold text-slate-300">No submissions matching criteria</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  When POCs enter their game codes and submit match results with proof screenshots, they will appear here awaiting your approval.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredSubmissions.map((sub) => {
+                  const isPending = sub.status === "PENDING";
+                  const isApproved = sub.status === "APPROVED";
+                  const isRejected = sub.status === "REJECTED";
+                  const isProcessing = reviewingId === sub.id;
+
+                  return (
+                    <div
+                      key={sub.id}
+                      className={`border rounded-2xl p-5 space-y-4 transition ${
+                        isPending
+                          ? "bg-slate-900 border-amber-500/40 shadow-xl shadow-amber-500/5 ring-1 ring-amber-500/20"
+                          : isApproved
+                          ? "bg-slate-900 border-emerald-500/30"
+                          : "bg-slate-900/60 border-red-500/30 opacity-75"
+                      }`}
+                    >
+                      {/* Card Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span
+                            className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
+                              sub.gameId === "FREE_FIRE"
+                                ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
+                                : sub.gameId === "BGMI"
+                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                : sub.gameId === "FIFA"
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                            }`}
+                          >
+                            {sub.gameId.replace("_", " ")}
+                          </span>
+
+                          <span className="text-sm font-black text-white">
+                            Match #{sub.matchNumber}
+                          </span>
+
+                          <span className="text-xs font-mono text-slate-400">
+                            POC: <strong className="text-slate-300">{sub.pocCode}</strong>
+                          </span>
+
+                          <span className="text-xs text-slate-400">
+                            {new Date(sub.timestamp).toLocaleTimeString()} • {new Date(sub.timestamp).toLocaleDateString()}
+                          </span>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div>
+                          {isPending && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 animate-pulse">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>PENDING APPROVAL</span>
+                            </span>
+                          )}
+                          {isApproved && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>APPROVED & PUBLISHED</span>
+                            </span>
+                          )}
+                          {isRejected && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1.5">
+                              <Ban className="w-3.5 h-3.5" />
+                              <span>REJECTED</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Content: Proof & Team Scores Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                        {/* Proof Screenshot Column */}
+                        <div className="md:col-span-1 space-y-2">
+                          <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Photographic Proof:
+                          </label>
+                          {sub.proofUrl ? (
+                            <div className="relative group rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
+                              <img
+                                src={sub.proofUrl}
+                                alt="Proof Screenshot"
+                                className="w-full h-36 object-cover cursor-pointer hover:scale-105 transition duration-200"
+                                onClick={() => setActiveProofModal(sub.proofUrl)}
+                              />
+                              <button
+                                onClick={() => setActiveProofModal(sub.proofUrl)}
+                                className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/70 text-white hover:bg-black text-[10px] flex items-center gap-1 font-semibold"
+                              >
+                                <Maximize2 className="w-3 h-3" />
+                                <span>Zoom</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="h-36 rounded-xl border border-slate-800 bg-slate-950 flex flex-col items-center justify-center text-slate-500 text-xs">
+                              <FileImage className="w-6 h-6 mb-1" />
+                              <span>No screenshot</span>
+                            </div>
+                          )}
+
+                          {sub.notes && (
+                            <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-300 italic">
+                              <span className="font-bold text-slate-400 not-italic block mb-0.5">POC Notes:</span>
+                              "{sub.notes}"
+                            </div>
+                          )}
+
+                          {isRejected && sub.rejectionReason && (
+                            <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[11px] text-red-300">
+                              <span className="font-bold block">Rejection Reason:</span>
+                              {sub.rejectionReason}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Reported Scores Table */}
+                        <div className="md:col-span-3 space-y-2">
+                          <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                            <span>Reported Team Placements & Points:</span>
+                            <span className="text-[10px] font-normal text-slate-500">
+                              ({sub.teamResults.length} participating squads)
+                            </span>
+                          </label>
+
+                          <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950">
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-slate-900/80 sticky top-0 border-b border-slate-800 text-slate-400">
+                                <tr>
+                                  <th className="py-2 px-3">Place</th>
+                                  <th className="py-2 px-3">Team Name</th>
+                                  <th className="py-2 px-2 text-center">Place Pts</th>
+                                  <th className="py-2 px-2 text-center">Kills</th>
+                                  <th className="py-2 px-3 text-right">Match Total</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/60">
+                                {sub.teamResults.map((t) => (
+                                  <tr key={t.teamId} className="hover:bg-slate-800/40">
+                                    <td className="py-2 px-3 font-bold text-amber-400">
+                                      #{t.placement}
+                                    </td>
+                                    <td className="py-2 px-3 font-semibold text-white">
+                                      {t.teamName}
+                                    </td>
+                                    <td className="py-2 px-2 text-center text-slate-300">
+                                      {t.placementPoints}
+                                    </td>
+                                    <td className="py-2 px-2 text-center text-slate-300">
+                                      {t.kills}
+                                    </td>
+                                    <td className="py-2 px-3 text-right font-extrabold text-blue-400 font-mono">
+                                      +{t.matchPoints}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Approval Actions Toolbar */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
+                        <div className="text-[11px] text-slate-400">
+                          {isPending
+                            ? "Review the reported proof and points above. Approving will update team standings live on the dashboard."
+                            : isApproved
+                            ? `Published live on ${sub.reviewedAt ? new Date(sub.reviewedAt).toLocaleString() : "tournament dashboard"}.`
+                            : "This submission was rejected and will not affect standings."}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {isPending && (
+                            <>
+                              <button
+                                onClick={() => setRejectionModalSub(sub)}
+                                disabled={isProcessing}
+                                className="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold transition flex items-center gap-1.5 disabled:opacity-50"
+                              >
+                                <X className="w-4 h-4" />
+                                <span>Reject</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleApproveSubmission(sub.id)}
+                                disabled={isProcessing}
+                                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                              >
+                                {isProcessing && reviewAction === "APPROVE" ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>Publishing...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Check className="w-4 h-4" />
+                                    <span>Approve & Publish to Dashboard</span>
+                                  </>
+                                )}
+                              </button>
+                            </>
+                          )}
+
+                          {!isPending && (
+                            <button
+                              onClick={() => handleApproveSubmission(sub.id)}
+                              disabled={isProcessing}
+                              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                            >
+                              Re-Publish / Sync Standings
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB 2: DIRECT SCORING ENGINE (BY SUPER ADMIN)        */}
+        {/* ---------------------------------------------------- */}
+        {mainTab === "direct" && (
+          <div className="space-y-6">
+            {/* Game Selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-4">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <Award className="w-5 h-5 text-blue-400" />
+                  <span>Direct Super Admin Scoring (Auto-Approved)</span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Scores entered here bypass the review queue and publish directly to the live broadcast dashboard.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                {[
+                  { id: "FREE_FIRE" as GameId, label: "Free Fire", icon: Flame, color: "text-orange-400" },
+                  { id: "BGMI" as GameId, label: "BGMI", icon: Crosshair, color: "text-amber-400" },
+                  { id: "FIFA" as GameId, label: "FIFA", icon: Gamepad2, color: "text-emerald-400" },
+                  { id: "MATIKS" as GameId, label: "MATIKS", icon: Brain, color: "text-purple-400" },
+                ].map((g) => {
+                  const Icon = g.icon;
+                  const isActive = directGame === g.id;
+                  return (
+                    <button
+                      key={g.id}
+                      onClick={() => setDirectGame(g.id)}
+                      className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition ${
+                        isActive
+                          ? "bg-slate-800 text-white shadow-sm border border-slate-700"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${g.color}`} />
+                      <span>{g.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Direct Form Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Teams Table */}
+              <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    {directGame} Team Roster ({teams.length} Squads)
+                  </h3>
+
+                  {(directGame === "FREE_FIRE" || directGame === "BGMI") && (
                     <button
                       onClick={handleAutoFillPlacements}
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition"
+                      className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold"
                     >
-                      Auto-Fill Placements (1 to {teams.length})
+                      Auto-Fill (1 to {teams.length})
                     </button>
                   )}
                 </div>
 
                 {isLoadingTeams ? (
-                  <div className="py-16 flex flex-col items-center justify-center text-slate-400 space-y-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                    <span className="text-xs">Loading {selectedGame} teams...</span>
+                  <div className="py-16 text-center text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-500" />
                   </div>
                 ) : (
-                  <div className="overflow-x-auto mt-4">
-                    <table className="w-full text-left text-xs border-collapse">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="border-b border-slate-800 text-slate-400 font-semibold">
-                          <th className="py-2.5 px-3">Team / Player</th>
-                          <th className="py-2.5 px-2 text-center">Standings</th>
-                          <th className="py-2.5 px-2 text-center w-24">
-                            {selectedGame === "FREE_FIRE" || selectedGame === "BGMI" ? "Placement" : "Rank"}
-                          </th>
-                          <th className="py-2.5 px-2 text-center w-24">
-                            {selectedGame === "FREE_FIRE" || selectedGame === "BGMI" ? "Kills" : "Score/Goals"}
-                          </th>
-                          <th className="py-2.5 px-3 text-right">Match Points</th>
+                        <tr className="border-b border-slate-800 text-slate-400">
+                          <th className="py-2.5 px-3">Team</th>
+                          <th className="py-2.5 px-2 text-center">Current</th>
+                          <th className="py-2.5 px-2 text-center w-24">Placement</th>
+                          <th className="py-2.5 px-2 text-center w-24">Kills</th>
+                          <th className="py-2.5 px-3 text-right">Points</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
                         {teams.map((t) => {
                           const sc = scores[t.id] || { placement: 1, kills: 0, placementPoints: 0, matchTotal: 0 };
                           return (
-                            <tr key={t.id} className="hover:bg-slate-800/30 transition">
-                              <td className="py-3 px-3">
-                                <div className="font-bold text-white text-sm">{t.teamName}</div>
-                                <div className="text-[11px] text-slate-400">
-                                  Current: {t.totalPoints} pts • {t.matchesPlayed} matches
-                                </div>
+                            <tr key={t.id} className="hover:bg-slate-800/30">
+                              <td className="py-2.5 px-3">
+                                <div className="font-bold text-white">{t.teamName}</div>
+                                <div className="text-[10px] text-slate-500">#{t.rank} in standings</div>
                               </td>
-
-                              <td className="py-3 px-2 text-center">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-300">
-                                  #{t.rank}
-                                </span>
+                              <td className="py-2.5 px-2 text-center text-slate-400">
+                                {t.totalPoints} pts
                               </td>
-
-                              <td className="py-3 px-2 text-center">
+                              <td className="py-2.5 px-2 text-center">
                                 <input
                                   type="number"
                                   min="1"
@@ -547,11 +1065,10 @@ export default function SuperAdminPortalPage() {
                                   onChange={(e) =>
                                     handleScoreChange(t.id, "placement", parseInt(e.target.value) || 1)
                                   }
-                                  className="w-16 px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-sm focus:border-blue-500 outline-none"
+                                  className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
                                 />
                               </td>
-
-                              <td className="py-3 px-2 text-center">
+                              <td className="py-2.5 px-2 text-center">
                                 <input
                                   type="number"
                                   min="0"
@@ -559,19 +1076,11 @@ export default function SuperAdminPortalPage() {
                                   onChange={(e) =>
                                     handleScoreChange(t.id, "kills", parseInt(e.target.value) || 0)
                                   }
-                                  className="w-16 px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-sm focus:border-blue-500 outline-none"
+                                  className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
                                 />
                               </td>
-
-                              <td className="py-3 px-3 text-right">
-                                <span className="font-extrabold text-blue-400 text-sm font-mono">
-                                  +{sc.matchTotal}
-                                </span>
-                                {(selectedGame === "FREE_FIRE" || selectedGame === "BGMI") && (
-                                  <div className="text-[10px] text-slate-500">
-                                    ({sc.placementPoints} place + {sc.kills} kills)
-                                  </div>
-                                )}
+                              <td className="py-2.5 px-3 text-right font-bold text-blue-400 font-mono">
+                                +{sc.matchTotal}
                               </td>
                             </tr>
                           );
@@ -581,46 +1090,32 @@ export default function SuperAdminPortalPage() {
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Right Col: Match Configuration & Proof Upload */}
-            <div className="space-y-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-orange-400" />
-                  <span>Match Verification Details</span>
-                </h2>
+              {/* Match Details & Upload */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider border-b border-slate-800 pb-2">
+                  Match Details
+                </h3>
 
-                {/* Match Number Input */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Match Number / Round
-                  </label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Match Number</label>
                   <input
                     type="number"
                     min="1"
                     value={matchNumber}
                     onChange={(e) => setMatchNumber(parseInt(e.target.value) || 1)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-sm focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs"
                   />
                 </div>
 
-                {/* Proof Screenshot Upload (Mandatory) */}
+                {/* Proof screenshot */}
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Proof Screenshot / Result Sheet <span className="text-red-400">*</span>
+                    Proof Screenshot <span className="text-red-400">*</span>
                   </label>
-                  <p className="text-[11px] text-slate-400 mb-2.5">
-                    Official rules require photographic proof for each match point update.
-                  </p>
-
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center gap-2 ${
-                      proofUrl
-                        ? "border-emerald-500/50 bg-emerald-500/5"
-                        : "border-slate-700 hover:border-slate-500 bg-slate-950/60"
-                    }`}
+                    className="border-2 border-dashed border-slate-700 hover:border-slate-500 rounded-xl p-4 text-center cursor-pointer bg-slate-950/60"
                   >
                     <input
                       ref={fileInputRef}
@@ -629,184 +1124,157 @@ export default function SuperAdminPortalPage() {
                       onChange={handleFileUpload}
                       className="hidden"
                     />
-
                     {isUploading ? (
-                      <div className="flex flex-col items-center gap-2 text-slate-400 py-3">
-                        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                        <span className="text-xs font-semibold">Compressing & optimizing image...</span>
-                      </div>
-                    ) : proofUrl ? (
-                      <div className="flex flex-col items-center gap-2 py-1">
-                        <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-                        <span className="text-xs font-bold text-emerald-400">Proof Image Attached!</span>
-                        {proofUrl.startsWith("data:") && (
-                          <img
-                            src={proofUrl}
-                            alt="Proof Preview"
-                            className="max-h-24 rounded border border-slate-700 object-cover mt-1"
-                          />
-                        )}
-                        <span className="text-[10px] text-slate-400 underline">Click to change</span>
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto text-blue-400" />
+                    ) : directProofUrl ? (
+                      <div className="space-y-1">
+                        <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto" />
+                        <span className="text-xs text-emerald-400 font-bold block">Screenshot Attached</span>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center gap-1.5 py-3">
-                        <UploadCloud className="w-8 h-8 text-slate-400" />
-                        <span className="text-xs font-bold text-slate-200">Click to upload screenshot</span>
-                        <span className="text-[10px] text-slate-400">PNG, JPG, WebP supported</span>
+                      <div className="space-y-1">
+                        <UploadCloud className="w-6 h-6 text-slate-400 mx-auto" />
+                        <span className="text-xs text-slate-300 font-semibold block">Click to upload screenshot</span>
                       </div>
                     )}
                   </div>
-
-                  {uploadError && (
-                    <p className="text-[11px] text-red-400 mt-1.5">{uploadError}</p>
-                  )}
-
-                  {/* Fallback URL Input */}
-                  <div className="mt-3">
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                      Or Paste Image / Drive URL:
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://..."
-                      value={proofUrl.startsWith("data:") ? "" : proofUrl}
-                      onChange={(e) => setProofUrl(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:border-blue-500 outline-none"
-                    />
-                  </div>
                 </div>
 
-                {/* Notes Input */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Match Notes (Optional)
-                  </label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Notes</label>
                   <textarea
                     rows={2}
-                    placeholder="e.g. Map: Bermuda • Fast zone • Clean match"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-blue-500 outline-none resize-none"
+                    value={directNotes}
+                    onChange={(e) => setDirectNotes(e.target.value)}
+                    placeholder="Optional match notes..."
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white resize-none"
                   />
                 </div>
 
-                {submitError && (
-                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{submitError}</span>
-                  </div>
+                {directError && (
+                  <p className="text-xs text-red-400">{directError}</p>
                 )}
 
-                {/* Commit Button */}
+                {directSuccess && (
+                  <p className="text-xs text-emerald-400 font-bold">Match results published live!</p>
+                )}
+
                 <button
-                  onClick={handleSubmitMatch}
-                  disabled={isSubmitting || isLoadingTeams}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
+                  onClick={handleSubmitDirect}
+                  disabled={isSubmittingDirect || isLoadingTeams}
+                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Verifying & Broadcasting...</span>
-                    </>
+                  {isSubmittingDirect ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-300" />
-                      <span>Commit Match {matchNumber} Results</span>
-                    </>
+                    <CheckCircle2 className="w-4 h-4" />
                   )}
+                  <span>Publish Match {matchNumber} Standings</span>
                 </button>
+
+                <div className="pt-3 border-t border-slate-800">
+                  <button
+                    onClick={() => setResetModalOpen(true)}
+                    className="w-full py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold transition flex items-center justify-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset {directGame} Standings to 0</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
-
-        {/* TAB 2: Match History View */}
-        {activeTab === "history" && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-2">
-              <History className="w-4 h-4 text-blue-400" />
-              <span>Verified Match History — {selectedGame}</span>
-            </h2>
-
-            {matches.length === 0 ? (
-              <div className="py-16 text-center text-slate-400 space-y-2">
-                <FileImage className="w-10 h-10 text-slate-600 mx-auto" />
-                <p className="text-xs">No match results committed for {selectedGame} yet.</p>
-                <button
-                  onClick={() => setActiveTab("scoring")}
-                  className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold"
-                >
-                  Score Match 1 Now
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {matches.map((m) => (
-                  <div
-                    key={m.id}
-                    className="border border-slate-800 bg-slate-950/60 rounded-xl p-4 space-y-3"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/60 pb-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="px-2.5 py-1 rounded bg-blue-500/10 text-blue-400 font-bold text-xs">
-                          Match #{m.matchNumber}
-                        </span>
-                        <span className="text-[11px] text-slate-400">
-                          {new Date(m.timestamp).toLocaleTimeString()} • {new Date(m.timestamp).toLocaleDateString()}
-                        </span>
-                      </div>
-
-                      {m.proofUrl && (
-                        <a
-                          href={m.proofUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5"
-                        >
-                          <FileImage className="w-3.5 h-3.5" />
-                          <span>View Proof Screenshot</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
-
-                    {m.notes && (
-                      <p className="text-xs text-slate-400 italic">Notes: {m.notes}</p>
-                    )}
-
-                    {/* Team results snippet */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-1">
-                      {m.teamResults.slice(0, 6).map((r) => (
-                        <div
-                          key={r.teamId}
-                          className="bg-slate-900 border border-slate-800/80 rounded-lg p-2 text-[11px]"
-                        >
-                          <div className="font-bold text-white truncate">{r.teamName}</div>
-                          <div className="text-slate-400 flex items-center justify-between mt-0.5">
-                            <span>Rank #{r.placement}</span>
-                            <span className="font-bold text-blue-400">+{r.matchPoints} pts</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </main>
 
-      {/* Confirmation Modal for Resetting Game Data */}
+      {/* ---------------------------------------------------- */}
+      {/* MODAL 1: HIGH-RES PROOF LIGHTBOX                    */}
+      {/* ---------------------------------------------------- */}
+      {activeProofModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in"
+          onClick={() => setActiveProofModal(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden p-2 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-3 border-b border-slate-800">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <FileImage className="w-4 h-4 text-emerald-400" />
+                <span>Match Verification Screenshot Proof</span>
+              </span>
+              <button
+                onClick={() => setActiveProofModal(null)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-2 flex items-center justify-center">
+              <img
+                src={activeProofModal}
+                alt="Full Proof"
+                className="max-h-[75vh] w-auto rounded-lg object-contain shadow-2xl"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* MODAL 2: REJECTION REASON PROMPT                    */}
+      {/* ---------------------------------------------------- */}
+      {rejectionModalSub && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3 text-red-400">
+              <Ban className="w-6 h-6" />
+              <h3 className="font-bold text-base text-white">
+                Reject Match #{rejectionModalSub.matchNumber} ({rejectionModalSub.gameId})?
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400">
+              Please provide a reason for rejecting this submission. The POC will see this note and can resubmit with corrected points or screenshot.
+            </p>
+            <textarea
+              rows={3}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Screenshot blurry, kill counts do not match official lobby results"
+              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-red-500 outline-none"
+            />
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setRejectionModalSub(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmReject}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-bold text-white flex items-center gap-1.5"
+              >
+                <Ban className="w-3.5 h-3.5" />
+                <span>Confirm Rejection</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* MODAL 3: RESET GAME SCORES CONFIRMATION             */}
+      {/* ---------------------------------------------------- */}
       {resetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center gap-3 text-red-400">
               <RotateCcw className="w-6 h-6" />
-              <h3 className="font-bold text-base text-white">Reset {selectedGame} Scores?</h3>
+              <h3 className="font-bold text-base text-white">Reset {directGame} Standings?</h3>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              This will reset all team points, kills, and match counts back to <strong>0</strong> for <strong>{selectedGame}</strong>, and clear its match logs.
+            <p className="text-xs text-slate-300">
+              This will reset all team points and match counts back to <strong>0</strong> for <strong>{directGame}</strong>.
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button

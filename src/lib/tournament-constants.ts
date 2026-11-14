@@ -1,5 +1,13 @@
 import { GameId } from "@/types";
 
+// Master Super Admin Passwords
+export const ADMIN_PASSWORDS: string[] = [
+  process.env.ADMIN_PASSWORD || "",
+  "43517",
+  "CLUTCH@43517",
+  "clutchadmin",
+].filter(Boolean);
+
 // Official Game Verification Codes
 export const VALID_GAME_CODES: Record<string, GameId | "ALL"> = {
   "43517": "ALL", // Master Super Admin Code & Secret Slug

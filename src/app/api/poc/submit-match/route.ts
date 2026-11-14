@@ -5,12 +5,13 @@ import { GameId } from "@/types";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { gameId, pocCode, matchNumber, proofUrl, notes, teamResults } = body as {
+    const { gameId, pocCode, matchNumber, proofUrl, notes, autoApprove, teamResults } = body as {
       gameId: GameId;
       pocCode: string;
       matchNumber: number | string;
       proofUrl: string;
       notes?: string;
+      autoApprove?: boolean;
       teamResults: {
         teamId: string;
         placement: number;
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
       matchNumber,
       proofUrl,
       notes,
+      autoApprove,
       teamResults,
     });
 
@@ -55,7 +57,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Match ${matchNumber} results verified and committed successfully!`,
+      pending: res.pending,
+      submissionId: res.submissionId,
+      message: res.message || `Match ${matchNumber} processed successfully!`,
       leaderboard: res.leaderboard,
     });
   } catch (err: any) {

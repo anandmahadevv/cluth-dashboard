@@ -62,6 +62,7 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -242,6 +243,11 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
       }
 
       setSubmitSuccess(true);
+      setSuccessMessage(
+        data.pending
+          ? "Match results & proof submitted! Queued for Super Admin approval before publishing."
+          : "Match results verified & broadcast directly to leaderboard!"
+      );
       if (onSuccess) onSuccess();
 
       // Auto close after 2.5 seconds
@@ -252,7 +258,7 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
         setPocCode("");
         setProofUrl("");
         window.location.reload();
-      }, 2000);
+      }, 2500);
     } catch (err: any) {
       setSubmitError(err.message || "Error submitting match results.");
     } finally {
@@ -604,8 +610,8 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
 
                   {submitSuccess && (
                     <div className="flex items-center gap-2 p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-bold">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                      <span>Match results verified & published to main leaderboard! Refreshing...</span>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <span>{successMessage}</span>
                     </div>
                   )}
 

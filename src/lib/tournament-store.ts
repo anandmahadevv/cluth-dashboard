@@ -5,7 +5,10 @@ import {
   VALID_GAME_CODES,
   PLACEMENT_POINTS,
   INITIAL_TEAMS,
+  ADMIN_PASSWORDS,
 } from "./tournament-constants";
+
+export type SubmissionStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export interface TeamScoreEntry {
   id: string;
@@ -27,6 +30,10 @@ export interface MatchSubmission {
   pocCode: string;
   proofUrl: string;
   notes?: string;
+  status: SubmissionStatus;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  rejectionReason?: string;
   teamResults: {
     teamId: string;
     teamName: string;
@@ -173,16 +180,30 @@ export function getGameLeaderboard(gameId: GameId): TeamScoreEntry[] {
 }
 
 /**
- * Get matches for a game
+ * Get matches for a game (default: approved only for public display)
  */
-export function getGameMatches(gameId?: GameId): MatchSubmission[] {
+export function getGameMatches(gameId?: GameId, approvedOnly = true): MatchSubmission[] {
   const store = getStore();
-  if (!gameId) return store.matches;
-  return store.matches.filter((m) => m.gameId === gameId);
+  return store.matches.filter((m) => {
+    if (gameId && m.gameId !== gameId) return false;
+    if (approvedOnly && m.status && m.status !== "APPROVED") return false;
+    return true;
+  });
 }
 
 /**
- * Process a match submission from a verified POC
+ * Verify Super Admin Security Password
+ */
+export function verifyAdminPassword(password: string): boolean {
+  if (!password) return false;
+  const trimmed = password.trim();
+  return ADMIN_PASSWORDS.some((p) => p.toLowerCase() === trimmed.toLowerCase());
+}
+
+/**
+ * Process a match submission from a verified POC or Super Admin
+ * - If submitted by POC: marked as PENDING (does NOT alter public leaderboard until Super Admin approves)
+ * - If submitted by Super Admin or autoApprove is true: marked as APPROVED & immediately broadcasts to leaderboard
  */
 export function recordMatchSubmission(params: {
   gameId: GameId;
@@ -190,13 +211,14 @@ export function recordMatchSubmission(params: {
   matchNumber: number | string;
   proofUrl: string;
   notes?: string;
+  autoApprove?: boolean;
   teamResults: {
     teamId: string;
     placement: number;
     placementPoints?: number;
     kills?: number;
   }[];
-}): { success: boolean; leaderboard?: TeamScoreEntry[]; error?: string } {
+}): { success: boolean; pending?: boolean; submissionId?: string; leaderboard?: TeamScoreEntry[]; message?: string; error?: string } {
   const auth = verifyGameCode(params.pocCode, params.gameId);
   if (!auth.valid) {
     return { success: false, error: auth.error };
@@ -210,7 +232,7 @@ export function recordMatchSubmission(params: {
 
   const detailedResults: MatchSubmission["teamResults"] = [];
 
-  // Apply scores to teams
+  // Calculate detailed points for each team
   params.teamResults.forEach((res) => {
     const team = teams.find((t) => t.id === res.teamId);
     if (!team) return;
@@ -228,13 +250,6 @@ export function recordMatchSubmission(params: {
 
     const matchPoints = placementPts + kills;
 
-    // Accumulate total team stats
-    team.matchesPlayed += 1;
-    team.placementPoints += placementPts;
-    team.killPoints += kills;
-    team.totalPoints += matchPoints;
-    team.lastMatchRank = res.placement;
-
     detailedResults.push({
       teamId: team.id,
       teamName: team.teamName,
@@ -245,26 +260,151 @@ export function recordMatchSubmission(params: {
     });
   });
 
-  // Re-rank teams
-  const ranked = getGameLeaderboard(params.gameId);
-  store.teams[params.gameId] = ranked;
+  const shouldApprove = !!auth.isSuperAdmin || params.autoApprove === true;
+  const status: SubmissionStatus = shouldApprove ? "APPROVED" : "PENDING";
 
-  // Add match submission record
+  if (shouldApprove) {
+    // Apply scores to teams immediately
+    detailedResults.forEach((res) => {
+      const team = teams.find((t) => t.id === res.teamId);
+      if (!team) return;
+
+      team.matchesPlayed += 1;
+      team.placementPoints += res.placementPoints;
+      team.killPoints += res.kills;
+      team.totalPoints += res.matchPoints;
+      team.lastMatchRank = res.placement;
+    });
+
+    // Re-rank teams
+    store.teams[params.gameId] = getGameLeaderboard(params.gameId);
+  }
+
+  // Add submission record
   const matchEntry: MatchSubmission = {
-    id: `MATCH-${params.gameId.substring(0, 2)}-${Date.now()}`,
+    id: `SUB-${params.gameId.substring(0, 2)}-${Date.now()}`,
     gameId: params.gameId,
     matchNumber: params.matchNumber,
     timestamp: new Date().toISOString(),
     pocCode: params.pocCode,
     proofUrl: params.proofUrl,
     notes: params.notes || "",
+    status: status,
+    reviewedAt: shouldApprove ? new Date().toISOString() : undefined,
+    reviewedBy: shouldApprove ? "SuperAdmin" : undefined,
     teamResults: detailedResults,
   };
 
   store.matches.unshift(matchEntry);
   saveStore(store);
 
-  return { success: true, leaderboard: ranked };
+  if (shouldApprove) {
+    return {
+      success: true,
+      pending: false,
+      submissionId: matchEntry.id,
+      leaderboard: store.teams[params.gameId],
+      message: `Match ${params.matchNumber} results approved and broadcast live to leaderboard!`,
+    };
+  }
+
+  return {
+    success: true,
+    pending: true,
+    submissionId: matchEntry.id,
+    message: `Match ${params.matchNumber} results submitted! Awaiting Super Admin review and publishing.`,
+  };
+}
+
+/**
+ * Super Admin review action: APPROVE or REJECT a submission
+ */
+export function reviewMatchSubmission(params: {
+  submissionId: string;
+  action: "APPROVE" | "REJECT";
+  adminPassword: string;
+  rejectionReason?: string;
+}): { success: boolean; match?: MatchSubmission; leaderboard?: TeamScoreEntry[]; error?: string } {
+  if (!verifyAdminPassword(params.adminPassword)) {
+    return { success: false, error: "Invalid Super Admin password. Access denied." };
+  }
+
+  const store = getStore();
+  const match = store.matches.find((m) => m.id === params.submissionId);
+  if (!match) {
+    return { success: false, error: "Submission not found." };
+  }
+
+  if (params.action === "APPROVE") {
+    // Only apply points if not already approved
+    if (match.status !== "APPROVED") {
+      const teams = store.teams[match.gameId];
+      if (teams) {
+        match.teamResults.forEach((res) => {
+          const team = teams.find((t) => t.id === res.teamId);
+          if (team) {
+            team.matchesPlayed += 1;
+            team.placementPoints += res.placementPoints;
+            team.killPoints += res.kills;
+            team.totalPoints += res.matchPoints;
+            team.lastMatchRank = res.placement;
+          }
+        });
+        store.teams[match.gameId] = getGameLeaderboard(match.gameId);
+      }
+    }
+
+    match.status = "APPROVED";
+    match.reviewedAt = new Date().toISOString();
+    match.reviewedBy = "SuperAdmin";
+    saveStore(store);
+
+    return {
+      success: true,
+      match,
+      leaderboard: store.teams[match.gameId],
+    };
+  } else {
+    // REJECT action: if it was previously approved, revert points
+    if (match.status === "APPROVED") {
+      const teams = store.teams[match.gameId];
+      if (teams) {
+        match.teamResults.forEach((res) => {
+          const team = teams.find((t) => t.id === res.teamId);
+          if (team) {
+            team.matchesPlayed = Math.max(0, team.matchesPlayed - 1);
+            team.placementPoints = Math.max(0, team.placementPoints - res.placementPoints);
+            team.killPoints = Math.max(0, team.killPoints - res.kills);
+            team.totalPoints = Math.max(0, team.totalPoints - res.matchPoints);
+          }
+        });
+        store.teams[match.gameId] = getGameLeaderboard(match.gameId);
+      }
+    }
+
+    match.status = "REJECTED";
+    match.reviewedAt = new Date().toISOString();
+    match.reviewedBy = "SuperAdmin";
+    match.rejectionReason = params.rejectionReason || "Submission rejected by Super Admin.";
+    saveStore(store);
+
+    return { success: true, match };
+  }
+}
+
+/**
+ * Get all match submissions (pending, approved, rejected)
+ */
+export function getAllSubmissions(options?: {
+  gameId?: GameId;
+  status?: SubmissionStatus | "ALL";
+}): MatchSubmission[] {
+  const store = getStore();
+  return store.matches.filter((m) => {
+    if (options?.gameId && m.gameId !== options.gameId) return false;
+    if (options?.status && options.status !== "ALL" && m.status !== options.status) return false;
+    return true;
+  });
 }
 
 /**
