@@ -125,11 +125,9 @@ export default function MatiksPage() {
         </div>
       ) : (
         <PreMatchShowcase
-          gameId="MATIKS"
           gameName="MATIKS"
           teamCount={leaderboard?.length || 0}
           format={gameConfig.format}
-          contenders={leaderboard?.map((t: any) => t.teamName) || []}
         />
       )}
 
