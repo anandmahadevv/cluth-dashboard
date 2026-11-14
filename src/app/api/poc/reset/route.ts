@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resetGameScores } from "@/lib/tournament-store";
+import { resetGameScoresAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +13,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Super Admin code is required." }, { status: 400 });
     }
 
-    const res = resetGameScores(code, gameId);
+    const res = await resetGameScoresAsync(code, gameId);
     if (!res.success) {
       return NextResponse.json({ success: false, error: res.error }, { status: 403 });
     }

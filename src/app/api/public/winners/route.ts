@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getGameLeaderboard } from "@/lib/tournament-store";
+import { getGameLeaderboardAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -9,8 +9,8 @@ export async function GET() {
   const games: GameId[] = ["FREE_FIRE", "BGMI", "FIFA", "MATIKS"];
   const winners: any[] = [];
 
-  games.forEach((g) => {
-    const list = getGameLeaderboard(g);
+  for (const g of games) {
+    const list = await getGameLeaderboardAsync(g);
     if (list && list.length > 0) {
       winners.push({
         gameId: g,
@@ -25,7 +25,7 @@ export async function GET() {
         thirdPlace: list[2]?.teamName || "TBD",
       });
     }
-  });
+  }
 
   return NextResponse.json({
     success: true,

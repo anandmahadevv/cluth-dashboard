@@ -125,20 +125,45 @@ export default function SuperAdminPortalPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check sessionStorage on mount
+  // Check sessionStorage on mount and validate against server
   useEffect(() => {
     const saved = sessionStorage.getItem("clutch_admin_auth");
     if (saved) {
-      setAdminPassword(saved);
-      setIsAuthenticated(true);
+      fetch("/api/poc/admin-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: saved }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setAdminPassword(saved);
+            setIsAuthenticated(true);
+          } else {
+            sessionStorage.removeItem("clutch_admin_auth");
+            setIsAuthenticated(false);
+            setAdminPassword("");
+          }
+        })
+        .catch(() => {
+          sessionStorage.removeItem("clutch_admin_auth");
+          setIsAuthenticated(false);
+          setAdminPassword("");
+        });
     }
   }, []);
 
-  // Fetch submissions and game data when authenticated
+  // Fetch submissions and game data when authenticated + live auto-polling every 4 seconds
   useEffect(() => {
     if (isAuthenticated) {
       fetchSubmissions();
       fetchTeamsForDirectGame(directGame);
+
+      const interval = setInterval(() => {
+        fetchSubmissions(true);
+      }, 4000);
+
+      return () => clearInterval(interval);
     }
   }, [isAuthenticated, directGame]);
 
@@ -177,10 +202,13 @@ export default function SuperAdminPortalPage() {
   };
 
   // Fetch all POC submissions
-  const fetchSubmissions = async () => {
-    setIsLoadingSubmissions(true);
+  const fetchSubmissions = async (isBackground = false) => {
+    if (!isBackground) setIsLoadingSubmissions(true);
     try {
-      const res = await fetch("/api/poc/submissions");
+      const res = await fetch(`/api/poc/submissions?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       const data = await res.json();
       if (res.ok && data.success) {
         setSubmissions(data.submissions || []);
@@ -188,7 +216,7 @@ export default function SuperAdminPortalPage() {
     } catch (err) {
       console.error("Error fetching submissions:", err);
     } finally {
-      setIsLoadingSubmissions(false);
+      if (!isBackground) setIsLoadingSubmissions(false);
     }
   };
 
@@ -603,7 +631,7 @@ export default function SuperAdminPortalPage() {
               </span>
             )}
             <button
-              onClick={fetchSubmissions}
+              onClick={() => fetchSubmissions(false)}
               className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-xs flex items-center gap-1.5"
               title="Refresh Queue"
             >
@@ -911,6 +939,11 @@ export default function SuperAdminPortalPage() {
                             : isApproved
                             ? `Published live on ${sub.reviewedAt ? new Date(sub.reviewedAt).toLocaleString() : "tournament dashboard"}.`
                             : "This submission was rejected and will not affect standings."}
+                          {reviewingId === sub.id && actionErrorMsg && (
+                            <div className="text-red-400 font-bold mt-1 text-xs">
+                              ⚠️ {actionErrorMsg}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2">

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { reviewMatchSubmission } from "@/lib/tournament-store";
+import { reviewMatchSubmissionAsync } from "@/lib/tournament-store";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const res = reviewMatchSubmission({
+    const res = await reviewMatchSubmissionAsync({
       submissionId,
       action,
       adminPassword,

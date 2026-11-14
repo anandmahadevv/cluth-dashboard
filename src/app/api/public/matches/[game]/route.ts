@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGameMatches } from "@/lib/tournament-store";
+import { getGameMatchesAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: { game: string } }
 ) {
   const rawGame = params.game?.toUpperCase().replace(/-/g, "_") as GameId;
-  const matches = getGameMatches(rawGame);
+  const matches = await getGameMatchesAsync(rawGame);
 
   return NextResponse.json({
     success: true,

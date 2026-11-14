@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { recordMatchSubmission } from "@/lib/tournament-store";
+import { recordMatchSubmissionAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,7 +43,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const res = recordMatchSubmission({
+    const res = await recordMatchSubmissionAsync({
       gameId,
       pocCode,
       matchNumber,

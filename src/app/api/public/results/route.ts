@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getGameMatches } from "@/lib/tournament-store";
+import { getGameMatchesAsync } from "@/lib/tournament-store";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
-  const matches = getGameMatches(undefined, true);
+  const matches = await getGameMatchesAsync(undefined, true);
 
   // Flatten approved match results for spectator table
   const flattened: any[] = [];

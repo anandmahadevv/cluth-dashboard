@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGameLeaderboard } from "@/lib/tournament-store";
+import { getGameLeaderboardAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function GET(
   const validGames: GameId[] = ["FREE_FIRE", "BGMI", "FIFA", "MATIKS"];
   const game = validGames.includes(rawGame) ? rawGame : "FREE_FIRE";
 
-  const leaderboard = getGameLeaderboard(game);
+  const leaderboard = await getGameLeaderboardAsync(game);
 
   return NextResponse.json({
     success: true,

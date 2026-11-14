@@ -8,6 +8,11 @@ import {
   INITIAL_TEAMS,
   ADMIN_PASSWORD_HASH,
 } from "./tournament-constants";
+import {
+  fetchStoreFromSupabase,
+  persistStoreToSupabase,
+  isSupabaseConfigured,
+} from "./supabase";
 
 export type SubmissionStatus = "PENDING" | "APPROVED" | "REJECTED";
 
@@ -130,6 +135,36 @@ export function getStore(): TournamentStoreData {
 }
 
 /**
+ * Load store data asynchronously (from Supabase if configured, falling back to disk/seed)
+ */
+export async function getStoreAsync(): Promise<TournamentStoreData> {
+  if (isSupabaseConfigured()) {
+    try {
+      const remote = await fetchStoreFromSupabase();
+      if (remote && remote.teams) {
+        inMemoryStore = remote;
+        // Keep local cache file warm
+        try {
+          const dir = path.dirname(DATA_FILE_PATH);
+          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+          fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(remote, null, 2), "utf-8");
+        } catch {}
+        return remote;
+      } else {
+        // First run with Supabase: seed initial data to Supabase
+        const initial = getStore();
+        await persistStoreToSupabase(initial);
+        return initial;
+      }
+    } catch (err) {
+      console.warn("Supabase fetch fallback to disk:", err);
+    }
+  }
+
+  return getStore();
+}
+
+/**
  * Persist store data to disk atomically (and update memory cache)
  */
 export function saveStore(data: TournamentStoreData) {
@@ -145,6 +180,20 @@ export function saveStore(data: TournamentStoreData) {
     lastFileReadTime = stats.mtimeMs;
   } catch (err) {
     console.warn("Notice: Disk write failed, running in-memory for this serverless instance.", err);
+  }
+}
+
+/**
+ * Persist store data asynchronously (persisting to Supabase if configured + local disk)
+ */
+export async function saveStoreAsync(data: TournamentStoreData): Promise<void> {
+  saveStore(data);
+  if (isSupabaseConfigured()) {
+    try {
+      await persistStoreToSupabase(data);
+    } catch (err) {
+      console.warn("Supabase async persist error:", err);
+    }
   }
 }
 
@@ -406,13 +455,217 @@ export function reviewMatchSubmission(params: {
 }
 
 /**
- * Get all match submissions (pending, approved, rejected)
+ * Get sorted leaderboard for a specific game (async)
  */
-export function getAllSubmissions(options?: {
+export async function getGameLeaderboardAsync(gameId: GameId): Promise<TeamScoreEntry[]> {
+  const store = await getStoreAsync();
+  const list = store.teams[gameId] || [];
+  return sortAndRankTeams(list);
+}
+
+/**
+ * Get matches for a game asynchronously
+ */
+export async function getGameMatchesAsync(gameId?: GameId, approvedOnly = true): Promise<MatchSubmission[]> {
+  const store = await getStoreAsync();
+  return store.matches.filter((m) => {
+    if (gameId && m.gameId !== gameId) return false;
+    if (approvedOnly && m.status && m.status !== "APPROVED") return false;
+    return true;
+  });
+}
+
+/**
+ * Process a match submission from a verified POC or Super Admin (async with Supabase persistence)
+ */
+export async function recordMatchSubmissionAsync(params: {
+  gameId: GameId;
+  pocCode: string;
+  matchNumber: number | string;
+  proofUrl: string;
+  notes?: string;
+  autoApprove?: boolean;
+  teamResults: {
+    teamId: string;
+    placement: number;
+    placementPoints?: number;
+    kills?: number;
+  }[];
+}): Promise<{ success: boolean; pending?: boolean; submissionId?: string; leaderboard?: TeamScoreEntry[]; message?: string; error?: string }> {
+  const auth = verifyGameCode(params.pocCode, params.gameId);
+  if (!auth.valid) {
+    return { success: false, error: auth.error };
+  }
+
+  const store = await getStoreAsync();
+  const teams = store.teams[params.gameId];
+  if (!teams || teams.length === 0) {
+    return { success: false, error: "No teams configured for this game." };
+  }
+
+  const detailedResults: MatchSubmission["teamResults"] = [];
+
+  params.teamResults.forEach((res) => {
+    const team = teams.find((t) => t.id === res.teamId);
+    if (!team) return;
+
+    let placementPts = res.placementPoints || 0;
+    const kills = res.kills || 0;
+
+    if (params.gameId === "FREE_FIRE" || params.gameId === "BGMI") {
+      const matrix = PLACEMENT_POINTS[params.gameId];
+      if (res.placement >= 1 && res.placement <= matrix.length) {
+        placementPts = matrix[res.placement - 1];
+      }
+    }
+
+    const matchPoints = placementPts + kills;
+
+    detailedResults.push({
+      teamId: team.id,
+      teamName: team.teamName,
+      placement: res.placement,
+      placementPoints: placementPts,
+      kills: kills,
+      matchPoints: matchPoints,
+    });
+  });
+
+  const shouldApprove = !!auth.isSuperAdmin || params.autoApprove === true;
+  const status: SubmissionStatus = shouldApprove ? "APPROVED" : "PENDING";
+
+  if (shouldApprove) {
+    detailedResults.forEach((res) => {
+      const team = teams.find((t) => t.id === res.teamId);
+      if (!team) return;
+
+      team.matchesPlayed += 1;
+      team.placementPoints += res.placementPoints;
+      team.killPoints += res.kills;
+      team.totalPoints += res.matchPoints;
+      team.lastMatchRank = res.placement;
+    });
+
+    store.teams[params.gameId] = sortAndRankTeams(teams);
+  }
+
+  const matchEntry: MatchSubmission = {
+    id: `SUB-${params.gameId.substring(0, 2)}-${Date.now()}`,
+    gameId: params.gameId,
+    matchNumber: params.matchNumber,
+    timestamp: new Date().toISOString(),
+    pocCode: params.pocCode,
+    proofUrl: params.proofUrl,
+    notes: params.notes || "",
+    status: status,
+    reviewedAt: shouldApprove ? new Date().toISOString() : undefined,
+    reviewedBy: shouldApprove ? "SuperAdmin" : undefined,
+    teamResults: detailedResults,
+  };
+
+  store.matches.unshift(matchEntry);
+  await saveStoreAsync(store);
+
+  if (shouldApprove) {
+    return {
+      success: true,
+      pending: false,
+      submissionId: matchEntry.id,
+      leaderboard: store.teams[params.gameId],
+      message: `Match ${params.matchNumber} results approved and broadcast live to leaderboard!`,
+    };
+  }
+
+  return {
+    success: true,
+    pending: true,
+    submissionId: matchEntry.id,
+    message: `Match ${params.matchNumber} results submitted! Awaiting Super Admin review and publishing.`,
+  };
+}
+
+/**
+ * Super Admin review action: APPROVE or REJECT a submission (async with Supabase persistence)
+ */
+export async function reviewMatchSubmissionAsync(params: {
+  submissionId: string;
+  action: "APPROVE" | "REJECT";
+  adminPassword: string;
+  rejectionReason?: string;
+}): Promise<{ success: boolean; match?: MatchSubmission; leaderboard?: TeamScoreEntry[]; error?: string }> {
+  if (!verifyAdminPassword(params.adminPassword)) {
+    return { success: false, error: "Invalid Super Admin password. Access denied." };
+  }
+
+  const store = await getStoreAsync();
+  const match = store.matches.find((m) => m.id === params.submissionId);
+  if (!match) {
+    return { success: false, error: "Submission not found." };
+  }
+
+  if (params.action === "APPROVE") {
+    if (match.status !== "APPROVED") {
+      const teams = store.teams[match.gameId];
+      if (teams) {
+        match.teamResults.forEach((res) => {
+          const team = teams.find((t) => t.id === res.teamId);
+          if (team) {
+            team.matchesPlayed += 1;
+            team.placementPoints += res.placementPoints;
+            team.killPoints += res.kills;
+            team.totalPoints += res.matchPoints;
+            team.lastMatchRank = res.placement;
+          }
+        });
+        store.teams[match.gameId] = sortAndRankTeams(teams);
+      }
+    }
+
+    match.status = "APPROVED";
+    match.reviewedAt = new Date().toISOString();
+    match.reviewedBy = "SuperAdmin";
+    await saveStoreAsync(store);
+
+    return {
+      success: true,
+      match,
+      leaderboard: store.teams[match.gameId],
+    };
+  } else {
+    if (match.status === "APPROVED") {
+      const teams = store.teams[match.gameId];
+      if (teams) {
+        match.teamResults.forEach((res) => {
+          const team = teams.find((t) => t.id === res.teamId);
+          if (team) {
+            team.matchesPlayed = Math.max(0, team.matchesPlayed - 1);
+            team.placementPoints = Math.max(0, team.placementPoints - res.placementPoints);
+            team.killPoints = Math.max(0, team.killPoints - res.kills);
+            team.totalPoints = Math.max(0, team.totalPoints - res.matchPoints);
+          }
+        });
+        store.teams[match.gameId] = sortAndRankTeams(teams);
+      }
+    }
+
+    match.status = "REJECTED";
+    match.reviewedAt = new Date().toISOString();
+    match.reviewedBy = "SuperAdmin";
+    match.rejectionReason = params.rejectionReason || "Submission rejected by Super Admin.";
+    await saveStoreAsync(store);
+
+    return { success: true, match };
+  }
+}
+
+/**
+ * Get all match submissions asynchronously
+ */
+export async function getAllSubmissionsAsync(options?: {
   gameId?: GameId;
   status?: SubmissionStatus | "ALL";
-}): MatchSubmission[] {
-  const store = getStore();
+}): Promise<MatchSubmission[]> {
+  const store = await getStoreAsync();
   return store.matches.filter((m) => {
     if (options?.gameId && m.gameId !== options.gameId) return false;
     if (options?.status && options.status !== "ALL" && m.status !== options.status) return false;
@@ -421,15 +674,15 @@ export function getAllSubmissions(options?: {
 }
 
 /**
- * Reset scores for a single game or all games back to 0 (Super Admin Only)
+ * Reset scores for a single game or all games back to 0 asynchronously
  */
-export function resetGameScores(code: string, targetGame?: GameId | "ALL"): { success: boolean; error?: string } {
+export async function resetGameScoresAsync(code: string, targetGame?: GameId | "ALL"): Promise<{ success: boolean; error?: string }> {
   const auth = verifyGameCode(code);
   if (!auth.valid || !auth.isSuperAdmin) {
     return { success: false, error: "Unauthorized. Super Admin authorization is required to reset." };
   }
 
-  const store = getStore();
+  const store = await getStoreAsync();
   const initial = createInitialStoreData();
 
   if (!targetGame || targetGame === "ALL") {
@@ -440,6 +693,6 @@ export function resetGameScores(code: string, targetGame?: GameId | "ALL"): { su
     store.matches = store.matches.filter((m) => m.gameId !== targetGame);
   }
 
-  saveStore(store);
+  await saveStoreAsync(store);
   return { success: true };
 }

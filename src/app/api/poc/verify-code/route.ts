@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyGameCode, getGameLeaderboard } from "@/lib/tournament-store";
+import { verifyGameCode, getGameLeaderboardAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +18,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: check.error || "Invalid code." }, { status: 401 });
     }
 
-    const currentTeams = getGameLeaderboard(check.gameId);
+    const currentTeams = await getGameLeaderboardAsync(check.gameId);
 
     return NextResponse.json({
       success: true,

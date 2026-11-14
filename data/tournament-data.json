@@ -1,26 +1,28 @@
 {
-  "lastUpdated": "2026-11-14T06:01:53.174Z",
+  "lastUpdated": "2026-11-14T06:20:09.092Z",
   "teams": {
     "FREE_FIRE": [
       {
         "id": "free_fire-1",
         "teamName": "Yenepoya Phantoms",
         "gameId": "FREE_FIRE",
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0,
-        "rank": 1
+        "matchesPlayed": 1,
+        "placementPoints": 12,
+        "killPoints": 7,
+        "totalPoints": 19,
+        "rank": 1,
+        "lastMatchRank": 1
       },
       {
         "id": "free_fire-2",
         "teamName": "Mangalore Vipers",
         "gameId": "FREE_FIRE",
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0,
-        "rank": 2
+        "matchesPlayed": 1,
+        "placementPoints": 9,
+        "killPoints": 3,
+        "totalPoints": 12,
+        "rank": 2,
+        "lastMatchRank": 2
       },
       {
         "id": "free_fire-3",
@@ -450,5 +452,36 @@
       }
     ]
   },
-  "matches": []
+  "matches": [
+    {
+      "id": "SUB-FR-1794637209042",
+      "gameId": "FREE_FIRE",
+      "matchNumber": 1,
+      "timestamp": "2026-11-14T06:20:09.042Z",
+      "pocCode": "CLT-FF-2026X",
+      "proofUrl": "https://example.com/proof.png",
+      "notes": "Test match",
+      "status": "APPROVED",
+      "reviewedAt": "2026-11-14T06:20:09.092Z",
+      "reviewedBy": "SuperAdmin",
+      "teamResults": [
+        {
+          "teamId": "free_fire-1",
+          "teamName": "Yenepoya Phantoms",
+          "placement": 1,
+          "placementPoints": 12,
+          "kills": 7,
+          "matchPoints": 19
+        },
+        {
+          "teamId": "free_fire-2",
+          "teamName": "Mangalore Vipers",
+          "placement": 2,
+          "placementPoints": 9,
+          "kills": 3,
+          "matchPoints": 12
+        }
+      ]
+    }
+  ]
 }

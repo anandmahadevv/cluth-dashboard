@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllSubmissions, SubmissionStatus } from "@/lib/tournament-store";
+import { getAllSubmissionsAsync, SubmissionStatus } from "@/lib/tournament-store";
 import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,19 +11,26 @@ export async function GET(req: NextRequest) {
     const game = searchParams.get("game") as GameId | null;
     const status = searchParams.get("status") as SubmissionStatus | "ALL" | null;
 
-    const submissions = getAllSubmissions({
+    const submissions = await getAllSubmissionsAsync({
       gameId: game || undefined,
       status: status || undefined,
     });
 
     const pendingCount = submissions.filter((s) => s.status === "PENDING").length;
 
-    return NextResponse.json({
-      success: true,
-      count: submissions.length,
-      pendingCount,
-      submissions,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        count: submissions.length,
+        pendingCount,
+        submissions,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: "Failed to fetch submissions: " + (err.message || err) },
