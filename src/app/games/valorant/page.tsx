@@ -115,9 +115,11 @@ export default function ValorantPage() {
         <Podium first={first} second={second} third={third} />
       ) : (
         <PreMatchShowcase
+          gameId="VALORANT"
           gameName={gameConfig.name}
           teamCount={leaderboard?.length || 0}
           format={gameConfig.format}
+          contenders={leaderboard?.map((t) => t.teamName) || []}
         />
       )}
 

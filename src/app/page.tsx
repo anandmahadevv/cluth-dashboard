@@ -286,10 +286,10 @@ export default function HomePage() {
 
         {/* Toolbar: Game selector & Projector expander */}
         <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 shadow-xs">
+          <div className="inline-flex flex-wrap items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50/90 p-1.5 shadow-xs">
             <button
               onClick={() => setSelectedGame("FREE_FIRE")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 selectedGame === "FREE_FIRE"
                   ? "bg-white text-slate-900 shadow-xs border border-slate-200"
                   : "text-slate-500 hover:text-slate-800"
@@ -297,10 +297,13 @@ export default function HomePage() {
             >
               <Flame className="w-3.5 h-3.5 text-amber-500" />
               <span>Free Fire</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-700">
+                {ffLeaderboard?.length || 17}
+              </span>
             </button>
             <button
               onClick={() => setSelectedGame("BGMI")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 selectedGame === "BGMI"
                   ? "bg-white text-slate-900 shadow-xs border border-slate-200"
                   : "text-slate-500 hover:text-slate-800"
@@ -308,10 +311,13 @@ export default function HomePage() {
             >
               <Crosshair className="w-3.5 h-3.5 text-blue-500" />
               <span>BGMI</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-blue-500/15 text-blue-700">
+                {bgmiLeaderboard?.length || 6}
+              </span>
             </button>
             <button
               onClick={() => setSelectedGame("VALORANT")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 selectedGame === "VALORANT"
                   ? "bg-white text-slate-900 shadow-xs border border-slate-200"
                   : "text-slate-500 hover:text-slate-800"
@@ -319,10 +325,13 @@ export default function HomePage() {
             >
               <Target className="w-3.5 h-3.5 text-rose-500" />
               <span>Valorant</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-rose-500/15 text-rose-700">
+                {valLeaderboard?.length || 14}
+              </span>
             </button>
             <button
               onClick={() => setSelectedGame("EFOOTBALL")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 selectedGame === "EFOOTBALL"
                   ? "bg-white text-slate-900 shadow-xs border border-slate-200"
                   : "text-slate-500 hover:text-slate-800"
@@ -330,10 +339,13 @@ export default function HomePage() {
             >
               <Gamepad2 className="w-3.5 h-3.5 text-emerald-500" />
               <span>eFootball</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-700">
+                {efLeaderboard?.length || 10}
+              </span>
             </button>
             <button
               onClick={() => setSelectedGame("MATIKS")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 selectedGame === "MATIKS"
                   ? "bg-white text-slate-900 shadow-xs border border-slate-200"
                   : "text-slate-500 hover:text-slate-800"
@@ -341,6 +353,9 @@ export default function HomePage() {
             >
               <Brain className="w-3.5 h-3.5 text-purple-500" />
               <span>MATIKS</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-purple-500/15 text-purple-700">
+                {matiksLeaderboard?.length || 12}
+              </span>
             </button>
           </div>
 
@@ -381,9 +396,11 @@ export default function HomePage() {
         />
       ) : (
         <PreMatchShowcase
+          gameId={selectedGame}
           gameName={currentGameConfig?.name || "Championship"}
           teamCount={currentLeaderboard?.length || 0}
           format={currentGameConfig?.format}
+          contenders={currentLeaderboard?.map((e) => e.teamName) || []}
           isProjector={isProjectorMode}
         />
       )}

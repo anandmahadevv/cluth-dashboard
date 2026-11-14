@@ -125,9 +125,11 @@ export default function BgmiPage() {
         </div>
       ) : (
         <PreMatchShowcase
+          gameId="BGMI"
           gameName="BGMI"
           teamCount={leaderboard?.length || 0}
           format={gameConfig.format}
+          contenders={leaderboard?.map((t) => t.teamName) || []}
         />
       )}
 

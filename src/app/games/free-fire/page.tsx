@@ -127,9 +127,11 @@ export default function FreeFirePage() {
         </div>
       ) : (
         <PreMatchShowcase
+          gameId="FREE_FIRE"
           gameName="Free Fire"
           teamCount={leaderboard?.length || 0}
           format={GAMES_CONFIG.FREE_FIRE.format}
+          contenders={leaderboard?.map((t) => t.teamName) || []}
         />
       )}
 

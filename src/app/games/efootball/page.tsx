@@ -115,9 +115,11 @@ export default function EfootballPage() {
         <Podium first={first} second={second} third={third} />
       ) : (
         <PreMatchShowcase
+          gameId="EFOOTBALL"
           gameName="eFootball"
           teamCount={leaderboard?.length || 0}
           format={gameConfig.format}
+          contenders={leaderboard?.map((t: any) => t.teamName) || []}
         />
       )}
 

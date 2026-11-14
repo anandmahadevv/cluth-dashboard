@@ -352,9 +352,11 @@ export default function LeaderboardsPage() {
         <Podium first={first} second={second} third={third} />
       ) : (
         <PreMatchShowcase
+          gameId={selectedGame}
           gameName={currentGameConfig?.name || "Championship"}
           teamCount={currentLeaderboard?.length || 0}
           format={currentGameConfig?.format}
+          contenders={currentLeaderboard?.map((e: any) => e.teamName) || []}
         />
       )}
 
