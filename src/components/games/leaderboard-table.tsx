@@ -29,12 +29,15 @@ interface LeaderboardTableProps {
 
 export function LeaderboardTable({
   entries,
+  gameName,
   className,
   isProjector = false,
 }: LeaderboardTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<"total" | "placement" | "kills">("total");
   const [sortAsc, setSortAsc] = useState(false);
+
+  const isValorant = gameName?.toLowerCase().includes("valorant");
 
   const filteredEntries = entries
     .filter((entry) =>
@@ -91,30 +94,34 @@ export function LeaderboardTable({
               <th className="py-3 pl-6 pr-3 w-16">Rank</th>
               <th className="py-3 px-4 font-bold">Team</th>
               <th className="py-3 px-4 text-center">Matches</th>
-              <th
-                onClick={() => toggleSort("placement")}
-                className="py-3 px-4 text-right cursor-pointer hover:text-slate-800 transition select-none"
-              >
-                <div className="flex items-center justify-end gap-1">
-                  <span>Placement</span>
-                  <ArrowUpDown className="w-3 h-3 opacity-60" />
-                </div>
-              </th>
-              <th
-                onClick={() => toggleSort("kills")}
-                className="py-3 px-4 text-right cursor-pointer hover:text-slate-800 transition select-none"
-              >
-                <div className="flex items-center justify-end gap-1">
-                  <span>Kills</span>
-                  <ArrowUpDown className="w-3 h-3 opacity-60" />
-                </div>
-              </th>
+              {!isValorant && (
+                <>
+                  <th
+                    onClick={() => toggleSort("placement")}
+                    className="py-3 px-4 text-right cursor-pointer hover:text-slate-800 transition select-none"
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      <span>Placement</span>
+                      <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => toggleSort("kills")}
+                    className="py-3 px-4 text-right cursor-pointer hover:text-slate-800 transition select-none"
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      <span>Kills</span>
+                      <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </div>
+                  </th>
+                </>
+              )}
               <th
                 onClick={() => toggleSort("total")}
                 className="py-3 pl-4 pr-6 text-right cursor-pointer hover:text-slate-800 transition select-none"
               >
                 <div className="flex items-center justify-end gap-1">
-                  <span>Points Earned</span>
+                  <span>{isValorant ? "Placement Points" : "Points Earned"}</span>
                   <ArrowUpDown className="w-3 h-3 opacity-60" />
                 </div>
               </th>
@@ -183,15 +190,19 @@ export function LeaderboardTable({
                     {entry.matchesPlayed}
                   </td>
 
-                  {/* Placement Points */}
-                  <td className="py-3.5 px-4 text-right font-mono text-sm text-slate-600">
-                    {entry.placementPoints}
-                  </td>
+                  {!isValorant && (
+                    <>
+                      {/* Placement Points */}
+                      <td className="py-3.5 px-4 text-right font-mono text-sm text-slate-600">
+                        {entry.placementPoints}
+                      </td>
 
-                  {/* Kill Points */}
-                  <td className="py-3.5 px-4 text-right font-mono text-sm text-slate-600">
-                    {entry.killPoints}
-                  </td>
+                      {/* Kill Points */}
+                      <td className="py-3.5 px-4 text-right font-mono text-sm text-slate-600">
+                        {entry.killPoints}
+                      </td>
+                    </>
+                  )}
 
                   {/* Total Points */}
                   <td className="py-3.5 pl-4 pr-6 text-right font-mono text-sm font-black text-slate-900">
@@ -212,7 +223,7 @@ export function LeaderboardTable({
 
             {filteredEntries.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-sm text-slate-400">
+                <td colSpan={isValorant ? 4 : 6} className="py-8 text-center text-sm text-slate-400">
                   No teams found.
                 </td>
               </tr>

@@ -20,10 +20,10 @@ export default function ValorantPage() {
         rank: 1 as const,
         name: leaderboard[0].teamName,
         subtext: "Valorant Champion",
-        stat1Value: leaderboard[0].killPoints,
-        stat1Label: "combat\nscore",
+        stat1Value: leaderboard[0].matchesPlayed,
+        stat1Label: "matches\nplayed",
         stat2Value: leaderboard[0].totalPoints,
-        stat2Label: "total\npoints",
+        stat2Label: "placement\npoints",
       }
     : undefined;
 
@@ -32,10 +32,10 @@ export default function ValorantPage() {
         rank: 2 as const,
         name: leaderboard[1].teamName,
         subtext: "1st Runner-Up",
-        stat1Value: leaderboard[1].killPoints,
-        stat1Label: "combat\nscore",
+        stat1Value: leaderboard[1].matchesPlayed,
+        stat1Label: "matches\nplayed",
         stat2Value: leaderboard[1].totalPoints,
-        stat2Label: "total\npoints",
+        stat2Label: "placement\npoints",
       }
     : undefined;
 
@@ -44,10 +44,10 @@ export default function ValorantPage() {
         rank: 3 as const,
         name: leaderboard[2].teamName,
         subtext: "2nd Runner-Up",
-        stat1Value: leaderboard[2].killPoints,
-        stat1Label: "combat\nscore",
+        stat1Value: leaderboard[2].matchesPlayed,
+        stat1Label: "matches\nplayed",
         stat2Value: leaderboard[2].totalPoints,
-        stat2Label: "total\npoints",
+        stat2Label: "placement\npoints",
       }
     : undefined;
 

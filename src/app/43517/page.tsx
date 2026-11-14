@@ -574,9 +574,10 @@ export default function SuperAdminPortalPage() {
   const calcMatchPoints = (placement: number, kills: number, gameId: GameId) => {
     const matrix = PLACEMENT_POINTS[gameId];
     const placePts = matrix && placement >= 1 && placement <= matrix.length ? matrix[placement - 1] : 0;
+    const effectiveKills = gameId === "VALORANT" ? 0 : (kills || 0);
     return {
       placementPoints: placePts,
-      matchTotal: placePts + (kills || 0),
+      matchTotal: placePts + effectiveKills,
     };
   };
 
@@ -1245,7 +1246,11 @@ export default function SuperAdminPortalPage() {
                                   <th className="py-2 px-3">Place</th>
                                   <th className="py-2 px-3">Team Name</th>
                                   <th className="py-2 px-2 text-center">Place Pts</th>
-                                  <th className="py-2 px-2 text-center">Kills</th>
+                                  {sub.gameId !== "VALORANT" && (
+                                    <th className="py-2 px-2 text-center">
+                                      {sub.gameId === "EFOOTBALL" ? "Goals" : sub.gameId === "MATIKS" ? "Bonus" : "Kills"}
+                                    </th>
+                                  )}
                                   <th className="py-2 px-3 text-right">Match Total</th>
                                 </tr>
                               </thead>
@@ -1261,9 +1266,11 @@ export default function SuperAdminPortalPage() {
                                     <td className="py-2 px-2 text-center text-slate-300">
                                       {t.placementPoints}
                                     </td>
-                                    <td className="py-2 px-2 text-center text-slate-300">
-                                      {t.kills}
-                                    </td>
+                                    {sub.gameId !== "VALORANT" && (
+                                      <td className="py-2 px-2 text-center text-slate-300">
+                                        {t.kills}
+                                      </td>
+                                    )}
                                     <td className="py-2 px-3 text-right font-extrabold text-blue-400 font-mono">
                                       +{t.matchPoints}
                                     </td>
@@ -1471,9 +1478,11 @@ export default function SuperAdminPortalPage() {
                         <tr className="border-b border-slate-800 text-slate-400">
                           <th className="py-2.5 px-3">Team (Rank Ordered)</th>
                           <th className="py-2.5 px-2 text-center w-28">Match Rank</th>
-                          <th className="py-2.5 px-2 text-center w-24">
-                            {directGame === "EFOOTBALL" ? "Goals" : directGame === "MATIKS" ? "Bonus Pts" : "Kills"}
-                          </th>
+                          {directGame !== "VALORANT" && (
+                            <th className="py-2.5 px-2 text-center w-24">
+                              {directGame === "EFOOTBALL" ? "Goals" : directGame === "MATIKS" ? "Bonus Pts" : "Kills"}
+                            </th>
+                          )}
                           <th className="py-2.5 px-3 text-right">Points</th>
                         </tr>
                       </thead>
@@ -1569,24 +1578,28 @@ export default function SuperAdminPortalPage() {
                                   </div>
                                 </td>
 
-                                <td className="py-2.5 px-2 text-center">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={sc.kills || 0}
-                                    onChange={(e) =>
-                                      handleScoreChange(t.id, "kills", parseInt(e.target.value) || 0)
-                                    }
-                                    className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
-                                  />
-                                </td>
+                                {directGame !== "VALORANT" && (
+                                  <td className="py-2.5 px-2 text-center">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={sc.kills || 0}
+                                      onChange={(e) =>
+                                        handleScoreChange(t.id, "kills", parseInt(e.target.value) || 0)
+                                      }
+                                      className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
+                                    />
+                                  </td>
+                                )}
 
                                 <td className="py-2.5 px-3 text-right">
                                   <div className="font-extrabold text-blue-400 font-mono text-xs">
                                     +{sc.matchTotal}
                                   </div>
                                   <div className="text-[10px] text-slate-500 font-mono">
-                                    ({sc.placementPoints}p + {sc.kills}k)
+                                    {directGame === "VALORANT"
+                                      ? `${sc.placementPoints} pts`
+                                      : `(${sc.placementPoints}p + ${sc.kills}k)`}
                                   </div>
                                 </td>
                               </tr>

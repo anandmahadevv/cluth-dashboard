@@ -104,28 +104,28 @@ export default function HomePage() {
       rank: 1 as const,
       name: valLeaderboard[0].teamName,
       subtext: "Valorant Champion",
-      stat1Value: valLeaderboard[0].killPoints,
-      stat1Label: "combat\nscore",
+      stat1Value: valLeaderboard[0].matchesPlayed,
+      stat1Label: "matches\nplayed",
       stat2Value: valLeaderboard[0].totalPoints,
-      stat2Label: "total\npoints",
+      stat2Label: "placement\npoints",
     };
     second = {
       rank: 2 as const,
       name: valLeaderboard[1].teamName,
       subtext: "1st Runner-Up",
-      stat1Value: valLeaderboard[1].killPoints,
-      stat1Label: "combat\nscore",
+      stat1Value: valLeaderboard[1].matchesPlayed,
+      stat1Label: "matches\nplayed",
       stat2Value: valLeaderboard[1].totalPoints,
-      stat2Label: "total\npoints",
+      stat2Label: "placement\npoints",
     };
     third = {
       rank: 3 as const,
       name: valLeaderboard[2].teamName,
       subtext: "2nd Runner-Up",
-      stat1Value: valLeaderboard[2].killPoints,
-      stat1Label: "combat\nscore",
+      stat1Value: valLeaderboard[2].matchesPlayed,
+      stat1Label: "matches\nplayed",
       stat2Value: valLeaderboard[2].totalPoints,
-      stat2Label: "total\npoints",
+      stat2Label: "placement\npoints",
     };
   } else if (selectedGame === "EFOOTBALL" && efLeaderboard && efLeaderboard.length >= 3) {
     first = {

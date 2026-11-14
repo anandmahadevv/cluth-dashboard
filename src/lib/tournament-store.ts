@@ -325,7 +325,8 @@ export function recordMatchSubmission(params: {
     if (!team) return;
 
     let placementPts = res.placementPoints || 0;
-    const kills = res.kills || 0;
+    // For Valorant: pure placement points only, no combat/kill score
+    const kills = params.gameId === "VALORANT" ? 0 : (res.kills || 0);
 
     // Auto-calculate placement points based on game matrix
     const matrix = PLACEMENT_POINTS[params.gameId];
@@ -571,7 +572,8 @@ export async function recordMatchSubmissionAsync(params: {
     if (!team) return;
 
     let placementPts = res.placementPoints || 0;
-    const kills = res.kills || 0;
+    // For Valorant: pure placement points only, no combat/kill score
+    const kills = params.gameId === "VALORANT" ? 0 : (res.kills || 0);
 
     // Auto-calculate placement points based on game matrix
     const matrix = PLACEMENT_POINTS[params.gameId];

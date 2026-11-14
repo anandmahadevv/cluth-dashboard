@@ -63,8 +63,8 @@ export const GAMES_CONFIG: Record<GameId, GameConfig> = {
     bgGradient: "from-rose-950/40 via-zinc-900/60 to-black",
     bannerImage: "/images/valorant-banner.jpg",
     rulesOverview:
-      "First to 13 rounds wins the match. Standings determined by Match Wins (10 pts for 1st, 6 for 2nd) + Round differential/eliminations.",
-    scoringFormat: "Round Wins • Combat Score + Match Points",
+      "Matches scored strictly by bracket placement finish: 1st Place = 10 pts, 2nd Place = 6 pts, 3rd Place = 4 pts, 4th Place = 2 pts, 5th–8th = 1 pt each.",
+    scoringFormat: "Placement Points Only (1st: 10pts, 2nd: 6pts, 3rd: 4pts, 4th: 2pts, 5-8th: 1pt)",
   },
   EFOOTBALL: {
     id: "EFOOTBALL",

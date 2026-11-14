@@ -114,9 +114,10 @@ export default function PocPortalPage() {
   const calcMatchPoints = (placement: number, kills: number, gameId: GameId) => {
     const matrix = PLACEMENT_POINTS[gameId];
     const placePts = matrix && placement >= 1 && placement <= matrix.length ? matrix[placement - 1] : 0;
+    const effectiveKills = gameId === "VALORANT" ? 0 : (kills || 0);
     return {
       placementPoints: placePts,
-      matchTotal: placePts + (kills || 0),
+      matchTotal: placePts + effectiveKills,
     };
   };
 
@@ -554,10 +555,12 @@ export default function PocPortalPage() {
                         <tr className="border-b border-slate-800 text-slate-400 font-semibold">
                           <th className="py-2.5 px-3">Team (Rank Ordered)</th>
                           <th className="py-2.5 px-2 text-center w-28">Match Rank</th>
-                          <th className="py-2.5 px-2 text-center w-24">
-                            {selectedGame === "EFOOTBALL" ? "Goals" : selectedGame === "MATIKS" ? "Bonus Pts" : "Kills"}
-                          </th>
-                          <th className="py-2.5 px-3 text-right">Match Points</th>
+                          {selectedGame !== "VALORANT" && (
+                            <th className="py-2.5 px-2 text-center w-24">
+                              {selectedGame === "EFOOTBALL" ? "Goals" : selectedGame === "MATIKS" ? "Bonus Pts" : "Kills"}
+                            </th>
+                          )}
+                          <th className="py-2.5 px-3 text-right">Points Earned</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
@@ -652,24 +655,28 @@ export default function PocPortalPage() {
                                   </div>
                                 </td>
 
-                                <td className="py-2.5 px-2 text-center">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={sc.kills || 0}
-                                    onChange={(e) =>
-                                      handleScoreChange(t.id, "kills", parseInt(e.target.value) || 0)
-                                    }
-                                    className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
-                                  />
-                                </td>
+                                {selectedGame !== "VALORANT" && (
+                                  <td className="py-2.5 px-2 text-center">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={sc.kills || 0}
+                                      onChange={(e) =>
+                                        handleScoreChange(t.id, "kills", parseInt(e.target.value) || 0)
+                                      }
+                                      className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
+                                    />
+                                  </td>
+                                )}
 
                                 <td className="py-2.5 px-3 text-right">
                                   <div className="font-extrabold text-blue-400 font-mono text-xs">
                                     +{sc.matchTotal}
                                   </div>
                                   <div className="text-[10px] text-slate-500 font-mono">
-                                    ({sc.placementPoints}p + {sc.kills}k)
+                                    {selectedGame === "VALORANT"
+                                      ? `${sc.placementPoints} pts`
+                                      : `(${sc.placementPoints}p + ${sc.kills}k)`}
                                   </div>
                                 </td>
                               </tr>
