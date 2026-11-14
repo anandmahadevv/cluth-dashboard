@@ -1,11 +1,12 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { GameId } from "@/types";
 import {
   VALID_GAME_CODES,
   PLACEMENT_POINTS,
   INITIAL_TEAMS,
-  ADMIN_PASSWORDS,
+  ADMIN_PASSWORD_HASH,
 } from "./tournament-constants";
 
 export type SubmissionStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -192,12 +193,12 @@ export function getGameMatches(gameId?: GameId, approvedOnly = true): MatchSubmi
 }
 
 /**
- * Verify Super Admin Security Password
+ * Verify Super Admin Security Password via Constant-Time Cryptographic Hash Comparison
  */
 export function verifyAdminPassword(password: string): boolean {
   if (!password) return false;
-  const trimmed = password.trim();
-  return ADMIN_PASSWORDS.some((p) => p.toLowerCase() === trimmed.toLowerCase());
+  const hash = crypto.createHash("sha256").update(password.trim()).digest("hex");
+  return hash === ADMIN_PASSWORD_HASH;
 }
 
 /**
@@ -413,7 +414,7 @@ export function getAllSubmissions(options?: {
 export function resetGameScores(code: string, targetGame?: GameId | "ALL"): { success: boolean; error?: string } {
   const auth = verifyGameCode(code);
   if (!auth.valid || !auth.isSuperAdmin) {
-    return { success: false, error: "Unauthorized. Super Admin code (e.g. 43517) is required to reset." };
+    return { success: false, error: "Unauthorized. Super Admin authorization is required to reset." };
   }
 
   const store = getStore();

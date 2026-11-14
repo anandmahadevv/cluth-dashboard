@@ -505,9 +505,8 @@ export default function SuperAdminPortalPage() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
-                <span>Security Master Password</span>
-                <span className="text-[11px] font-normal text-slate-500">(Slug: 43517)</span>
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                Security Master Password
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -515,7 +514,7 @@ export default function SuperAdminPortalPage() {
                   type={showPassword ? "text" : "password"}
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  placeholder="Enter admin password (e.g. 43517)"
+                  placeholder="Enter confidential passkey"
                   required
                   autoFocus
                   className="w-full pl-10 pr-10 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-sm focus:border-emerald-500 outline-none transition"

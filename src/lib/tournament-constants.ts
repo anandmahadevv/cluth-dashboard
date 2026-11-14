@@ -1,12 +1,9 @@
 import { GameId } from "@/types";
 
-// Master Super Admin Passwords
-export const ADMIN_PASSWORDS: string[] = [
-  process.env.ADMIN_PASSWORD || "",
-  "43517",
-  "CLUTCH@43517",
-  "clutchadmin",
-].filter(Boolean);
+// Cryptographic SHA-256 Hash for Super Admin Access (zero plaintext stored or exposed)
+export const ADMIN_PASSWORD_HASH =
+  process.env.ADMIN_PASSWORD_HASH ||
+  "bb9fc06955867332c18b234775cb22982f693e7ad56d430fb550a386840ef9fd";
 
 // Official Game Verification Codes
 export const VALID_GAME_CODES: Record<string, GameId | "ALL"> = {
