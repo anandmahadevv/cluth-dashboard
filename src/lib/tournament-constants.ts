@@ -7,8 +7,7 @@ export const ADMIN_PASSWORD_HASH =
 
 // Official Game Verification Codes
 export const VALID_GAME_CODES: Record<string, GameId | "ALL"> = {
-  "43517": "ALL", // Master Super Admin Code & Secret Slug
-  "CLUTCH-SUPER-2026": "ALL", // Master Super Admin Fallback
+  "CLUTCH-SUPER-2026": "ALL", // Master Super Admin Room Code
   "CLT-FF-2026X": "FREE_FIRE",
   "CLT-BG-2026X": "BGMI",
   "CLT-VL-2026X": "VALORANT",

@@ -86,7 +86,7 @@ interface SubmissionRecord {
   }[];
 }
 
-const SUPER_CODE = "43517";
+const SUPER_CODE = "CLUTCH-SUPER-2026";
 
 export default function SuperAdminPortalPage() {
   // Authentication State

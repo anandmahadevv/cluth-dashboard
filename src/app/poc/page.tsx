@@ -516,7 +516,7 @@ export default function PocPortalPage() {
                     type="text"
                     value={pocCode}
                     onChange={(e) => setPocCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. CLT-FF-2026X or 43517"
+                    placeholder="e.g. CLT-FF-2026X"
                     required
                     className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-700 font-mono text-sm uppercase tracking-wider text-white focus:border-blue-500 outline-none transition"
                   />
