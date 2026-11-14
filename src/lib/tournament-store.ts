@@ -65,6 +65,9 @@ const SEED_FILE_PATH = path.join(process.cwd(), "data", "tournament-data.json");
 
 let inMemoryStore: TournamentStoreData | null = null;
 let lastFileReadTime = 0;
+let lastSupabaseFetchTime = 0;
+let pendingSupabaseFetch: Promise<TournamentStoreData | null> | null = null;
+const SUPABASE_CACHE_TTL_MS = 2000; // 2 seconds in-memory deduplication cache
 
 function createInitialStoreData(): TournamentStoreData {
   const teamsMap: Record<GameId, TeamScoreEntry[]> = {
@@ -137,28 +140,48 @@ export function getStore(): TournamentStoreData {
 
 /**
  * Load store data asynchronously (from Supabase if configured, falling back to disk/seed)
+ * Optimized with 2s cache and promise deduplication to prevent redundant network round-trips
  */
 export async function getStoreAsync(): Promise<TournamentStoreData> {
   if (isSupabaseConfigured()) {
-    try {
-      const remote = await fetchStoreFromSupabase();
-      if (remote && remote.teams) {
-        inMemoryStore = remote;
-        // Keep local cache file warm
+    const now = Date.now();
+    // 1. Fast path: return in-memory cache if fresh
+    if (inMemoryStore && inMemoryStore.teams && (now - lastSupabaseFetchTime < SUPABASE_CACHE_TTL_MS)) {
+      return inMemoryStore;
+    }
+
+    // 2. Promise deduplication: join in-flight request if one exists
+    if (pendingSupabaseFetch) {
+      try {
+        const remote = await pendingSupabaseFetch;
+        if (remote && remote.teams) return remote;
+      } catch {}
+    } else {
+      pendingSupabaseFetch = (async () => {
         try {
-          const dir = path.dirname(DATA_FILE_PATH);
-          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-          fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(remote, null, 2), "utf-8");
-        } catch {}
-        return remote;
-      } else {
-        // First run with Supabase: seed initial data to Supabase
-        const initial = getStore();
-        await persistStoreToSupabase(initial);
-        return initial;
+          const remote = await fetchStoreFromSupabase();
+          if (remote && remote.teams) {
+            inMemoryStore = remote;
+            lastSupabaseFetchTime = Date.now();
+            try {
+              const dir = path.dirname(DATA_FILE_PATH);
+              if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+              fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(remote, null, 2), "utf-8");
+            } catch {}
+            return remote;
+          }
+          return null;
+        } finally {
+          pendingSupabaseFetch = null;
+        }
+      })();
+
+      try {
+        const remote = await pendingSupabaseFetch;
+        if (remote && remote.teams) return remote;
+      } catch (err) {
+        console.warn("Supabase fetch fallback to disk:", err);
       }
-    } catch (err) {
-      console.warn("Supabase fetch fallback to disk:", err);
     }
   }
 
@@ -170,6 +193,7 @@ export async function getStoreAsync(): Promise<TournamentStoreData> {
  */
 export function saveStore(data: TournamentStoreData) {
   inMemoryStore = data;
+  lastSupabaseFetchTime = Date.now();
   try {
     const dir = path.dirname(DATA_FILE_PATH);
     if (!fs.existsSync(dir)) {

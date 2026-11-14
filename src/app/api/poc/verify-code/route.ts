@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyGameCode, getGameLeaderboardAsync } from "@/lib/tournament-store";
+import { verifyGameCode, getGameLeaderboard, getGameLeaderboardAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: check.error || "Invalid code." }, { status: 401 });
     }
 
-    const currentTeams = await getGameLeaderboardAsync(check.gameId);
+    // Fast-path: Instant in-memory / local disk read (< 2ms)
+    let currentTeams = getGameLeaderboard(check.gameId);
+    if (!currentTeams || currentTeams.length === 0) {
+      currentTeams = await getGameLeaderboardAsync(check.gameId);
+    }
 
     return NextResponse.json({
       success: true,
