@@ -334,21 +334,32 @@ export default function PocPortalPage() {
       {/* Top Header */}
       <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition px-2.5 py-1.5 rounded-lg hover:bg-slate-800"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Public Broadcast Dashboard</span>
-          </Link>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-black border border-slate-700 overflow-hidden flex items-center justify-center p-0.5 shrink-0">
+              <img src="/images/clutch-logo.jpg" alt="CLUTCH" className="w-full h-full object-contain" />
+            </div>
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition px-2.5 py-1.5 rounded-lg hover:bg-slate-800"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Public Broadcast Dashboard</span>
+              <span className="sm:hidden">Dashboard</span>
+            </Link>
+          </div>
 
-          <div className="flex items-center gap-2">
-            <span className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <ShieldCheck className="w-4 h-4" />
-            </span>
-            <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-              Referee & POC Portal
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#7a1c22] border border-slate-700 overflow-hidden flex items-center justify-center p-0.5 shrink-0" title="NIAT">
+              <img src="/images/niat-logo.jpg" alt="NIAT" className="w-full h-full object-contain" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <ShieldCheck className="w-4 h-4" />
+              </span>
+              <span className="text-xs font-bold text-white uppercase tracking-wider font-mono hidden sm:inline">
+                Referee & POC Portal
+              </span>
+            </div>
           </div>
         </div>
       </header>

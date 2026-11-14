@@ -209,31 +209,59 @@ export default function HomePage() {
           : "min-h-screen px-4 pt-10 pb-20 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-8 bg-white text-slate-900"
       }
     >
-      {/* Top Header matching reference image: THE LEADERBOARD */}
-      <div className="w-full text-center max-w-2xl mx-auto space-y-2 relative">
+      {/* Top Header matching reference image: THE LEADERBOARD with Logos */}
+      <div className="w-full max-w-4xl mx-auto space-y-3 relative">
         {/* Projector exit button if in fullscreen */}
         {isProjectorMode && (
           <button
             onClick={toggleProjector}
-            className="absolute top-0 right-0 p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+            className="absolute -top-3 -right-2 sm:-top-2 sm:right-0 p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition z-20 shadow-xs border border-slate-200"
             title="Exit Projector Mode"
           >
             <Minimize2 className="w-5 h-5" />
           </button>
         )}
 
-        <div className="text-xl sm:text-2xl font-black uppercase tracking-wider text-slate-800">
-          THE
+        {/* Flanked Logo Banner: CLUTCH (Left) | Title (Center) | NIAT (Right) */}
+        <div className="flex items-center justify-between w-full gap-3 sm:gap-6 pt-1">
+          {/* Left Logo: CLUTCH */}
+          <div className="shrink-0 flex items-center justify-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-black border border-slate-200/90 shadow-sm overflow-hidden flex items-center justify-center p-1 sm:p-2 transition-transform hover:scale-105">
+              <img
+                src="/images/clutch-logo.jpg"
+                alt="CLUTCH Esports"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+
+          {/* Center Titles */}
+          <div className="flex-1 text-center space-y-1 sm:space-y-1.5">
+            <div className="text-xs sm:text-base md:text-lg font-black uppercase tracking-widest text-slate-700 font-display">
+              THE
+            </div>
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tight text-[#1e293b] leading-none font-display">
+              LEADERBOARD
+            </h1>
+            <p className="text-[10px] sm:text-xs md:text-sm text-slate-500 font-semibold max-w-lg mx-auto">
+              CLUTCH – NIAT E-Sports Championship • Yenepoya University, Mangalore • 15 Nov 2026
+            </p>
+          </div>
+
+          {/* Right Logo: NIAT */}
+          <div className="shrink-0 flex items-center justify-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-[#7a1c22] border border-slate-200/90 shadow-sm overflow-hidden flex items-center justify-center p-1 sm:p-2 transition-transform hover:scale-105">
+              <img
+                src="/images/niat-logo.jpg"
+                alt="NIAT Crest"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
         </div>
-        <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tight text-[#1e293b] leading-none">
-          LEADERBOARD
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 font-medium pt-1">
-          CLUTCH – NIAT E-Sports Championship • Yenepoya University, Mangalore • 15 November 2026
-        </p>
 
         {/* Toolbar: Game selector & Projector expander */}
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
           <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 shadow-xs">
             <button
               onClick={() => setSelectedGame("FREE_FIRE")}

@@ -35,12 +35,16 @@ export function Navbar() {
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md transition-all shadow-2xs">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white font-black text-sm">
-            C
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="h-9 w-9 rounded-lg bg-black border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0">
+            <img
+              src="/images/clutch-logo.jpg"
+              alt="CLUTCH"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div className="flex flex-col">
-            <span className="font-black text-base tracking-tight text-slate-900 leading-none">
+            <span className="font-black text-base tracking-tight text-slate-900 leading-none font-display">
               {EVENT_DETAILS.brand}
             </span>
             <span className="text-[10px] font-semibold text-slate-400">
@@ -67,12 +71,26 @@ export function Navbar() {
         </nav>
 
         {/* Right CTA */}
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-[#7a1c22] border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0" title="NIAT">
+            <img
+              src="/images/niat-logo.jpg"
+              alt="NIAT Crest"
+              className="w-full h-full object-contain"
+            />
+          </div>
           <ShareModal label="Share" />
         </div>
 
         {/* Mobile menu trigger */}
         <div className="sm:hidden flex items-center gap-2">
+          <div className="h-7 w-7 rounded-md bg-[#7a1c22] border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0">
+            <img
+              src="/images/niat-logo.jpg"
+              alt="NIAT Crest"
+              className="w-full h-full object-contain"
+            />
+          </div>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"

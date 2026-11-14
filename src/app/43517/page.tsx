@@ -657,6 +657,9 @@ export default function SuperAdminPortalPage() {
       <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-black border border-slate-700 overflow-hidden flex items-center justify-center p-0.5 shrink-0">
+              <img src="/images/clutch-logo.jpg" alt="CLUTCH" className="w-full h-full object-contain" />
+            </div>
             <Link
               href="/"
               className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition px-2.5 py-1.5 rounded-lg hover:bg-slate-800"
@@ -675,6 +678,9 @@ export default function SuperAdminPortalPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#7a1c22] border border-slate-700 overflow-hidden flex items-center justify-center p-0.5 shrink-0" title="NIAT">
+              <img src="/images/niat-logo.jpg" alt="NIAT" className="w-full h-full object-contain" />
+            </div>
             {pendingCount > 0 && (
               <span className="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold animate-pulse flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />

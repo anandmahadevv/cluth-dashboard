@@ -247,19 +247,35 @@ export default function LeaderboardsPage() {
     <div className="min-h-screen px-4 py-10 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
       {/* Top Header matching reference styling */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
-        <div>
-          <div className="text-xs font-black uppercase tracking-widest text-[#f59e0b] font-display">
-            CLUTCH 2026 STANDINGS
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-black border border-zinc-700/80 shadow-sm overflow-hidden flex items-center justify-center p-1.5 shrink-0">
+            <img
+              src="/images/clutch-logo.jpg"
+              alt="CLUTCH"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white font-display mt-0.5">
-            THE LEADERBOARD
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Displaying real-time Super Admin authorized rankings and approved point tables.
-          </p>
+          <div>
+            <div className="text-xs font-black uppercase tracking-widest text-[#f59e0b] font-display">
+              CLUTCH 2026 STANDINGS
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white font-display mt-0.5">
+              THE LEADERBOARD
+            </h1>
+            <p className="text-xs text-zinc-400 mt-1">
+              Displaying real-time Super Admin authorized rankings and approved point tables.
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#7a1c22] border border-zinc-700/80 shadow-sm overflow-hidden flex items-center justify-center p-1.5 shrink-0" title="NIAT">
+            <img
+              src="/images/niat-logo.jpg"
+              alt="NIAT Crest"
+              className="w-full h-full object-contain"
+            />
+          </div>
           <LiveIndicator
             lastUpdated={currentLastUpdated}
             isRefreshing={currentIsRefreshing}
