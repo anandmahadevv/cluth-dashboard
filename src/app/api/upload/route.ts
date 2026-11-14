@@ -13,27 +13,42 @@ export async function POST(req: NextRequest) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const mimeType = file.type || "image/jpeg";
+    const base64Data = buffer.toString("base64");
+    const dataUri = `data:${mimeType};base64,${base64Data}`;
 
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "proofs");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    // On Vercel / serverless (/var/task is read-only), return data URI directly
+    if (process.env.VERCEL) {
+      return NextResponse.json({
+        success: true,
+        url: dataUri,
+        filename: file.name,
+      });
     }
 
-    // Clean filename and timestamp
-    const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const filename = `${Date.now()}-${cleanName}`;
-    const filePath = path.join(uploadDir, filename);
-
-    fs.writeFileSync(filePath, buffer);
-
-    const publicUrl = `/uploads/proofs/${filename}`;
-
-    return NextResponse.json({
-      success: true,
-      url: publicUrl,
-      filename: filename,
-    });
+    // On local environment, attempt disk write to public/uploads
+    try {
+      const uploadDir = path.join(process.cwd(), "public", "uploads", "proofs");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+      const filename = `${Date.now()}-${cleanName}`;
+      const filePath = path.join(uploadDir, filename);
+      fs.writeFileSync(filePath, buffer);
+      return NextResponse.json({
+        success: true,
+        url: `/uploads/proofs/${filename}`,
+        filename: filename,
+      });
+    } catch {
+      // Fallback to data URI if disk write is not permitted
+      return NextResponse.json({
+        success: true,
+        url: dataUri,
+        filename: file.name,
+      });
+    }
   } catch (err: any) {
     console.error("Upload error:", err);
     return NextResponse.json(

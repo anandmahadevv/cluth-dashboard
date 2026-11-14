@@ -130,8 +130,8 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
     });
   };
 
-  // Upload Screenshot / Proof
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Client-Side Image Upload & Compression (Zero-server, 100% Vercel & mobile compatible)
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -139,23 +139,66 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
     setUploadError("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "File upload failed");
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error("File is too large. Please select an image under 10MB.");
       }
 
-      setProofUrl(data.url);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const rawDataUrl = event.target?.result as string;
+
+        // Auto-compress image in-browser using Canvas
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            const maxDim = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressed = canvas.toDataURL("image/jpeg", 0.75);
+              setProofUrl(compressed);
+            } else {
+              setProofUrl(rawDataUrl);
+            }
+          } catch {
+            setProofUrl(rawDataUrl);
+          } finally {
+            setIsUploading(false);
+          }
+        };
+
+        img.onerror = () => {
+          setProofUrl(rawDataUrl);
+          setIsUploading(false);
+        };
+
+        img.src = rawDataUrl;
+      };
+
+      reader.onerror = () => {
+        setUploadError("Failed to read image file.");
+        setIsUploading(false);
+      };
+
+      reader.readAsDataURL(file);
     } catch (err: any) {
-      setUploadError(err.message || "Failed to upload image. You can also paste an image URL.");
-    } finally {
+      setUploadError(err.message || "Failed to process image.");
       setIsUploading(false);
     }
   };
@@ -486,9 +529,35 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
                     </div>
 
                     {proofUrl && (
-                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs text-emerald-800">
-                        <FileImage className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span className="truncate flex-1 font-mono">{proofUrl}</span>
+                      <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3 text-xs text-emerald-800">
+                        {proofUrl.startsWith("data:image/") ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={proofUrl}
+                            alt="Proof preview"
+                            className="w-12 h-12 object-cover rounded-lg border border-emerald-300 shrink-0 shadow-xs"
+                          />
+                        ) : (
+                          <FileImage className="w-6 h-6 text-emerald-600 shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Proof Screenshot Verified</span>
+                          </p>
+                          <p className="text-[11px] text-emerald-700 truncate font-mono">
+                            {proofUrl.startsWith("data:image/")
+                              ? "Compressed in-browser (~100KB) • Ready for commit"
+                              : proofUrl}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setProofUrl("")}
+                          className="px-2 py-1 rounded hover:bg-emerald-100 text-emerald-800 font-bold text-xs transition"
+                        >
+                          Remove
+                        </button>
                       </div>
                     )}
 

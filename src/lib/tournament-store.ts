@@ -43,7 +43,14 @@ export interface TournamentStoreData {
   matches: MatchSubmission[];
 }
 
-const DATA_FILE_PATH = path.join(process.cwd(), "data", "tournament-data.json");
+// On Vercel serverless functions, root (/var/task) is read-only. /tmp is the writable scratch space.
+const DATA_FILE_PATH = process.env.VERCEL
+  ? path.join("/tmp", "tournament-data.json")
+  : path.join(process.cwd(), "data", "tournament-data.json");
+
+const SEED_FILE_PATH = path.join(process.cwd(), "data", "tournament-data.json");
+
+let inMemoryStore: TournamentStoreData | null = null;
 
 function createInitialStoreData(): TournamentStoreData {
   const teamsMap: Record<GameId, TeamScoreEntry[]> = {
@@ -74,27 +81,46 @@ function createInitialStoreData(): TournamentStoreData {
 }
 
 /**
- * Load store data from disk or initialize if missing
+ * Load store data from memory, disk, or bundled seed
  */
 export function getStore(): TournamentStoreData {
+  if (inMemoryStore) {
+    return inMemoryStore;
+  }
+
   try {
     if (fs.existsSync(DATA_FILE_PATH)) {
       const raw = fs.readFileSync(DATA_FILE_PATH, "utf-8");
-      return JSON.parse(raw);
+      inMemoryStore = JSON.parse(raw);
+      return inMemoryStore!;
     }
   } catch (err) {
-    console.error("Error reading tournament-data.json, creating new store", err);
+    console.warn("Could not read from DATA_FILE_PATH, attempting seed", err);
+  }
+
+  // Fallback to bundled seed file if exists
+  try {
+    if (fs.existsSync(SEED_FILE_PATH)) {
+      const raw = fs.readFileSync(SEED_FILE_PATH, "utf-8");
+      inMemoryStore = JSON.parse(raw);
+      saveStore(inMemoryStore!);
+      return inMemoryStore!;
+    }
+  } catch (err) {
+    console.warn("Could not read from SEED_FILE_PATH", err);
   }
 
   const initial = createInitialStoreData();
+  inMemoryStore = initial;
   saveStore(initial);
   return initial;
 }
 
 /**
- * Persist store data to disk atomically
+ * Persist store data to disk atomically (and update memory cache)
  */
 export function saveStore(data: TournamentStoreData) {
+  inMemoryStore = data;
   try {
     const dir = path.dirname(DATA_FILE_PATH);
     if (!fs.existsSync(dir)) {
@@ -103,7 +129,7 @@ export function saveStore(data: TournamentStoreData) {
     data.lastUpdated = new Date().toISOString();
     fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2), "utf-8");
   } catch (err) {
-    console.error("Error writing tournament-data.json", err);
+    console.warn("Notice: Disk write failed, running in-memory for this serverless instance.", err);
   }
 }
 

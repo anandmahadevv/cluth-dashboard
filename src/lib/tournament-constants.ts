@@ -70,3 +70,4 @@ export const INITIAL_TEAMS: Record<GameId, string[]> = {
     "Suhas Nayak",
   ],
 };
+
