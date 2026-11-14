@@ -722,3 +722,125 @@ export async function resetGameScoresAsync(code: string, targetGame?: GameId | "
   await saveStoreAsync(store);
   return { success: true };
 }
+
+/**
+ * Add a new team to a game arena
+ */
+export async function addTeamToGameAsync(params: {
+  gameId: GameId;
+  teamName: string;
+  adminPassword?: string;
+}): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; error?: string }> {
+  if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
+    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
+  }
+
+  const name = (params.teamName || "").trim();
+  if (!name) {
+    return { success: false, error: "Team name cannot be empty." };
+  }
+
+  const store = await getStoreAsync();
+  const currentTeams = store.teams[params.gameId] || [];
+
+  if (currentTeams.some((t) => t.teamName.toLowerCase() === name.toLowerCase())) {
+    return { success: false, error: `A team named "${name}" already exists in ${params.gameId}.` };
+  }
+
+  const newTeam: TeamScoreEntry = {
+    id: `${params.gameId.toLowerCase()}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
+    teamName: name,
+    gameId: params.gameId,
+    matchesPlayed: 0,
+    placementPoints: 0,
+    killPoints: 0,
+    totalPoints: 0,
+    rank: currentTeams.length + 1,
+  };
+
+  currentTeams.push(newTeam);
+  store.teams[params.gameId] = sortAndRankTeams(currentTeams);
+  await saveStoreAsync(store);
+
+  return { success: true, team: newTeam, teams: store.teams[params.gameId] };
+}
+
+/**
+ * Remove an existing team from a game arena
+ */
+export async function removeTeamFromGameAsync(params: {
+  gameId: GameId;
+  teamId: string;
+  adminPassword?: string;
+}): Promise<{ success: boolean; teams?: TeamScoreEntry[]; error?: string }> {
+  if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
+    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
+  }
+
+  const store = await getStoreAsync();
+  const currentTeams = store.teams[params.gameId] || [];
+
+  const teamIdx = currentTeams.findIndex((t) => t.id === params.teamId);
+  if (teamIdx === -1) {
+    return { success: false, error: "Team not found in this game arena." };
+  }
+
+  currentTeams.splice(teamIdx, 1);
+  store.teams[params.gameId] = sortAndRankTeams(currentTeams);
+  await saveStoreAsync(store);
+
+  return { success: true, teams: store.teams[params.gameId] };
+}
+
+/**
+ * Update an existing team's name
+ */
+export async function updateTeamNameAsync(params: {
+  gameId: GameId;
+  teamId: string;
+  newTeamName: string;
+  adminPassword?: string;
+}): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; error?: string }> {
+  if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
+    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
+  }
+
+  const newName = (params.newTeamName || "").trim();
+  if (!newName) {
+    return { success: false, error: "New team name cannot be empty." };
+  }
+
+  const store = await getStoreAsync();
+  const currentTeams = store.teams[params.gameId] || [];
+
+  const team = currentTeams.find((t) => t.id === params.teamId);
+  if (!team) {
+    return { success: false, error: "Team not found in this game arena." };
+  }
+
+  const duplicate = currentTeams.find(
+    (t) => t.id !== params.teamId && t.teamName.toLowerCase() === newName.toLowerCase()
+  );
+  if (duplicate) {
+    return { success: false, error: `Another team named "${newName}" already exists in ${params.gameId}.` };
+  }
+
+  const oldName = team.teamName;
+  team.teamName = newName;
+
+  // Also update match submissions for this team
+  store.matches.forEach((m) => {
+    if (m.gameId === params.gameId && m.teamResults) {
+      m.teamResults.forEach((tr) => {
+        if (tr.teamId === params.teamId || tr.teamName === oldName) {
+          tr.teamName = newName;
+        }
+      });
+    }
+  });
+
+  store.teams[params.gameId] = sortAndRankTeams(currentTeams);
+  await saveStoreAsync(store);
+
+  return { success: true, team, teams: store.teams[params.gameId] };
+}

@@ -33,6 +33,10 @@ import {
   UserCheck,
   Ban,
   Maximize2,
+  Users,
+  Plus,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import { GameId } from "@/types";
 import { PLACEMENT_POINTS } from "@/lib/tournament-constants";
@@ -89,9 +93,22 @@ export default function SuperAdminPortalPage() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Main UI Mode
-  const [mainTab, setMainTab] = useState<"inbox" | "direct" | "history">("inbox");
+  const [mainTab, setMainTab] = useState<"inbox" | "direct" | "history" | "teams">("inbox");
   const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  // Teams Management State
+  const [rosterGame, setRosterGame] = useState<GameId>("FREE_FIRE");
+  const [rosterTeams, setRosterTeams] = useState<TeamEntry[]>([]);
+  const [isLoadingRoster, setIsLoadingRoster] = useState(false);
+  const [newTeamName, setNewTeamName] = useState("");
+  const [isAddingTeam, setIsAddingTeam] = useState(false);
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [editingTeamName, setEditingTeamName] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null);
+  const [rosterSuccess, setRosterSuccess] = useState("");
+  const [rosterError, setRosterError] = useState("");
 
   // Submissions Inbox State
   const [submissions, setSubmissions] = useState<SubmissionRecord[]>([]);
@@ -254,6 +271,153 @@ export default function SuperAdminPortalPage() {
       console.error("Error loading teams for direct scoring", err);
     } finally {
       setIsLoadingTeams(false);
+    }
+  };
+
+  // Fetch Roster for selected game
+  const fetchRoster = async (gameId: GameId) => {
+    setIsLoadingRoster(true);
+    setRosterError("");
+    try {
+      const res = await fetch(`/api/poc/teams?gameId=${gameId}`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRosterTeams(data.teams);
+      } else {
+        setRosterError(data.error || "Failed to load teams.");
+      }
+    } catch {
+      setRosterError("Network error loading teams.");
+    } finally {
+      setIsLoadingRoster(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && mainTab === "teams") {
+      fetchRoster(rosterGame);
+    }
+  }, [isAuthenticated, mainTab, rosterGame]);
+
+  // Add Team
+  const handleAddTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTeamName.trim()) return;
+    setIsAddingTeam(true);
+    setRosterError("");
+    setRosterSuccess("");
+    try {
+      const res = await fetch("/api/poc/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: rosterGame,
+          teamName: newTeamName.trim(),
+          adminPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRosterTeams(data.teams);
+        setNewTeamName("");
+        setRosterSuccess(`Team "${data.team?.teamName || newTeamName.trim()}" added successfully!`);
+        if (directGame === rosterGame) {
+          fetchTeamsForDirectGame(rosterGame);
+        }
+        setTimeout(() => setRosterSuccess(""), 4000);
+      } else {
+        setRosterError(data.error || "Failed to add team.");
+      }
+    } catch {
+      setRosterError("Network error adding team.");
+    } finally {
+      setIsAddingTeam(false);
+    }
+  };
+
+  // Start Edit Team Name
+  const handleStartEdit = (t: TeamEntry) => {
+    setEditingTeamId(t.id);
+    setEditingTeamName(t.teamName);
+    setRosterError("");
+  };
+
+  // Cancel Edit Team Name
+  const handleCancelEdit = () => {
+    setEditingTeamId(null);
+    setEditingTeamName("");
+  };
+
+  // Save Edit Team Name
+  const handleSaveEdit = async (teamId: string) => {
+    if (!editingTeamName.trim()) return;
+    setIsSavingEdit(true);
+    setRosterError("");
+    setRosterSuccess("");
+    try {
+      const res = await fetch("/api/poc/teams", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: rosterGame,
+          teamId,
+          newTeamName: editingTeamName.trim(),
+          adminPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRosterTeams(data.teams);
+        setEditingTeamId(null);
+        setEditingTeamName("");
+        setRosterSuccess(`Team renamed to "${editingTeamName.trim()}" successfully!`);
+        if (directGame === rosterGame) {
+          fetchTeamsForDirectGame(rosterGame);
+        }
+        setTimeout(() => setRosterSuccess(""), 4000);
+      } else {
+        setRosterError(data.error || "Failed to edit team name.");
+      }
+    } catch {
+      setRosterError("Network error updating team name.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Remove Team
+  const handleRemoveTeam = async (t: TeamEntry) => {
+    if (!confirm(`Are you sure you want to remove "${t.teamName}" from ${rosterGame}? This will delete the team from the leaderboard and scoring tables.`)) {
+      return;
+    }
+    setDeletingTeamId(t.id);
+    setRosterError("");
+    setRosterSuccess("");
+    try {
+      const res = await fetch("/api/poc/teams", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: rosterGame,
+          teamId: t.id,
+          adminPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRosterTeams(data.teams);
+        setRosterSuccess(`Team "${t.teamName}" removed successfully from roster.`);
+        if (directGame === rosterGame) {
+          fetchTeamsForDirectGame(rosterGame);
+        }
+        setTimeout(() => setRosterSuccess(""), 4000);
+      } else {
+        setRosterError(data.error || "Failed to remove team.");
+      }
+    } catch {
+      setRosterError("Network error removing team.");
+    } finally {
+      setDeletingTeamId(null);
     }
   };
 
@@ -738,6 +902,18 @@ export default function SuperAdminPortalPage() {
             >
               <Award className="w-4 h-4" />
               <span>Direct Score Entry</span>
+            </button>
+
+            <button
+              onClick={() => setMainTab("teams")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+                mainTab === "teams"
+                  ? "bg-purple-600 text-white shadow-lg shadow-purple-600/20"
+                  : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Manage Teams & Rosters</span>
             </button>
           </div>
 
@@ -1348,6 +1524,265 @@ export default function SuperAdminPortalPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB 3: ROSTER MANAGEMENT (ADD, REMOVE, EDIT TEAM)    */}
+        {/* ---------------------------------------------------- */}
+        {mainTab === "teams" && (
+          <div className="space-y-6">
+            {/* Header & Game Selector */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-purple-400" />
+                    <span>Tournament Teams & Roster Manager</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Add new squads, rename existing teams, or remove participants across all 5 official arenas. Changes sync immediately to Supabase and the live leaderboard.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => fetchRoster(rosterGame)}
+                  disabled={isLoadingRoster}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition self-start sm:self-auto"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingRoster ? "animate-spin text-purple-400" : ""}`} />
+                  <span>Refresh List</span>
+                </button>
+              </div>
+
+              {/* Game Selector Chips */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+                {[
+                  { id: "FREE_FIRE" as GameId, label: "Free Fire", icon: Flame, color: "text-amber-500" },
+                  { id: "BGMI" as GameId, label: "BGMI", icon: Crosshair, color: "text-blue-500" },
+                  { id: "VALORANT" as GameId, label: "Valorant", icon: Target, color: "text-rose-500" },
+                  { id: "EFOOTBALL" as GameId, label: "eFootball", icon: Gamepad2, color: "text-emerald-500" },
+                  { id: "MATIKS" as GameId, label: "MATIKS", icon: Brain, color: "text-purple-500" },
+                ].map((g) => {
+                  const Icon = g.icon;
+                  const isSelected = rosterGame === g.id;
+                  return (
+                    <button
+                      key={g.id}
+                      onClick={() => {
+                        setRosterGame(g.id);
+                        setEditingTeamId(null);
+                        setRosterSuccess("");
+                        setRosterError("");
+                      }}
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-bold transition ${
+                        isSelected
+                          ? `bg-purple-600/10 border-purple-500 text-white shadow-md`
+                          : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800/60"
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${g.color}`} />
+                      <span>{g.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Notifications */}
+            {rosterSuccess && (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-between animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 shrink-0" />
+                  <span>{rosterSuccess}</span>
+                </div>
+                <button onClick={() => setRosterSuccess("")} className="text-emerald-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {rosterError && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-center justify-between animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span>{rosterError}</span>
+                </div>
+                <button onClick={() => setRosterError("")} className="text-red-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Quick Add Team Card */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-purple-400" />
+                <span>Add New Team to {rosterGame}</span>
+              </h3>
+              <form onSubmit={handleAddTeam} className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="relative flex-1 w-full">
+                  <input
+                    type="text"
+                    value={newTeamName}
+                    onChange={(e) => setNewTeamName(e.target.value)}
+                    placeholder={`Enter team or player name for ${rosterGame} (e.g. 'GodLike Kudla')`}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-purple-500 focus:outline-none transition"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isAddingTeam || !newTeamName.trim()}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0"
+                >
+                  {isAddingTeam ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                  <span>Add Team to Roster</span>
+                </button>
+              </form>
+            </div>
+
+            {/* Teams Roster List Table */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    {rosterGame} Registered Roster
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    {rosterTeams.length} Teams
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-400 hidden sm:inline">
+                  Click 'Edit' to rename a team inline • 'Remove' to delete
+                </span>
+              </div>
+
+              {isLoadingRoster ? (
+                <div className="p-12 text-center space-y-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto" />
+                  <p className="text-xs text-slate-400">Loading roster...</p>
+                </div>
+              ) : rosterTeams.length === 0 ? (
+                <div className="p-12 text-center space-y-2">
+                  <Users className="w-8 h-8 text-slate-600 mx-auto" />
+                  <p className="text-sm font-bold text-slate-300">No teams registered yet for {rosterGame}.</p>
+                  <p className="text-xs text-slate-500">Use the form above to add the first team.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-950 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                        <th className="py-3 px-4 w-12 text-center">#</th>
+                        <th className="py-3 px-4">Team / Player Name</th>
+                        <th className="py-3 px-4 text-center">Matches</th>
+                        <th className="py-3 px-4 text-center">Total Points</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {rosterTeams.map((t, idx) => {
+                        const isEditing = editingTeamId === t.id;
+                        return (
+                          <tr key={t.id} className="hover:bg-slate-800/40 transition">
+                            <td className="py-3 px-4 text-center font-mono font-bold text-slate-500">
+                              {idx + 1}
+                            </td>
+
+                            <td className="py-3 px-4">
+                              {isEditing ? (
+                                <div className="flex items-center gap-2 max-w-md">
+                                  <input
+                                    type="text"
+                                    value={editingTeamName}
+                                    onChange={(e) => setEditingTeamName(e.target.value)}
+                                    autoFocus
+                                    className="flex-1 px-3 py-1.5 rounded-lg bg-slate-950 border border-purple-500 text-xs text-white focus:outline-none"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleSaveEdit(t.id);
+                                      if (e.key === "Escape") handleCancelEdit();
+                                    }}
+                                  />
+                                  <button
+                                    onClick={() => handleSaveEdit(t.id)}
+                                    disabled={isSavingEdit || !editingTeamName.trim()}
+                                    className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition disabled:opacity-50"
+                                    title="Save Name"
+                                  >
+                                    {isSavingEdit ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Check className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEdit}
+                                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                                    title="Cancel"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-white text-sm">
+                                    {t.teamName}
+                                  </span>
+                                  <span className="text-[10px] font-mono text-slate-500">
+                                    ({t.id})
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+
+                            <td className="py-3 px-4 text-center font-mono text-slate-300">
+                              {t.matchesPlayed}
+                            </td>
+
+                            <td className="py-3 px-4 text-center font-mono font-bold text-purple-400">
+                              {t.totalPoints}
+                            </td>
+
+                            <td className="py-3 px-4 text-right">
+                              {!isEditing && (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => handleStartEdit(t)}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs font-semibold"
+                                    title="Rename Team"
+                                  >
+                                    <Pencil className="w-3 h-3 text-purple-400" />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleRemoveTeam(t)}
+                                    disabled={deletingTeamId === t.id}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition text-xs font-semibold disabled:opacity-50"
+                                    title="Remove Team from Roster"
+                                  >
+                                    {deletingTeamId === t.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-3 h-3" />
+                                    )}
+                                    <span>Remove</span>
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
