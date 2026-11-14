@@ -1073,10 +1073,42 @@ export default function SuperAdminPortalPage() {
             ) : filteredSubmissions.length === 0 ? (
               <div className="py-20 text-center bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-3">
                 <Inbox className="w-12 h-12 text-slate-600 mx-auto" />
-                <h3 className="text-sm font-bold text-slate-300">No submissions matching criteria</h3>
+                <h3 className="text-sm font-bold text-slate-300">
+                  {submissions.length === 0
+                    ? "No submissions recorded yet"
+                    : `No ${statusFilter === "PENDING" ? "pending" : statusFilter === "APPROVED" ? "approved" : statusFilter === "REJECTED" ? "rejected" : "matching"} submissions`}
+                </h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  When POCs enter their game codes and submit match results with proof screenshots, they will appear here awaiting your approval.
+                  {submissions.length === 0
+                    ? "When POCs enter their game codes and submit match results with proof screenshots, they will appear here awaiting your approval."
+                    : `There are ${submissions.length} total submission(s) in other filters or arenas. Switch your status/game filter above to view them.`}
                 </p>
+                {submissions.length > 0 && (
+                  <div className="pt-2 flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => {
+                        setStatusFilter("ALL");
+                        setSelectedGameFilter("ALL");
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 shadow"
+                    >
+                      <Filter className="w-3.5 h-3.5 text-slate-400" />
+                      <span>View All Submissions ({submissions.length})</span>
+                    </button>
+                    {submissions.some((s) => s.status === "APPROVED") && (
+                      <button
+                        onClick={() => {
+                          setStatusFilter("APPROVED");
+                          setSelectedGameFilter("ALL");
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition flex items-center gap-1.5"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>View Approved ({submissions.filter((s) => s.status === "APPROVED").length})</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">

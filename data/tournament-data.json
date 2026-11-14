@@ -8,9 +8,9 @@
         "teamName": "Godlike Karavali",
         "killPoints": 0,
         "totalPoints": 0,
+        "lastMatchRank": 1,
         "matchesPlayed": 0,
-        "placementPoints": 0,
-        "lastMatchRank": 1
+        "placementPoints": 0
       },
       {
         "id": "bgmi-2",
@@ -19,9 +19,9 @@
         "teamName": "Yenepoya Gladiators",
         "killPoints": 0,
         "totalPoints": 0,
+        "lastMatchRank": 2,
         "matchesPlayed": 0,
-        "placementPoints": 0,
-        "lastMatchRank": 2
+        "placementPoints": 0
       },
       {
         "id": "bgmi-3",

@@ -1,13 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 import { TournamentStoreData } from "./tournament-store";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
+const FALLBACK_SUPABASE_URL = "https://iajmrlbvurmblqqysrju.supabase.co";
+const FALLBACK_SUPABASE_KEY = "sb_publishable_GLrozB5rnnuzf5iPxWyn2A_OaUIp8OD";
+
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  FALLBACK_SUPABASE_URL;
+
 const supabaseKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   process.env.SUPABASE_ANON_KEY ||
-  "";
+  FALLBACK_SUPABASE_KEY;
 
 export const isSupabaseConfigured = () => {
   return Boolean(

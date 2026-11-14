@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStoreAsync } from "@/lib/tournament-store";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { EVENT_DETAILS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export async function GET() {
     meta: {
       source: "INTERNAL_STORE",
       approvedOnly: true,
+      supabaseConnected: isSupabaseConfigured(),
       timestamp: new Date().toISOString(),
     },
   });
