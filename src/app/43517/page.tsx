@@ -39,6 +39,7 @@ import {
   GripVertical,
   Camera,
   Crown,
+  ArrowLeftRight,
   Trash2,
   Pencil,
 } from "lucide-react";
@@ -54,6 +55,7 @@ interface TeamEntry {
   killPoints: number;
   totalPoints: number;
   rank: number;
+  hidden?: boolean;
 }
 
 interface TeamScoreInput {
@@ -143,6 +145,9 @@ export default function SuperAdminPortalPage() {
   const [directOrderedTeamIds, setDirectOrderedTeamIds] = useState<string[]>([]);
   const [directDraggedIndex, setDirectDraggedIndex] = useState<number | null>(null);
   const [directDragOverIndex, setDirectDragOverIndex] = useState<number | null>(null);
+  const [swapTeamId, setSwapTeamId] = useState<string | null>(null);
+  const [swapNotice, setSwapNotice] = useState<string>("");
+  const [togglingVisibilityId, setTogglingVisibilityId] = useState<string | null>(null);
 
   // Reset State
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -427,6 +432,92 @@ export default function SuperAdminPortalPage() {
     } finally {
       setDeletingTeamId(null);
     }
+  };
+
+  // Toggle Team Visibility (Hide / Unhide)
+  const handleToggleVisibility = async (teamId: string, gameTarget?: GameId) => {
+    const game = gameTarget || rosterGame;
+    setTogglingVisibilityId(teamId);
+    setRosterError("");
+    setRosterSuccess("");
+    try {
+      const res = await fetch("/api/poc/teams", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: game,
+          teamId,
+          adminPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update team visibility.");
+      }
+
+      setRosterSuccess(data.message || "Team visibility updated.");
+      if (mainTab === "teams") {
+        await fetchRoster(game);
+      }
+      await fetchTeamsForDirectGame(directGame);
+      setTimeout(() => setRosterSuccess(""), 4000);
+    } catch (err: any) {
+      setRosterError(err.message || "Error updating team visibility.");
+      setTimeout(() => setRosterError(""), 4000);
+    } finally {
+      setTogglingVisibilityId(null);
+    }
+  };
+
+  // Swap Ranks between two teams
+  const handleSwapRanks = (teamAId: string, teamBId: string) => {
+    if (teamAId === teamBId) {
+      setSwapTeamId(null);
+      return;
+    }
+
+    const currentOrder = directOrderedTeamIds.length > 0 ? directOrderedTeamIds : teams.map((t) => t.id);
+    const idxA = currentOrder.indexOf(teamAId);
+    const idxB = currentOrder.indexOf(teamBId);
+    if (idxA === -1 || idxB === -1) {
+      setSwapTeamId(null);
+      return;
+    }
+
+    const newOrder = [...currentOrder];
+    newOrder[idxA] = teamBId;
+    newOrder[idxB] = teamAId;
+    setDirectOrderedTeamIds(newOrder);
+
+    // Auto-update placements & points for all teams
+    setScores((prev) => {
+      const updated = { ...prev };
+      newOrder.forEach((tId, idx) => {
+        const place = idx + 1;
+        const current = updated[tId] || {
+          teamId: tId,
+          placement: place,
+          kills: 0,
+          placementPoints: 0,
+          matchTotal: 0,
+        };
+        const pts = calcMatchPoints(place, current.kills, directGame);
+        updated[tId] = {
+          ...current,
+          placement: place,
+          placementPoints: pts.placementPoints,
+          matchTotal: pts.matchTotal,
+        };
+      });
+      return updated;
+    });
+
+    const nameA = teams.find((t) => t.id === teamAId)?.teamName || "Team A";
+    const nameB = teams.find((t) => t.id === teamBId)?.teamName || "Team B";
+    setSwapNotice(`Swapped ranks of ${nameA} (#${idxB + 1}) and ${nameB} (#${idxA + 1})!`);
+    setTimeout(() => setSwapNotice(""), 4000);
+    setSwapTeamId(null);
   };
 
   // Super Admin: Approve Match Submission
@@ -1515,6 +1606,36 @@ export default function SuperAdminPortalPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Teams Table */}
               <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                {/* Swap Mode Notifications */}
+                {swapTeamId && (
+                  <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                    <div className="flex items-center gap-2">
+                      <ArrowLeftRight className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>
+                        <strong>Swap Rank Mode Active:</strong> Selected{" "}
+                        <strong className="underline text-white">
+                          {teams.find((t) => t.id === swapTeamId)?.teamName || "Team"}
+                        </strong>
+                        . Now click &quot;Swap&quot; on any other team to exchange their ranks!
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSwapTeamId(null)}
+                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold border border-slate-700 shrink-0"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                {swapNotice && (
+                  <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{swapNotice}</span>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
                   <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                     {directGame} Team Roster ({teams.length} Squads)
@@ -1630,7 +1751,16 @@ export default function SuperAdminPortalPage() {
                                     {isFirst ? "🥇" : isSecond ? "🥈" : isThird ? "🥉" : `#${place}`}
                                   </span>
                                   <div>
-                                    <div className="font-bold text-white text-xs">{t.teamName}</div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className={`font-bold text-xs ${t.hidden ? "text-slate-400 line-through" : "text-white"}`}>
+                                        {t.teamName}
+                                      </span>
+                                      {t.hidden && (
+                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                          HIDDEN
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="text-[10px] text-slate-500">
                                       Overall: {t.totalPoints} pts • {t.matchesPlayed} matches
                                     </div>
@@ -1649,6 +1779,37 @@ export default function SuperAdminPortalPage() {
                                     title="Move Rank Up"
                                   >
                                     ▲
+                                  </button>
+
+                                  {/* Swap Rank Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!swapTeamId) {
+                                        setSwapTeamId(t.id);
+                                      } else if (swapTeamId === t.id) {
+                                        setSwapTeamId(null);
+                                      } else {
+                                        handleSwapRanks(swapTeamId, t.id);
+                                      }
+                                    }}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition flex items-center gap-1 ${
+                                      swapTeamId === t.id
+                                        ? "bg-amber-400 text-slate-950 border-amber-300 font-extrabold animate-pulse"
+                                        : swapTeamId
+                                        ? "bg-blue-600 text-white border-blue-400 hover:bg-blue-500"
+                                        : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                                    }`}
+                                    title={
+                                      swapTeamId === t.id
+                                        ? "Cancel swap"
+                                        : swapTeamId
+                                        ? "Click to swap rank with selected team"
+                                        : "Click to swap this team's rank"
+                                    }
+                                  >
+                                    <ArrowLeftRight className="w-3 h-3" />
+                                    <span>{swapTeamId === t.id ? "Selected" : "Swap"}</span>
                                   </button>
 
                                   {!isFirst && (
@@ -1671,6 +1832,21 @@ export default function SuperAdminPortalPage() {
                                     title="Move Rank Down"
                                   >
                                     ▼
+                                  </button>
+
+                                  {/* Hide/Unhide Toggle */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleVisibility(t.id, directGame)}
+                                    disabled={togglingVisibilityId === t.id}
+                                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                                    title={t.hidden ? "Unhide team (make visible on public dashboard)" : "Hide team from public dashboard"}
+                                  >
+                                    {t.hidden ? (
+                                      <Eye className="w-3.5 h-3.5 text-amber-400" />
+                                    ) : (
+                                      <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+                                    )}
                                   </button>
                                 </div>
                               </td>
@@ -2021,10 +2197,15 @@ export default function SuperAdminPortalPage() {
                                   </button>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-white text-sm">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`font-bold text-sm ${t.hidden ? "text-slate-400 line-through" : "text-white"}`}>
                                     {t.teamName}
                                   </span>
+                                  {t.hidden && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                      HIDDEN FROM PUBLIC
+                                    </span>
+                                  )}
                                   <span className="text-[10px] font-mono text-slate-500">
                                     ({t.id})
                                   </span>
@@ -2043,6 +2224,27 @@ export default function SuperAdminPortalPage() {
                             <td className="py-3 px-4 text-right">
                               {!isEditing && (
                                 <div className="flex items-center justify-end gap-1.5">
+                                  {/* Toggle Hide / Unhide Button */}
+                                  <button
+                                    onClick={() => handleToggleVisibility(t.id, rosterGame)}
+                                    disabled={togglingVisibilityId === t.id}
+                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${
+                                      t.hidden
+                                        ? "bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25"
+                                        : "bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700"
+                                    }`}
+                                    title={t.hidden ? "Unhide team (make visible on public leaderboards)" : "Hide team from public leaderboards"}
+                                  >
+                                    {togglingVisibilityId === t.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : t.hidden ? (
+                                      <Eye className="w-3 h-3 text-amber-400" />
+                                    ) : (
+                                      <EyeOff className="w-3 h-3 text-slate-400" />
+                                    )}
+                                    <span>{t.hidden ? "Unhide" : "Hide"}</span>
+                                  </button>
+
                                   <button
                                     onClick={() => handleStartEdit(t)}
                                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs font-semibold"

@@ -4,22 +4,24 @@ import {
   addTeamToGameAsync,
   removeTeamFromGameAsync,
   updateTeamNameAsync,
+  toggleTeamVisibilityAsync,
 } from "@/lib/tournament-store";
 import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/poc/teams?gameId=FREE_FIRE
+// GET /api/poc/teams?gameId=FREE_FIRE&includeHidden=true
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const gameId = searchParams.get("gameId") as GameId;
+    const includeHidden = searchParams.get("includeHidden") !== "false";
 
     if (!gameId) {
       return NextResponse.json({ success: false, error: "gameId is required." }, { status: 400 });
     }
 
-    const teams = await getGameLeaderboardAsync(gameId);
+    const teams = await getGameLeaderboardAsync(gameId, includeHidden);
     return NextResponse.json({ success: true, gameId, teams });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message || "Failed to fetch teams." }, { status: 500 });
@@ -122,6 +124,40 @@ export async function DELETE(req: NextRequest) {
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message || "Failed to remove team." }, { status: 500 });
+  }
+}
+
+// PATCH /api/poc/teams (Toggle Team Hidden/Visible)
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { gameId, teamId, hidden, adminPassword } = body as {
+      gameId: GameId;
+      teamId: string;
+      hidden?: boolean;
+      adminPassword?: string;
+    };
+
+    if (!gameId || !teamId) {
+      return NextResponse.json(
+        { success: false, error: "gameId and teamId are required." },
+        { status: 400 }
+      );
+    }
+
+    const result = await toggleTeamVisibilityAsync({ gameId, teamId, hidden, adminPassword });
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: result.message,
+      team: result.team,
+      teams: result.teams,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message || "Failed to toggle team visibility." }, { status: 500 });
   }
 }
 

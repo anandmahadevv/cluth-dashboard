@@ -45,6 +45,7 @@ export interface FreeFireLeaderboardEntry {
   killPoints: number;
   totalPoints: number;
   lastMatchRank?: number;
+  hidden?: boolean;
 }
 
 export interface BgmiLeaderboardEntry {
@@ -55,6 +56,7 @@ export interface BgmiLeaderboardEntry {
   killPoints: number;
   totalPoints: number;
   lastMatchRank?: number;
+  hidden?: boolean;
 }
 
 export interface ValorantLeaderboardEntry {
@@ -65,6 +67,7 @@ export interface ValorantLeaderboardEntry {
   killPoints: number;
   totalPoints: number;
   lastMatchRank?: number;
+  hidden?: boolean;
 }
 
 export interface EfootballLeaderboardEntry {
@@ -75,6 +78,7 @@ export interface EfootballLeaderboardEntry {
   killPoints: number;
   totalPoints: number;
   lastMatchRank?: number;
+  hidden?: boolean;
 }
 
 export interface LeaderboardEntry {
@@ -91,6 +95,7 @@ export interface LeaderboardEntry {
   totalPoints?: number;
   lastMatchRank?: number;
   game_id?: GameId;
+  hidden?: boolean;
 }
 
 export interface FifaMatchResult {

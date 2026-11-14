@@ -26,6 +26,7 @@ export interface TeamScoreEntry {
   totalPoints: number;
   rank: number;
   lastMatchRank?: number;
+  hidden?: boolean;
 }
 
 export interface MatchSubmission {
@@ -258,12 +259,13 @@ export function sortAndRankTeams(teams: TeamScoreEntry[]): TeamScoreEntry[] {
 }
 
 /**
- * Get sorted leaderboard for a specific game
+ * Get sorted leaderboard for a specific game (filters hidden teams by default for public views)
  */
-export function getGameLeaderboard(gameId: GameId): TeamScoreEntry[] {
+export function getGameLeaderboard(gameId: GameId, includeHidden = false): TeamScoreEntry[] {
   const store = getStore();
   const list = store.teams[gameId] || [];
-  return sortAndRankTeams(list);
+  const filtered = includeHidden ? list : list.filter((t) => !t.hidden);
+  return sortAndRankTeams(filtered);
 }
 
 /**
@@ -348,7 +350,8 @@ export function recordMatchSubmission(params: {
     });
   });
 
-  const shouldApprove = !!auth.isSuperAdmin || params.autoApprove === true;
+  const isSuperAdminCode = !!auth.isSuperAdmin && params.pocCode === "CLUTCH-SUPER-2026";
+  const shouldApprove = isSuperAdminCode && params.autoApprove === true;
   const status: SubmissionStatus = shouldApprove ? "APPROVED" : "PENDING";
 
   if (shouldApprove) {
@@ -517,12 +520,13 @@ export function reviewMatchSubmission(params: {
 }
 
 /**
- * Get sorted leaderboard for a specific game (async)
+ * Get sorted leaderboard for a specific game (async, filters hidden teams by default)
  */
-export async function getGameLeaderboardAsync(gameId: GameId): Promise<TeamScoreEntry[]> {
+export async function getGameLeaderboardAsync(gameId: GameId, includeHidden = false): Promise<TeamScoreEntry[]> {
   const store = await getStoreAsync();
   const list = store.teams[gameId] || [];
-  return sortAndRankTeams(list);
+  const filtered = includeHidden ? list : list.filter((t) => !t.hidden);
+  return sortAndRankTeams(filtered);
 }
 
 /**
@@ -595,7 +599,8 @@ export async function recordMatchSubmissionAsync(params: {
     });
   });
 
-  const shouldApprove = !!auth.isSuperAdmin || params.autoApprove === true;
+  const isSuperAdminCode = !!auth.isSuperAdmin && params.pocCode === "CLUTCH-SUPER-2026";
+  const shouldApprove = isSuperAdminCode && params.autoApprove === true;
   const status: SubmissionStatus = shouldApprove ? "APPROVED" : "PENDING";
 
   if (shouldApprove) {
@@ -895,4 +900,40 @@ export async function updateTeamNameAsync(params: {
   await saveStoreAsync(store);
 
   return { success: true, team, teams: store.teams[params.gameId] };
+}
+
+/**
+ * Toggle team hidden/visible status
+ */
+export async function toggleTeamVisibilityAsync(params: {
+  gameId: GameId;
+  teamId: string;
+  hidden?: boolean;
+  adminPassword?: string;
+}): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; message?: string; error?: string }> {
+  if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
+    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
+  }
+
+  const store = await getStoreAsync();
+  const currentTeams = store.teams[params.gameId] || [];
+
+  const team = currentTeams.find((t) => t.id === params.teamId);
+  if (!team) {
+    return { success: false, error: "Team not found in this game arena." };
+  }
+
+  // Toggle or set visibility
+  team.hidden = params.hidden !== undefined ? params.hidden : !team.hidden;
+
+  store.teams[params.gameId] = sortAndRankTeams(currentTeams);
+  await saveStoreAsync(store);
+
+  const statusLabel = team.hidden ? "hidden from public view" : "visible on public leaderboards";
+  return {
+    success: true,
+    team,
+    teams: store.teams[params.gameId],
+    message: `Team "${team.teamName}" is now ${statusLabel}.`,
+  };
 }
