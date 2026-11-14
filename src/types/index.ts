@@ -44,8 +44,6 @@ export interface FreeFireLeaderboardEntry {
   placementPoints: number;
   killPoints: number;
   totalPoints: number;
-  booyahs?: number;
-  group?: "A" | "B";
   lastMatchRank?: number;
   hidden?: boolean;
 }
@@ -95,8 +93,6 @@ export interface LeaderboardEntry {
   killPoints?: number;
   total_points?: number;
   totalPoints?: number;
-  booyahs?: number;
-  group?: "A" | "B";
   lastMatchRank?: number;
   game_id?: GameId;
   hidden?: boolean;

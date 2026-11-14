@@ -26,37 +26,6 @@ export const PLACEMENT_POINTS: Record<GameId, number[]> = {
 };
 
 // Initial Seeded Teams at 0 Score (Official Registrations from GSheet)
-export const FREE_FIRE_GROUPS = {
-  GROUP_A: [
-    "Khopdi Phodu gng",
-    "GLOBEL HUNTERS",
-    "AURA RUSHERZ",
-    "TAG BOYSS !!",
-    "IDFC",
-    "TEAM NOX",
-    "Zain warriors",
-    "BAD SQUAD",
-    "BROTHERHOOD",
-  ],
-  GROUP_B: [
-    "Teamstack",
-    "Hunters",
-    "DAMN BROS",
-    "Gaza",
-    "ROCKERS",
-    "V4",
-    "LAGLORDS",
-    "MALNAD WARRIORS",
-  ],
-} as const;
-
-export function getFreeFireGroup(teamName: string): "A" | "B" | null {
-  const norm = (teamName || "").trim().toLowerCase();
-  if (FREE_FIRE_GROUPS.GROUP_A.some((t) => t.toLowerCase() === norm)) return "A";
-  if (FREE_FIRE_GROUPS.GROUP_B.some((t) => t.toLowerCase() === norm)) return "B";
-  return null;
-}
-
 export const INITIAL_TEAMS: Record<GameId, string[]> = {
   FREE_FIRE: [
     "Khopdi Phodu gng",

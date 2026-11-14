@@ -22,17 +22,17 @@ export const GAMES_CONFIG: Record<GameId, GameConfig> = {
     id: "FREE_FIRE",
     name: "Free Fire",
     slug: "free-fire",
-    badge: "FREE FIRE MAX",
-    tagline: "17 Competitive Squads • Qualifiers to Grand Finals",
-    genre: "Battle Royale Squads (Free Fire MAX)",
-    format: "Round 1: Qualifiers (Grp A: 9, Grp B: 8) • Top 6 Advance ➔ Round 2: Grand Finals (12 Finalists)",
+    badge: "BATTLE ROYALE",
+    tagline: "48 Survivors • Fast-Paced Tactical Survival",
+    genre: "Battle Royale (Squad)",
+    format: "Squads (4 Players) • 4 Erangel/Bermuda Matches",
     color: "#f59e0b", // Amber / Flame Orange
     accentGlow: "rgba(245, 158, 11, 0.35)",
     bgGradient: "from-amber-950/40 via-zinc-900/60 to-black",
     bannerImage: "/images/freefire-banner.jpg",
     rulesOverview:
-      "Round 1 (Qualifiers): 17 Teams split into Group A (9) & Group B (8), B2B 2 matches each. Top 6 from each group advance to Grand Finals. Round 2 (Grand Finals): 12 Finalists compete together. Placement: 1st (Booyah)=12, 2nd=9, 3rd=8, 4th=7, 5th=6, 6th=5, 7th=4, 8th=3, 9th=2, 10th=1, 11-12th=0 + 1 pt per kill. Tie-breakers: Booyahs > Placement Pts > Kill Pts > Last Match Rank. 🏆 Winner Cup (1st) & 🥈 Runner-Up Cup (2nd).",
-    scoringFormat: "Official 12-Pt Placement Matrix + 1 Pt Per Elimination",
+      "Official 12-point scoring matrix. Points awarded for rank placement + 1 kill point per confirmed elimination.",
+    scoringFormat: "Placement Points + Kill Points",
   },
   BGMI: {
     id: "BGMI",
