@@ -16,9 +16,11 @@ export const VALID_GAME_CODES: Record<string, GameId | "ALL"> = {
 };
 
 // Official Placement Points Rules
-export const PLACEMENT_POINTS: Record<"FREE_FIRE" | "BGMI", number[]> = {
-  FREE_FIRE: [12, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0], // 12 Squads
-  BGMI: [15, 12, 10, 8, 6, 4, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0], // 16 Squads
+export const PLACEMENT_POINTS: Record<GameId, number[]> = {
+  FREE_FIRE: [12, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0], // 12 Squads: 1st=12, 2nd=9, 3rd=8, 4th=7...
+  BGMI: [15, 12, 10, 8, 6, 4, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0], // 16 Squads: 1st=15, 2nd=12, 3rd=10...
+  FIFA: [10, 6, 4, 2, 1, 1, 1, 1], // 8 Players: 1st (Winner)=10, 2nd=6, 3rd=4, 4th=2...
+  MATIKS: [10, 8, 6, 4, 3, 2, 1, 0], // 8 Speed/Logic Solvers: 1st=10, 2nd=8, 3rd=6...
 };
 
 // Initial Seeded Teams at 0 Score

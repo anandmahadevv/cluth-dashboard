@@ -302,10 +302,10 @@ export function recordMatchSubmission(params: {
     let placementPts = res.placementPoints || 0;
     const kills = res.kills || 0;
 
-    // Auto-calculate placement points if not provided and game is Battle Royale
-    if (params.gameId === "FREE_FIRE" || params.gameId === "BGMI") {
-      const matrix = PLACEMENT_POINTS[params.gameId];
-      if (res.placement >= 1 && res.placement <= matrix.length) {
+    // Auto-calculate placement points based on game matrix
+    const matrix = PLACEMENT_POINTS[params.gameId];
+    if (matrix && res.placement >= 1 && res.placement <= matrix.length) {
+      if (placementPts === 0) {
         placementPts = matrix[res.placement - 1];
       }
     }
@@ -512,9 +512,10 @@ export async function recordMatchSubmissionAsync(params: {
     let placementPts = res.placementPoints || 0;
     const kills = res.kills || 0;
 
-    if (params.gameId === "FREE_FIRE" || params.gameId === "BGMI") {
-      const matrix = PLACEMENT_POINTS[params.gameId];
-      if (res.placement >= 1 && res.placement <= matrix.length) {
+    // Auto-calculate placement points based on game matrix
+    const matrix = PLACEMENT_POINTS[params.gameId];
+    if (matrix && res.placement >= 1 && res.placement <= matrix.length) {
+      if (placementPts === 0) {
         placementPts = matrix[res.placement - 1];
       }
     }

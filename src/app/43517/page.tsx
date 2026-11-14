@@ -236,7 +236,7 @@ export default function SuperAdminPortalPage() {
 
         const initialScores: Record<string, TeamScoreInput> = {};
         data.teams.forEach((t: TeamEntry, idx: number) => {
-          const matrix = PLACEMENT_POINTS[gameId as "FREE_FIRE" | "BGMI"];
+          const matrix = PLACEMENT_POINTS[gameId];
           const defaultPlace = idx + 1;
           const defaultPlacePts = matrix && defaultPlace <= matrix.length ? matrix[defaultPlace - 1] : 0;
           initialScores[t.id] = {
@@ -329,23 +329,74 @@ export default function SuperAdminPortalPage() {
     }
   };
 
-  // Direct Scoring Change Handlers
+  // Helper to calculate placement and match points for any game
+  const calcMatchPoints = (placement: number, kills: number, gameId: GameId) => {
+    const matrix = PLACEMENT_POINTS[gameId];
+    const placePts = matrix && placement >= 1 && placement <= matrix.length ? matrix[placement - 1] : 0;
+    return {
+      placementPoints: placePts,
+      matchTotal: placePts + (kills || 0),
+    };
+  };
+
+  // Direct Scoring Change Handlers (Smart rank assignment with auto-swapping to keep ranks unique and ordered)
   const handleScoreChange = (teamId: string, field: "placement" | "kills", value: number) => {
     setScores((prev) => {
-      const current = prev[teamId] || { teamId, placement: 1, kills: 0, placementPoints: 0, matchTotal: 0 };
-      const updated = { ...current, [field]: value };
+      const updated = { ...prev };
+      const current = updated[teamId] || { teamId, placement: 1, kills: 0, placementPoints: 0, matchTotal: 0 };
 
-      if (directGame === "FREE_FIRE" || directGame === "BGMI") {
-        const matrix = PLACEMENT_POINTS[directGame];
-        const placePts = updated.placement >= 1 && updated.placement <= matrix.length ? matrix[updated.placement - 1] : 0;
-        updated.placementPoints = placePts;
-        updated.matchTotal = placePts + (updated.kills || 0);
-      } else {
-        updated.matchTotal = updated.kills || 0;
+      if (field === "kills") {
+        const kills = Math.max(0, value);
+        const pts = calcMatchPoints(current.placement, kills, directGame);
+        updated[teamId] = {
+          ...current,
+          kills,
+          placementPoints: pts.placementPoints,
+          matchTotal: pts.matchTotal,
+        };
+        return updated;
       }
 
-      return { ...prev, [teamId]: updated };
+      // field === "placement"
+      const newPlacement = Math.max(1, Math.min(teams.length, value));
+      const oldPlacement = current.placement;
+
+      if (newPlacement === oldPlacement) return prev;
+
+      // Find if another team currently holds newPlacement
+      const conflictTeam = Object.values(updated).find(
+        (s) => s.teamId !== teamId && s.placement === newPlacement
+      );
+
+      if (conflictTeam) {
+        // Swap placements between the two teams so there are never duplicate ranks!
+        const swappedPts = calcMatchPoints(oldPlacement, conflictTeam.kills, directGame);
+        updated[conflictTeam.teamId] = {
+          ...conflictTeam,
+          placement: oldPlacement,
+          placementPoints: swappedPts.placementPoints,
+          matchTotal: swappedPts.matchTotal,
+        };
+      }
+
+      const myPts = calcMatchPoints(newPlacement, current.kills, directGame);
+      updated[teamId] = {
+        ...current,
+        placement: newPlacement,
+        placementPoints: myPts.placementPoints,
+        matchTotal: myPts.matchTotal,
+      };
+
+      return updated;
     });
+  };
+
+  // Quick Move Up / Down
+  const handleMoveRank = (teamId: string, direction: "UP" | "DOWN") => {
+    const currentPlace = scores[teamId]?.placement || 1;
+    const targetPlace = direction === "UP" ? currentPlace - 1 : currentPlace + 1;
+    if (targetPlace < 1 || targetPlace > teams.length) return;
+    handleScoreChange(teamId, "placement", targetPlace);
   };
 
   const handleAutoFillPlacements = () => {
@@ -353,15 +404,14 @@ export default function SuperAdminPortalPage() {
       const updated = { ...prev };
       teams.forEach((t, idx) => {
         const place = idx + 1;
-        const matrix = PLACEMENT_POINTS[directGame as "FREE_FIRE" | "BGMI"];
-        const placePts = matrix && place <= matrix.length ? matrix[place - 1] : 0;
         const currentKills = updated[t.id]?.kills || 0;
+        const pts = calcMatchPoints(place, currentKills, directGame);
         updated[t.id] = {
           teamId: t.id,
           placement: place,
           kills: currentKills,
-          placementPoints: placePts,
-          matchTotal: placePts + currentKills,
+          placementPoints: pts.placementPoints,
+          matchTotal: pts.matchTotal,
         };
       });
       return updated;
@@ -1069,54 +1119,129 @@ export default function SuperAdminPortalPage() {
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="border-b border-slate-800 text-slate-400">
-                          <th className="py-2.5 px-3">Team</th>
-                          <th className="py-2.5 px-2 text-center">Current</th>
-                          <th className="py-2.5 px-2 text-center w-24">Placement</th>
-                          <th className="py-2.5 px-2 text-center w-24">Kills</th>
+                          <th className="py-2.5 px-3">Team (Rank Ordered)</th>
+                          <th className="py-2.5 px-2 text-center w-28">Match Rank</th>
+                          <th className="py-2.5 px-2 text-center w-24">
+                            {directGame === "FIFA" ? "Goals" : directGame === "MATIKS" ? "Bonus Pts" : "Kills"}
+                          </th>
                           <th className="py-2.5 px-3 text-right">Points</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
-                        {teams.map((t) => {
-                          const sc = scores[t.id] || { placement: 1, kills: 0, placementPoints: 0, matchTotal: 0 };
-                          return (
-                            <tr key={t.id} className="hover:bg-slate-800/30">
-                              <td className="py-2.5 px-3">
-                                <div className="font-bold text-white">{t.teamName}</div>
-                                <div className="text-[10px] text-slate-500">#{t.rank} in standings</div>
-                              </td>
-                              <td className="py-2.5 px-2 text-center text-slate-400">
-                                {t.totalPoints} pts
-                              </td>
-                              <td className="py-2.5 px-2 text-center">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max={teams.length}
-                                  value={sc.placement || 1}
-                                  onChange={(e) =>
-                                    handleScoreChange(t.id, "placement", parseInt(e.target.value) || 1)
-                                  }
-                                  className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
-                                />
-                              </td>
-                              <td className="py-2.5 px-2 text-center">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={sc.kills || 0}
-                                  onChange={(e) =>
-                                    handleScoreChange(t.id, "kills", parseInt(e.target.value) || 0)
-                                  }
-                                  className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
-                                />
-                              </td>
-                              <td className="py-2.5 px-3 text-right font-bold text-blue-400 font-mono">
-                                +{sc.matchTotal}
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {[...teams]
+                          .sort((a, b) => (scores[a.id]?.placement || 999) - (scores[b.id]?.placement || 999))
+                          .map((t) => {
+                            const sc = scores[t.id] || { placement: 1, kills: 0, placementPoints: 0, matchTotal: 0 };
+                            const place = sc.placement || 1;
+                            const isFirst = place === 1;
+                            const isSecond = place === 2;
+                            const isThird = place === 3;
+
+                            return (
+                              <tr
+                                key={t.id}
+                                className={`transition ${
+                                  isFirst
+                                    ? "bg-amber-500/10 hover:bg-amber-500/15"
+                                    : isSecond
+                                    ? "bg-slate-800/40 hover:bg-slate-800/60"
+                                    : isThird
+                                    ? "bg-amber-900/10 hover:bg-amber-900/20"
+                                    : "hover:bg-slate-800/30"
+                                }`}
+                              >
+                                <td className="py-2.5 px-3">
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black border ${
+                                        isFirst
+                                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-500/20"
+                                          : isSecond
+                                          ? "bg-slate-300/20 text-slate-200 border-slate-400/40"
+                                          : isThird
+                                          ? "bg-amber-700/20 text-amber-400 border-amber-700/40"
+                                          : "bg-slate-800 text-slate-400 border-slate-700"
+                                      }`}
+                                    >
+                                      {isFirst ? "🥇" : isSecond ? "🥈" : isThird ? "🥉" : `#${place}`}
+                                    </span>
+                                    <div>
+                                      <div className="font-bold text-white text-xs">{t.teamName}</div>
+                                      <div className="text-[10px] text-slate-500">
+                                        Overall: {t.totalPoints} pts • {t.matchesPlayed} matches
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="py-2.5 px-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    {/* Quick nudge up */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMoveRank(t.id, "UP")}
+                                      disabled={place <= 1}
+                                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 text-[10px]"
+                                      title="Move Rank Up"
+                                    >
+                                      ▲
+                                    </button>
+
+                                    {/* Rank Selector */}
+                                    <select
+                                      value={place}
+                                      onChange={(e) =>
+                                        handleScoreChange(t.id, "placement", parseInt(e.target.value) || 1)
+                                      }
+                                      className={`px-2 py-1 rounded-lg border font-bold text-xs text-center outline-none ${
+                                        isFirst
+                                          ? "bg-amber-950/80 border-amber-500 text-amber-300"
+                                          : "bg-slate-950 border-slate-700 text-white"
+                                      }`}
+                                    >
+                                      {teams.map((_, idx) => (
+                                        <option key={idx + 1} value={idx + 1}>
+                                          Rank #{idx + 1}
+                                        </option>
+                                      ))}
+                                    </select>
+
+                                    {/* Quick nudge down */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMoveRank(t.id, "DOWN")}
+                                      disabled={place >= teams.length}
+                                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 text-[10px]"
+                                      title="Move Rank Down"
+                                    >
+                                      ▼
+                                    </button>
+                                  </div>
+                                </td>
+
+                                <td className="py-2.5 px-2 text-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={sc.kills || 0}
+                                    onChange={(e) =>
+                                      handleScoreChange(t.id, "kills", parseInt(e.target.value) || 0)
+                                    }
+                                    className="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-bold text-xs"
+                                  />
+                                </td>
+
+                                <td className="py-2.5 px-3 text-right">
+                                  <div className="font-extrabold text-blue-400 font-mono text-xs">
+                                    +{sc.matchTotal}
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 font-mono">
+                                    ({sc.placementPoints}p + {sc.kills}k)
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                     </table>
                   </div>
