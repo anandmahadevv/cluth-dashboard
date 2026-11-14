@@ -20,6 +20,7 @@ import {
 } from "@/hooks/use-tournament-data";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { Podium } from "@/components/leaderboards/podium";
+import { PreMatchShowcase } from "@/components/leaderboards/pre-match-showcase";
 import { LeaderboardTable } from "@/components/games/leaderboard-table";
 import { FifaTable } from "@/components/games/fifa-table";
 import { MatiksTable } from "@/components/games/matiks-table";
@@ -99,7 +100,26 @@ export default function LeaderboardsPage() {
   // Build top-3 for podium based on selected game
   let first, second, third;
 
-  if (selectedGame === "FREE_FIRE" && ffLeaderboard && ffLeaderboard.length >= 3) {
+  const currentLeaderboard =
+    selectedGame === "FREE_FIRE"
+      ? ffLeaderboard
+      : selectedGame === "BGMI"
+      ? bgmiLeaderboard
+      : selectedGame === "VALORANT"
+      ? valLeaderboard
+      : selectedGame === "EFOOTBALL"
+      ? (efLeaderboard as any[])
+      : (matiksLeaderboard as any[]);
+
+  const hasMatchesPlayed = Boolean(
+    currentLeaderboard &&
+      currentLeaderboard.some(
+        (t) => (t.matchesPlayed && t.matchesPlayed > 0) || (t.totalPoints && t.totalPoints > 0)
+      )
+  );
+
+  if (hasMatchesPlayed) {
+    if (selectedGame === "FREE_FIRE" && ffLeaderboard && ffLeaderboard.length >= 3) {
     first = {
       rank: 1 as const,
       name: ffLeaderboard[0].teamName,
@@ -240,6 +260,7 @@ export default function LeaderboardsPage() {
       stat2Label: "matrix\nscore",
     };
   }
+}
 
   const currentGameConfig = GAMES_CONFIG[selectedGame];
 
@@ -326,8 +347,16 @@ export default function LeaderboardsPage() {
         </div>
       </div>
 
-      {/* Podium using the exact reference design */}
-      <Podium first={first} second={second} third={third} />
+      {/* Podium OR Pre-Match Arena Live Showcase */}
+      {hasMatchesPlayed && first ? (
+        <Podium first={first} second={second} third={third} />
+      ) : (
+        <PreMatchShowcase
+          gameName={currentGameConfig?.name || "Championship"}
+          teamCount={currentLeaderboard?.length || 0}
+          format={currentGameConfig?.format}
+        />
+      )}
 
       {/* Tables based on game type */}
       <div className="pt-4">

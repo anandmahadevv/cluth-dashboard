@@ -12,12 +12,14 @@ import {
   Minimize2,
 } from "lucide-react";
 import { GameId } from "@/types";
+import { GAMES_CONFIG } from "@/lib/constants";
 import {
   useTournamentStatus,
   useGameLeaderboard,
   useGameMatches,
 } from "@/hooks/use-tournament-data";
 import { Podium } from "@/components/leaderboards/podium";
+import { PreMatchShowcase } from "@/components/leaderboards/pre-match-showcase";
 import { LeaderboardTable } from "@/components/games/leaderboard-table";
 import { FifaTable } from "@/components/games/fifa-table";
 import { MatiksTable } from "@/components/games/matiks-table";
@@ -43,7 +45,28 @@ export default function HomePage() {
   // Determine current active leaderboard
   let first, second, third;
 
-  if (selectedGame === "FREE_FIRE" && ffLeaderboard && ffLeaderboard.length >= 3) {
+  const currentLeaderboard =
+    selectedGame === "FREE_FIRE"
+      ? ffLeaderboard
+      : selectedGame === "BGMI"
+      ? bgmiLeaderboard
+      : selectedGame === "VALORANT"
+      ? valLeaderboard
+      : selectedGame === "EFOOTBALL"
+      ? (efLeaderboard as any[])
+      : (matiksLeaderboard as any[]);
+
+  const hasMatchesPlayed = Boolean(
+    currentLeaderboard &&
+      currentLeaderboard.some(
+        (t) => (t.matchesPlayed && t.matchesPlayed > 0) || (t.totalPoints && t.totalPoints > 0)
+      )
+  );
+
+  const currentGameConfig = GAMES_CONFIG[selectedGame];
+
+  if (hasMatchesPlayed) {
+    if (selectedGame === "FREE_FIRE" && ffLeaderboard && ffLeaderboard.length >= 3) {
     first = {
       rank: 1 as const,
       name: ffLeaderboard[0].teamName,
@@ -184,6 +207,7 @@ export default function HomePage() {
       stat2Label: "matrix\nscore",
     };
   }
+}
 
   const toggleProjector = async () => {
     try {
@@ -347,13 +371,22 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* The Iconic Reference 3-Box Podium */}
-      <Podium
-        first={first}
-        second={second}
-        third={third}
-        isProjector={isProjectorMode}
-      />
+      {/* The Iconic Reference 3-Box Podium OR Arena Live Pre-Match Showcase */}
+      {hasMatchesPlayed && first ? (
+        <Podium
+          first={first}
+          second={second}
+          third={third}
+          isProjector={isProjectorMode}
+        />
+      ) : (
+        <PreMatchShowcase
+          gameName={currentGameConfig?.name || "Championship"}
+          teamCount={currentLeaderboard?.length || 0}
+          format={currentGameConfig?.format}
+          isProjector={isProjectorMode}
+        />
+      )}
 
       {/* Clean Table Below */}
       <div className="w-full max-w-4xl mx-auto pt-2">

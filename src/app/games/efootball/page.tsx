@@ -6,6 +6,7 @@ import { GAMES_CONFIG } from "@/lib/constants";
 import { useGameLeaderboard, useGameMatches } from "@/hooks/use-tournament-data";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { Podium } from "@/components/leaderboards/podium";
+import { PreMatchShowcase } from "@/components/leaderboards/pre-match-showcase";
 import { LeaderboardTable } from "@/components/games/leaderboard-table";
 import { ShareModal } from "@/components/shared/share-modal";
 
@@ -14,6 +15,13 @@ export default function EfootballPage() {
   const { data: leaderboard, lastUpdated, isRefreshing, refresh, isTabActive } =
     useGameLeaderboard("EFOOTBALL");
   const { data: matches } = useGameMatches("EFOOTBALL");
+
+  const hasMatchesPlayed = Boolean(
+    leaderboard &&
+      leaderboard.some(
+        (t) => (t.matchesPlayed && t.matchesPlayed > 0) || (t.totalPoints && t.totalPoints > 0)
+      )
+  );
 
   const first = leaderboard?.[0]
     ? {
@@ -103,8 +111,14 @@ export default function EfootballPage() {
         </div>
       </div>
 
-      {first && second && third && (
+      {hasMatchesPlayed && first && second && third ? (
         <Podium first={first} second={second} third={third} />
+      ) : (
+        <PreMatchShowcase
+          gameName="eFootball"
+          teamCount={leaderboard?.length || 0}
+          format={gameConfig.format}
+        />
       )}
 
       <div className="pt-4">

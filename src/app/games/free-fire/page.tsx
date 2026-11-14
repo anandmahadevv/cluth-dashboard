@@ -6,6 +6,7 @@ import { GAMES_CONFIG, EVENT_DETAILS } from "@/lib/constants";
 import { useGameLeaderboard, useGameMatches } from "@/hooks/use-tournament-data";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { Podium } from "@/components/leaderboards/podium";
+import { PreMatchShowcase } from "@/components/leaderboards/pre-match-showcase";
 import { LeaderboardTable } from "@/components/games/leaderboard-table";
 import { ShareModal } from "@/components/shared/share-modal";
 
@@ -14,6 +15,13 @@ export default function FreeFirePage() {
   const { data: leaderboard, lastUpdated, isRefreshing, refresh, isTabActive } =
     useGameLeaderboard("FREE_FIRE");
   const { data: matches } = useGameMatches("FREE_FIRE");
+
+  const hasMatchesPlayed = Boolean(
+    leaderboard &&
+      leaderboard.some(
+        (t) => (t.matchesPlayed && t.matchesPlayed > 0) || (t.totalPoints && t.totalPoints > 0)
+      )
+  );
 
   const first = leaderboard?.[0]
     ? {
@@ -104,18 +112,26 @@ export default function FreeFirePage() {
         </div>
       </div>
 
-      {/* Podium based on reference theme */}
-      <div className="py-2">
-        <div className="text-center mb-4">
-          <span className="text-xs font-black uppercase tracking-widest text-amber-400 font-display">
-            TOP THREE RANKING
-          </span>
-          <h2 className="text-2xl font-black text-white font-display">
-            Free Fire Leaders
-          </h2>
+      {/* Podium OR Pre-Match Arena Live Showcase */}
+      {hasMatchesPlayed && first && second && third ? (
+        <div className="py-2">
+          <div className="text-center mb-4">
+            <span className="text-xs font-black uppercase tracking-widest text-amber-400 font-display">
+              TOP THREE RANKING
+            </span>
+            <h2 className="text-2xl font-black text-white font-display">
+              Free Fire Leaders
+            </h2>
+          </div>
+          <Podium first={first} second={second} third={third} />
         </div>
-        <Podium first={first} second={second} third={third} />
-      </div>
+      ) : (
+        <PreMatchShowcase
+          gameName="Free Fire"
+          teamCount={leaderboard?.length || 0}
+          format={GAMES_CONFIG.FREE_FIRE.format}
+        />
+      )}
 
       {/* Leaderboard Table */}
       <div className="space-y-3">

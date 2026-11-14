@@ -38,6 +38,9 @@ export function LeaderboardTable({
   const [sortAsc, setSortAsc] = useState(false);
 
   const isValorant = gameName?.toLowerCase().includes("valorant");
+  const hasLiveScores = entries.some(
+    (e) => (e.matchesPlayed && e.matchesPlayed > 0) || (e.totalPoints && e.totalPoints > 0)
+  );
 
   const filteredEntries = entries
     .filter((entry) =>
@@ -130,9 +133,9 @@ export function LeaderboardTable({
           <tbody className="divide-y divide-slate-100">
             {filteredEntries.map((entry) => {
               const rank = entry.rank;
-              const isFirst = rank === 1;
-              const isSecond = rank === 2;
-              const isThird = rank === 3;
+              const isFirst = hasLiveScores && rank === 1;
+              const isSecond = hasLiveScores && rank === 2;
+              const isThird = hasLiveScores && rank === 3;
 
               return (
                 <tr
@@ -161,7 +164,7 @@ export function LeaderboardTable({
                       </span>
                     ) : (
                       <span className="inline-block pl-2 text-xs font-semibold text-slate-400 font-mono">
-                        {rank}
+                        #{rank}
                       </span>
                     )}
                   </td>
@@ -206,16 +209,22 @@ export function LeaderboardTable({
 
                   {/* Total Points */}
                   <td className="py-3.5 pl-4 pr-6 text-right font-mono text-sm font-black text-slate-900">
-                    <span
-                      className={cn(
-                        isFirst && "text-[#d97706]",
-                        isSecond && "text-[#64748b]",
-                        isThird && "text-[#b45309]",
-                        isProjector && "text-base"
-                      )}
-                    >
-                      {entry.totalPoints}
-                    </span>
+                    {hasLiveScores ? (
+                      <span
+                        className={cn(
+                          isFirst && "text-[#d97706]",
+                          isSecond && "text-[#64748b]",
+                          isThird && "text-[#b45309]",
+                          isProjector && "text-base"
+                        )}
+                      >
+                        {entry.totalPoints}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 font-mono text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                        0 pts • Ready
+                      </span>
+                    )}
                   </td>
                 </tr>
               );
