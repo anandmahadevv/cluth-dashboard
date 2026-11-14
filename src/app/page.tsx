@@ -21,6 +21,7 @@ import { LeaderboardTable } from "@/components/games/leaderboard-table";
 import { FifaTable } from "@/components/games/fifa-table";
 import { MatiksTable } from "@/components/games/matiks-table";
 import { ShareModal } from "@/components/shared/share-modal";
+import { PocScoringModal } from "@/components/poc/poc-scoring-modal";
 
 export default function HomePage() {
   const [selectedGame, setSelectedGame] = useState<GameId>("FREE_FIRE");
@@ -97,33 +98,34 @@ export default function HomePage() {
       stat2Value: bgmiLeaderboard[2].totalPoints,
       stat2Label: "total\npoints",
     };
-  } else if (selectedGame === "FIFA") {
+  } else if (selectedGame === "FIFA" && fifaMatches && fifaMatches.length >= 3) {
+    const fList = fifaMatches as unknown as import("@/types").FifaMatchResult[];
     first = {
       rank: 1 as const,
-      name: "Zayd 'Apex' Khan",
-      subtext: "Real Madrid • Champion",
-      stat1Value: 6,
-      stat1Label: "matches\nwon",
-      stat2Value: "Gold",
-      stat2Label: "final\ntrophy",
+      name: fList[0].player1 || fList[0].winner || "1st Place",
+      subtext: "FIFA Champion",
+      stat1Value: fList[0].goals1 ?? 0,
+      stat1Label: "goals\nscored",
+      stat2Value: fList[0].winner || "Winner",
+      stat2Label: "match\nwinner",
     };
     second = {
       rank: 2 as const,
-      name: "Rohit 'Striker' Shetty",
-      subtext: "Manchester City • Finalist",
-      stat1Value: 5,
-      stat1Label: "matches\nwon",
-      stat2Value: "Silver",
-      stat2Label: "finalist\nmedal",
+      name: fList[1].player1 || "2nd Place",
+      subtext: "1st Runner-Up",
+      stat1Value: fList[1].goals1 ?? 0,
+      stat1Label: "goals\nscored",
+      stat2Value: "Finalist",
+      stat2Label: "result",
     };
     third = {
       rank: 3 as const,
-      name: "Neil 'Maestro' D'Souza",
-      subtext: "Bayern Munich • 3rd Place",
-      stat1Value: 4,
-      stat1Label: "matches\nwon",
-      stat2Value: "Bronze",
-      stat2Label: "3rd place\nmedal",
+      name: fList[2].player1 || "3rd Place",
+      subtext: "2nd Runner-Up",
+      stat1Value: fList[2].goals1 ?? 0,
+      stat1Label: "goals\nscored",
+      stat2Value: "3rd",
+      stat2Label: "result",
     };
   } else if (selectedGame === "MATIKS" && matiksResults && matiksResults.length >= 3) {
     const mList = matiksResults as unknown as import("@/types").MatiksMatchResult[];
@@ -272,8 +274,11 @@ export default function HomePage() {
           </button>
 
           {!isProjectorMode && (
-            <div className="hidden sm:inline-flex">
-              <ShareModal label="Share" />
+            <div className="flex items-center gap-2">
+              <PocScoringModal initialGame={selectedGame} onSuccess={ffRefresh} />
+              <div className="hidden sm:inline-flex">
+                <ShareModal label="Share" />
+              </div>
             </div>
           )}
         </div>

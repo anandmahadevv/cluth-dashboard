@@ -13,8 +13,9 @@
 /.next/
 /out/
 
-# production
-/build
+# uploaded proofs
+/public/uploads/
+/public/uploads/*
 
 # misc
 .DS_Store
