@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       gameId: check.gameId,
+      isSuperAdmin: !!check.isSuperAdmin,
       teams: currentTeams,
     });
   } catch (err: any) {

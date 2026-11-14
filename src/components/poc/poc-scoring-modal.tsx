@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import {
   ShieldCheck,
   Lock,
@@ -14,6 +15,7 @@ import {
   Brain,
   Loader2,
   FileImage,
+  ExternalLink,
 } from "lucide-react";
 import { GameId } from "@/types";
 import { PLACEMENT_POINTS } from "@/lib/tournament-constants";
@@ -379,6 +381,18 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
                       </>
                     )}
                   </button>
+
+                  <div className="pt-2 text-center border-t border-slate-100">
+                    <Link
+                      href="/43517"
+                      onClick={() => setIsOpen(false)}
+                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Super Admin Controller Portal (/43517)</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
                 </form>
               ) : (
                 /* Step 2: Scoring Table & Proof Upload */

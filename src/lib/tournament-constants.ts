@@ -2,11 +2,12 @@ import { GameId } from "@/types";
 
 // Official Game Verification Codes
 export const VALID_GAME_CODES: Record<string, GameId | "ALL"> = {
+  "43517": "ALL", // Master Super Admin Code & Secret Slug
+  "CLUTCH-SUPER-2026": "ALL", // Master Super Admin Fallback
   "CLT-FF-2026X": "FREE_FIRE",
   "CLT-BG-2026X": "BGMI",
   "CLT-FI-2026X": "FIFA",
   "CLT-MT-2026X": "MATIKS",
-  "CLUTCH-SUPER-2026": "ALL",
 };
 
 // Official Placement Points Rules

@@ -136,7 +136,7 @@ export function saveStore(data: TournamentStoreData) {
 /**
  * Verify Game POC Code
  */
-export function verifyGameCode(code: string, targetGame?: GameId): { valid: boolean; gameId?: GameId; error?: string } {
+export function verifyGameCode(code: string, targetGame?: GameId): { valid: boolean; gameId?: GameId; isSuperAdmin?: boolean; error?: string } {
   const trimmed = (code || "").trim();
   const assigned = VALID_GAME_CODES[trimmed];
 
@@ -145,14 +145,14 @@ export function verifyGameCode(code: string, targetGame?: GameId): { valid: bool
   }
 
   if (assigned === "ALL") {
-    return { valid: true, gameId: targetGame || "FREE_FIRE" };
+    return { valid: true, gameId: targetGame || "FREE_FIRE", isSuperAdmin: true };
   }
 
   if (targetGame && assigned !== targetGame) {
     return { valid: false, error: `This code is assigned to ${assigned}, not ${targetGame}.` };
   }
 
-  return { valid: true, gameId: assigned };
+  return { valid: true, gameId: assigned, isSuperAdmin: false };
 }
 
 /**
@@ -265,4 +265,28 @@ export function recordMatchSubmission(params: {
   saveStore(store);
 
   return { success: true, leaderboard: ranked };
+}
+
+/**
+ * Reset scores for a single game or all games back to 0 (Super Admin Only)
+ */
+export function resetGameScores(code: string, targetGame?: GameId | "ALL"): { success: boolean; error?: string } {
+  const auth = verifyGameCode(code);
+  if (!auth.valid || !auth.isSuperAdmin) {
+    return { success: false, error: "Unauthorized. Super Admin code (e.g. 43517) is required to reset." };
+  }
+
+  const store = getStore();
+  const initial = createInitialStoreData();
+
+  if (!targetGame || targetGame === "ALL") {
+    store.teams = initial.teams;
+    store.matches = [];
+  } else {
+    store.teams[targetGame] = initial.teams[targetGame];
+    store.matches = store.matches.filter((m) => m.gameId !== targetGame);
+  }
+
+  saveStore(store);
+  return { success: true };
 }
