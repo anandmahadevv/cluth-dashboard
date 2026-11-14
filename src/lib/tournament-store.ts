@@ -7,6 +7,8 @@ import {
   PLACEMENT_POINTS,
   INITIAL_TEAMS,
   ADMIN_PASSWORD_HASH,
+  FREE_FIRE_GROUPS,
+  getFreeFireGroup,
 } from "./tournament-constants";
 import {
   fetchStoreFromSupabase,
@@ -25,6 +27,8 @@ export interface TeamScoreEntry {
   killPoints: number;
   totalPoints: number;
   rank: number;
+  booyahs?: number;
+  group?: "A" | "B";
   lastMatchRank?: number;
   hidden?: boolean;
 }
@@ -89,6 +93,8 @@ function createInitialStoreData(): TournamentStoreData {
       killPoints: 0,
       totalPoints: 0,
       rank: index + 1,
+      booyahs: 0,
+      group: gameId === "FREE_FIRE" ? getFreeFireGroup(name) || undefined : undefined,
     }));
   });
 
@@ -246,16 +252,38 @@ export function verifyGameCode(code: string, targetGame?: GameId): { valid: bool
 }
 
 /**
- * Helper to sort and rank teams in descending order of points and kills
+ * Helper to sort and rank teams in descending order per official CLUTCH rules:
+ * 1. Total Accumulated Points
+ * 2. Higher Number of Booyahs / 1st Place finishes (Tie-breaker #1)
+ * 3. Higher Placement Points (Tie-breaker #2)
+ * 4. Higher Total Kill Points (Tie-breaker #3)
+ * 5. Better placement in last match (Tie-breaker #4)
  */
 export function sortAndRankTeams(teams: TeamScoreEntry[]): TeamScoreEntry[] {
   const sorted = [...teams].sort((a, b) => {
+    // 1. Total Points
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+    // 2. Booyahs (1st Place Finishes)
+    const booyahA = a.booyahs || 0;
+    const booyahB = b.booyahs || 0;
+    if (booyahB !== booyahA) return booyahB - booyahA;
+    // 3. Placement Points
     if (b.placementPoints !== a.placementPoints) return b.placementPoints - a.placementPoints;
-    return b.killPoints - a.killPoints;
+    // 4. Kill Points
+    if (b.killPoints !== a.killPoints) return b.killPoints - a.killPoints;
+    // 5. Better placement in last match (lower number is better, e.g. rank 2 beats rank 5)
+    const lastA = a.lastMatchRank && a.lastMatchRank > 0 ? a.lastMatchRank : 9999;
+    const lastB = b.lastMatchRank && b.lastMatchRank > 0 ? b.lastMatchRank : 9999;
+    if (lastA !== lastB) return lastA - lastB;
+
+    return 0;
   });
 
-  return sorted.map((t, idx) => ({ ...t, rank: idx + 1 }));
+  return sorted.map((t, idx) => ({
+    ...t,
+    rank: idx + 1,
+    group: t.group || (t.gameId === "FREE_FIRE" ? getFreeFireGroup(t.teamName) || undefined : undefined),
+  }));
 }
 
 /**
@@ -365,6 +393,9 @@ export function recordMatchSubmission(params: {
       team.killPoints += res.kills;
       team.totalPoints += res.matchPoints;
       team.lastMatchRank = res.placement;
+      if (res.placement === 1) {
+        team.booyahs = (team.booyahs || 0) + 1;
+      }
     });
 
     // Re-rank teams
@@ -424,6 +455,9 @@ function rollbackMatchScores(store: TournamentStoreData, match: MatchSubmission)
           team.placementPoints = Math.max(0, team.placementPoints - res.placementPoints);
           team.killPoints = Math.max(0, team.killPoints - res.kills);
           team.totalPoints = Math.max(0, team.totalPoints - res.matchPoints);
+          if (res.placement === 1) {
+            team.booyahs = Math.max(0, (team.booyahs || 0) - 1);
+          }
         }
       });
       store.teams[match.gameId] = sortAndRankTeams(teams);
@@ -462,6 +496,9 @@ export function reviewMatchSubmission(params: {
             team.killPoints += res.kills;
             team.totalPoints += res.matchPoints;
             team.lastMatchRank = res.placement;
+            if (res.placement === 1) {
+              team.booyahs = (team.booyahs || 0) + 1;
+            }
           }
         });
         store.teams[match.gameId] = sortAndRankTeams(teams);
@@ -613,6 +650,9 @@ export async function recordMatchSubmissionAsync(params: {
       team.killPoints += res.kills;
       team.totalPoints += res.matchPoints;
       team.lastMatchRank = res.placement;
+      if (res.placement === 1) {
+        team.booyahs = (team.booyahs || 0) + 1;
+      }
     });
 
     store.teams[params.gameId] = sortAndRankTeams(teams);
@@ -684,6 +724,9 @@ export async function reviewMatchSubmissionAsync(params: {
             team.killPoints += res.kills;
             team.totalPoints += res.matchPoints;
             team.lastMatchRank = res.placement;
+            if (res.placement === 1) {
+              team.booyahs = (team.booyahs || 0) + 1;
+            }
           }
         });
         store.teams[match.gameId] = sortAndRankTeams(teams);

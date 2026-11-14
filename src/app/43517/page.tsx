@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
@@ -44,7 +44,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { GameId } from "@/types";
-import { PLACEMENT_POINTS } from "@/lib/tournament-constants";
+import { PLACEMENT_POINTS, FREE_FIRE_GROUPS, getFreeFireGroup } from "@/lib/tournament-constants";
 
 interface TeamEntry {
   id: string;
@@ -55,6 +55,8 @@ interface TeamEntry {
   killPoints: number;
   totalPoints: number;
   rank: number;
+  group?: "A" | "B";
+  booyahs?: number;
   hidden?: boolean;
 }
 
@@ -148,6 +150,7 @@ export default function SuperAdminPortalPage() {
   const [swapTeamId, setSwapTeamId] = useState<string | null>(null);
   const [swapNotice, setSwapNotice] = useState<string>("");
   const [togglingVisibilityId, setTogglingVisibilityId] = useState<string | null>(null);
+  const [directStageScope, setDirectStageScope] = useState<"ALL" | "GROUP_A" | "GROUP_B" | "FINALS">("ALL");
 
   // Reset State
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -470,6 +473,67 @@ export default function SuperAdminPortalPage() {
     }
   };
 
+  // Scoped Teams for Free Fire (Groups A & B and Grand Finals)
+  const scopedTeams = useMemo(() => {
+    if (directGame !== "FREE_FIRE" || directStageScope === "ALL") {
+      return teams;
+    }
+    if (directStageScope === "GROUP_A") {
+      return teams.filter((t) => t.group === "A" || getFreeFireGroup(t.teamName) === "A");
+    }
+    if (directStageScope === "GROUP_B") {
+      return teams.filter((t) => t.group === "B" || getFreeFireGroup(t.teamName) === "B");
+    }
+    if (directStageScope === "FINALS") {
+      const a = teams.filter((t) => t.group === "A" || getFreeFireGroup(t.teamName) === "A").slice(0, 6);
+      const b = teams.filter((t) => t.group === "B" || getFreeFireGroup(t.teamName) === "B").slice(0, 6);
+      return [...a, ...b];
+    }
+    return teams;
+  }, [teams, directGame, directStageScope]);
+
+  const handleStageScopeChange = (scope: "ALL" | "GROUP_A" | "GROUP_B" | "FINALS") => {
+    setDirectStageScope(scope);
+    setSwapTeamId(null);
+    let targetTeams = teams;
+    if (scope === "GROUP_A") {
+      targetTeams = teams.filter((t) => t.group === "A" || getFreeFireGroup(t.teamName) === "A");
+    } else if (scope === "GROUP_B") {
+      targetTeams = teams.filter((t) => t.group === "B" || getFreeFireGroup(t.teamName) === "B");
+    } else if (scope === "FINALS") {
+      const a = teams.filter((t) => t.group === "A" || getFreeFireGroup(t.teamName) === "A").slice(0, 6);
+      const b = teams.filter((t) => t.group === "B" || getFreeFireGroup(t.teamName) === "B").slice(0, 6);
+      targetTeams = [...a, ...b];
+    }
+
+    const newIds = targetTeams.map((t) => t.id);
+    setDirectOrderedTeamIds(newIds);
+
+    const initialScores: Record<string, TeamScoreInput> = {};
+    targetTeams.forEach((t, idx) => {
+      const place = idx + 1;
+      const pts = calcMatchPoints(place, 0, directGame);
+      initialScores[t.id] = {
+        teamId: t.id,
+        placement: place,
+        kills: 0,
+        placementPoints: pts.placementPoints,
+        matchTotal: pts.matchTotal,
+      };
+    });
+    setScores(initialScores);
+
+    if (scope === "GROUP_A") {
+      setDirectNotes(`Free Fire Qualifiers - Group A - Match #${matchNumber}`);
+    } else if (scope === "GROUP_B") {
+      setDirectNotes(`Free Fire Qualifiers - Group B - Match #${matchNumber}`);
+    } else if (scope === "FINALS") {
+      setDirectNotes(`Free Fire Grand Finals - Match #${matchNumber}`);
+    } else {
+      setDirectNotes("");
+    }
+  };
+
   // Swap Ranks between two teams
   const handleSwapRanks = (teamAId: string, teamBId: string) => {
     if (teamAId === teamBId) {
@@ -477,7 +541,7 @@ export default function SuperAdminPortalPage() {
       return;
     }
 
-    const currentOrder = directOrderedTeamIds.length > 0 ? directOrderedTeamIds : teams.map((t) => t.id);
+    const currentOrder = directOrderedTeamIds.length > 0 ? directOrderedTeamIds : scopedTeams.map((t) => t.id);
     const idxA = currentOrder.indexOf(teamAId);
     const idxB = currentOrder.indexOf(teamBId);
     if (idxA === -1 || idxB === -1) {
@@ -743,7 +807,7 @@ export default function SuperAdminPortalPage() {
   const handleAutoFillPlacements = () => {
     setScores((prev) => {
       const updated = { ...prev };
-      teams.forEach((t, idx) => {
+      scopedTeams.forEach((t, idx) => {
         const place = idx + 1;
         const currentKills = updated[t.id]?.kills || 0;
         const pts = calcMatchPoints(place, currentKills, directGame);
@@ -760,17 +824,18 @@ export default function SuperAdminPortalPage() {
   };
 
   const reorderDirectTeams = (fromIndex: number, toIndex: number) => {
+    const activeOrder = directOrderedTeamIds.length > 0 ? directOrderedTeamIds : scopedTeams.map((t) => t.id);
     if (
       fromIndex === toIndex ||
       fromIndex < 0 ||
       toIndex < 0 ||
-      fromIndex >= directOrderedTeamIds.length ||
-      toIndex >= directOrderedTeamIds.length
+      fromIndex >= activeOrder.length ||
+      toIndex >= activeOrder.length
     ) {
       return;
     }
 
-    const newOrder = [...directOrderedTeamIds];
+    const newOrder = [...activeOrder];
     const [movedId] = newOrder.splice(fromIndex, 1);
     newOrder.splice(toIndex, 0, movedId);
     setDirectOrderedTeamIds(newOrder);
@@ -799,16 +864,19 @@ export default function SuperAdminPortalPage() {
   };
 
   const pinDirectToFirst = (teamId: string) => {
-    const fromIndex = directOrderedTeamIds.indexOf(teamId);
+    const activeOrder = directOrderedTeamIds.length > 0 ? directOrderedTeamIds : scopedTeams.map((t) => t.id);
+    const fromIndex = activeOrder.indexOf(teamId);
     if (fromIndex > 0) {
       reorderDirectTeams(fromIndex, 0);
     }
   };
 
   const moveDirectOneSlot = (teamId: string, direction: "UP" | "DOWN") => {
-    const curIdx = directOrderedTeamIds.indexOf(teamId);
+    const activeOrder = directOrderedTeamIds.length > 0 ? directOrderedTeamIds : scopedTeams.map((t) => t.id);
+    const curIdx = activeOrder.indexOf(teamId);
     if (curIdx === -1) return;
     const targetIdx = direction === "UP" ? curIdx - 1 : curIdx + 1;
+    if (targetIdx < 0 || targetIdx >= activeOrder.length) return;
     reorderDirectTeams(curIdx, targetIdx);
   };
 
@@ -886,12 +954,16 @@ export default function SuperAdminPortalPage() {
     setDirectError("");
 
     try {
-      const teamResults = Object.values(scores).map((s) => ({
-        teamId: s.teamId,
-        placement: s.placement,
-        placementPoints: s.placementPoints,
-        kills: s.kills,
-      }));
+      const targetTeamIds = directOrderedTeamIds.length > 0 ? directOrderedTeamIds : scopedTeams.map((t) => t.id);
+      const teamResults = targetTeamIds.map((teamId) => {
+        const s = scores[teamId] || { teamId, placement: 99, placementPoints: 0, kills: 0 };
+        return {
+          teamId: s.teamId,
+          placement: s.placement,
+          placementPoints: s.placementPoints,
+          kills: s.kills,
+        };
+      });
 
       const res = await fetch("/api/poc/submit-match", {
         method: "POST",
@@ -1636,16 +1708,70 @@ export default function SuperAdminPortalPage() {
                   </div>
                 )}
 
+                {/* Free Fire Specific Stage/Room Filter */}
+                {directGame === "FREE_FIRE" && (
+                  <div className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl bg-slate-950 border border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => handleStageScopeChange("ALL")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                        directStageScope === "ALL"
+                          ? "bg-slate-800 text-white border border-slate-700 shadow-sm"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <span>All 17 Squads</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-900 text-slate-300 font-mono">17</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStageScopeChange("GROUP_A")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                        directStageScope === "GROUP_A"
+                          ? "bg-amber-500 text-slate-950 font-black shadow-sm"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                      <span>Group A Room (9 Squads)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStageScopeChange("GROUP_B")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                        directStageScope === "GROUP_B"
+                          ? "bg-blue-600 text-white font-black shadow-sm"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                      <span>Group B Room (8 Squads)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStageScopeChange("FINALS")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                        directStageScope === "FINALS"
+                          ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <Trophy className="w-3.5 h-3.5" />
+                      <span>Grand Finals Room (12 Finalists)</span>
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
                   <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    {directGame} Team Roster ({teams.length} Squads)
+                    {directGame} {directGame === "FREE_FIRE" && directStageScope !== "ALL" ? `[${directStageScope.replace("_", " ")}]` : ""} Roster ({scopedTeams.length} Squads)
                   </h3>
 
                   <button
                     onClick={handleAutoFillPlacements}
                     className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold"
                   >
-                    Auto-Fill (1 to {teams.length})
+                    Auto-Fill (1 to {scopedTeams.length})
                   </button>
                 </div>
 
@@ -1669,8 +1795,9 @@ export default function SuperAdminPortalPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
-                        {(directOrderedTeamIds.length > 0 ? directOrderedTeamIds : teams.map((t) => t.id)).map((teamId) => {
-                          const actualIndex = (directOrderedTeamIds.length > 0 ? directOrderedTeamIds : teams.map((t) => t.id)).indexOf(teamId);
+                        {(directOrderedTeamIds.length > 0 ? directOrderedTeamIds : scopedTeams.map((t) => t.id)).map((teamId) => {
+                          const activeIds = directOrderedTeamIds.length > 0 ? directOrderedTeamIds : scopedTeams.map((t) => t.id);
+                          const actualIndex = activeIds.indexOf(teamId);
                           const t = teams.find((item) => item.id === teamId);
                           if (!t) return null;
 
@@ -1755,6 +1882,15 @@ export default function SuperAdminPortalPage() {
                                       <span className={`font-bold text-xs ${t.hidden ? "text-slate-400 line-through" : "text-white"}`}>
                                         {t.teamName}
                                       </span>
+                                      {directGame === "FREE_FIRE" && (
+                                        <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold font-mono ${
+                                          (t.group === "A" || getFreeFireGroup(t.teamName) === "A")
+                                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                            : "bg-blue-500/20 text-blue-300 border border-blue-500/40"
+                                        }`}>
+                                          Grp {t.group || getFreeFireGroup(t.teamName) || "A"}
+                                        </span>
+                                      )}
                                       {t.hidden && (
                                         <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
                                           HIDDEN
