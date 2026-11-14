@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGameLeaderboard } from "@/lib/tournament-store";
 import { GameId } from "@/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { game: string } }

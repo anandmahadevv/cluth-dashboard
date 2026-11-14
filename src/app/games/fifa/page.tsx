@@ -3,46 +3,53 @@
 import Link from "next/link";
 import { Gamepad2, ShieldCheck, ArrowLeft, Trophy } from "lucide-react";
 import { GAMES_CONFIG } from "@/lib/constants";
-import { useGameMatches } from "@/hooks/use-tournament-data";
+import { useGameLeaderboard, useGameMatches } from "@/hooks/use-tournament-data";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { Podium } from "@/components/leaderboards/podium";
-import { FifaTable } from "@/components/games/fifa-table";
+import { LeaderboardTable } from "@/components/games/leaderboard-table";
 import { ShareModal } from "@/components/shared/share-modal";
 
 export default function FifaPage() {
   const gameConfig = GAMES_CONFIG.FIFA;
-  const { data: matches, lastUpdated, isRefreshing, refresh, isTabActive } =
-    useGameMatches("FIFA");
+  const { data: leaderboard, lastUpdated, isRefreshing, refresh, isTabActive } =
+    useGameLeaderboard("FIFA");
+  const { data: matches } = useGameMatches("FIFA");
 
-  const first = {
-    rank: 1 as const,
-    name: "Zayd 'Apex' Khan",
-    subtext: "Real Madrid • Champion",
-    stat1Value: 6,
-    stat1Label: "matches\nwon",
-    stat2Value: "Gold",
-    stat2Label: "final\ntrophy",
-  };
+  const first = leaderboard?.[0]
+    ? {
+        rank: 1 as const,
+        name: leaderboard[0].teamName,
+        subtext: "FIFA Champion",
+        stat1Value: leaderboard[0].killPoints,
+        stat1Label: "goals\nscored",
+        stat2Value: leaderboard[0].totalPoints,
+        stat2Label: "total\npoints",
+      }
+    : undefined;
 
-  const second = {
-    rank: 2 as const,
-    name: "Rohit 'Striker' Shetty",
-    subtext: "Manchester City • Finalist",
-    stat1Value: 5,
-    stat1Label: "matches\nwon",
-    stat2Value: "Silver",
-    stat2Label: "finalist\nmedal",
-  };
+  const second = leaderboard?.[1]
+    ? {
+        rank: 2 as const,
+        name: leaderboard[1].teamName,
+        subtext: "1st Runner-Up",
+        stat1Value: leaderboard[1].killPoints,
+        stat1Label: "goals\nscored",
+        stat2Value: leaderboard[1].totalPoints,
+        stat2Label: "total\npoints",
+      }
+    : undefined;
 
-  const third = {
-    rank: 3 as const,
-    name: "Neil 'Maestro' D'Souza",
-    subtext: "Bayern Munich • 3rd Place",
-    stat1Value: 4,
-    stat1Label: "matches\nwon",
-    stat2Value: "Bronze",
-    stat2Label: "3rd place\nmedal",
-  };
+  const third = leaderboard?.[2]
+    ? {
+        rank: 3 as const,
+        name: leaderboard[2].teamName,
+        subtext: "2nd Runner-Up",
+        stat1Value: leaderboard[2].killPoints,
+        stat1Label: "goals\nscored",
+        stat2Value: leaderboard[2].totalPoints,
+        stat2Label: "total\npoints",
+      }
+    : undefined;
 
   return (
     <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
@@ -108,15 +115,15 @@ export default function FifaPage() {
         <Podium first={first} second={second} third={third} />
       </div>
 
-      {/* Match Results Table */}
+      {/* Standings Table */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-white font-display uppercase tracking-wide">
-            Head-to-Head Match History
+            Official Standings Table
           </h3>
-          <span className="text-xs text-zinc-400">Grand Final Concluded</span>
+          <span className="text-xs text-zinc-400">Live Tournament Store</span>
         </div>
-        <FifaTable matches={(matches as any[]) || []} />
+        <LeaderboardTable entries={(leaderboard as any[]) || []} gameName="FIFA 24" gameColor="#10b981" />
       </div>
     </div>
   );

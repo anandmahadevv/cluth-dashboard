@@ -3,51 +3,50 @@
 import Link from "next/link";
 import { Brain, ShieldCheck, ArrowLeft, Trophy } from "lucide-react";
 import { GAMES_CONFIG } from "@/lib/constants";
-import { useGameMatches } from "@/hooks/use-tournament-data";
+import { useGameLeaderboard, useGameMatches } from "@/hooks/use-tournament-data";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { Podium } from "@/components/leaderboards/podium";
-import { MatiksTable } from "@/components/games/matiks-table";
+import { LeaderboardTable } from "@/components/games/leaderboard-table";
 import { ShareModal } from "@/components/shared/share-modal";
 
 export default function MatiksPage() {
   const gameConfig = GAMES_CONFIG.MATIKS;
-  const { data: results, lastUpdated, isRefreshing, refresh, isTabActive } =
-    useGameMatches("MATIKS");
+  const { data: leaderboard, lastUpdated, isRefreshing, refresh, isTabActive } =
+    useGameLeaderboard("MATIKS");
+  const { data: matches } = useGameMatches("MATIKS");
 
-  const matiksList = (results as any[]) || [];
-
-  const first = matiksList[0]
+  const first = leaderboard?.[0]
     ? {
         rank: 1 as const,
-        name: matiksList[0].playerName,
-        subtext: matiksList[0].teamName || "CLUTCH MATIKS Champion",
-        stat1Value: "98.8%",
-        stat1Label: "accuracy\nrate",
-        stat2Value: matiksList[0].score,
+        name: leaderboard[0].teamName,
+        subtext: "MATIKS Champion",
+        stat1Value: leaderboard[0].matchesPlayed,
+        stat1Label: "rounds\nplayed",
+        stat2Value: leaderboard[0].totalPoints,
         stat2Label: "matrix\nscore",
       }
     : undefined;
 
-  const second = matiksList[1]
+  const second = leaderboard?.[1]
     ? {
         rank: 2 as const,
-        name: matiksList[1].playerName,
-        subtext: matiksList[1].teamName || "1st Runner-Up",
-        stat1Value: "96.4%",
-        stat1Label: "accuracy\nrate",
-        stat2Value: matiksList[1].score,
+        name: leaderboard[1].teamName,
+        subtext: "1st Runner-Up",
+        stat1Value: leaderboard[1].matchesPlayed,
+        stat1Label: "rounds\nplayed",
+        stat2Value: leaderboard[1].totalPoints,
         stat2Label: "matrix\nscore",
       }
     : undefined;
 
-  const third = matiksList[2]
+  const third = leaderboard?.[2]
     ? {
         rank: 3 as const,
-        name: matiksList[2].playerName,
-        subtext: matiksList[2].teamName || "2nd Runner-Up",
-        stat1Value: "94.0%",
-        stat1Label: "accuracy\nrate",
-        stat2Value: matiksList[2].score,
+        name: leaderboard[2].teamName,
+        subtext: "2nd Runner-Up",
+        stat1Value: leaderboard[2].matchesPlayed,
+        stat1Label: "rounds\nplayed",
+        stat2Value: leaderboard[2].totalPoints,
         stat2Label: "matrix\nscore",
       }
     : undefined;
@@ -116,15 +115,15 @@ export default function MatiksPage() {
         <Podium first={first} second={second} third={third} />
       </div>
 
-      {/* Results Table */}
+      {/* Standings Table */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-white font-display uppercase tracking-wide">
-            Round-by-Round Official Results
+            Official Standings Table
           </h3>
-          <span className="text-xs text-zinc-400">Dynamic Score Algorithm</span>
+          <span className="text-xs text-zinc-400">Live Tournament Store</span>
         </div>
-        <MatiksTable results={matiksList} />
+        <LeaderboardTable entries={(leaderboard as any[]) || []} gameName="MATIKS" gameColor="#a855f7" />
       </div>
     </div>
   );

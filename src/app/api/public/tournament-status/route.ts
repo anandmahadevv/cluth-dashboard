@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getStore } from "@/lib/tournament-store";
 import { EVENT_DETAILS } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   const store = getStore();
   const matchesCount = store.matches.length;

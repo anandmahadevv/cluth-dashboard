@@ -59,6 +59,7 @@ const DATA_FILE_PATH = process.env.VERCEL
 const SEED_FILE_PATH = path.join(process.cwd(), "data", "tournament-data.json");
 
 let inMemoryStore: TournamentStoreData | null = null;
+let lastFileReadTime = 0;
 
 function createInitialStoreData(): TournamentStoreData {
   const teamsMap: Record<GameId, TeamScoreEntry[]> = {
@@ -92,18 +93,22 @@ function createInitialStoreData(): TournamentStoreData {
  * Load store data from memory, disk, or bundled seed
  */
 export function getStore(): TournamentStoreData {
-  if (inMemoryStore) {
-    return inMemoryStore;
-  }
-
   try {
     if (fs.existsSync(DATA_FILE_PATH)) {
-      const raw = fs.readFileSync(DATA_FILE_PATH, "utf-8");
-      inMemoryStore = JSON.parse(raw);
+      const stats = fs.statSync(DATA_FILE_PATH);
+      if (!inMemoryStore || stats.mtimeMs > lastFileReadTime) {
+        const raw = fs.readFileSync(DATA_FILE_PATH, "utf-8");
+        inMemoryStore = JSON.parse(raw);
+        lastFileReadTime = stats.mtimeMs;
+      }
       return inMemoryStore!;
     }
   } catch (err) {
-    console.warn("Could not read from DATA_FILE_PATH, attempting seed", err);
+    console.warn("Could not read from DATA_FILE_PATH, attempting fallback", err);
+  }
+
+  if (inMemoryStore) {
+    return inMemoryStore;
   }
 
   // Fallback to bundled seed file if exists
@@ -136,6 +141,8 @@ export function saveStore(data: TournamentStoreData) {
     }
     data.lastUpdated = new Date().toISOString();
     fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2), "utf-8");
+    const stats = fs.statSync(DATA_FILE_PATH);
+    lastFileReadTime = stats.mtimeMs;
   } catch (err) {
     console.warn("Notice: Disk write failed, running in-memory for this serverless instance.", err);
   }
@@ -164,20 +171,25 @@ export function verifyGameCode(code: string, targetGame?: GameId): { valid: bool
 }
 
 /**
- * Get sorted leaderboard for a specific game
+ * Helper to sort and rank teams in descending order of points and kills
  */
-export function getGameLeaderboard(gameId: GameId): TeamScoreEntry[] {
-  const store = getStore();
-  const list = store.teams[gameId] || [];
-
-  // Sort by total points desc, placement points desc, kill points desc
-  const sorted = [...list].sort((a, b) => {
+export function sortAndRankTeams(teams: TeamScoreEntry[]): TeamScoreEntry[] {
+  const sorted = [...teams].sort((a, b) => {
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
     if (b.placementPoints !== a.placementPoints) return b.placementPoints - a.placementPoints;
     return b.killPoints - a.killPoints;
   });
 
   return sorted.map((t, idx) => ({ ...t, rank: idx + 1 }));
+}
+
+/**
+ * Get sorted leaderboard for a specific game
+ */
+export function getGameLeaderboard(gameId: GameId): TeamScoreEntry[] {
+  const store = getStore();
+  const list = store.teams[gameId] || [];
+  return sortAndRankTeams(list);
 }
 
 /**
@@ -278,7 +290,7 @@ export function recordMatchSubmission(params: {
     });
 
     // Re-rank teams
-    store.teams[params.gameId] = getGameLeaderboard(params.gameId);
+    store.teams[params.gameId] = sortAndRankTeams(teams);
   }
 
   // Add submission record
@@ -351,7 +363,7 @@ export function reviewMatchSubmission(params: {
             team.lastMatchRank = res.placement;
           }
         });
-        store.teams[match.gameId] = getGameLeaderboard(match.gameId);
+        store.teams[match.gameId] = sortAndRankTeams(teams);
       }
     }
 
@@ -379,7 +391,7 @@ export function reviewMatchSubmission(params: {
             team.totalPoints = Math.max(0, team.totalPoints - res.matchPoints);
           }
         });
-        store.teams[match.gameId] = getGameLeaderboard(match.gameId);
+        store.teams[match.gameId] = sortAndRankTeams(teams);
       }
     }
 

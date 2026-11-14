@@ -85,16 +85,16 @@ export const GAMES_CONFIG: Record<GameId, GameConfig> = {
 };
 
 export const API_ENDPOINTS = {
-  games: "/public/games",
-  results: "/public/results",
-  resultsByGame: (game: string) => `/public/results/${game}`,
-  leaderboardsByGame: (game: string) => `/public/leaderboards/${game}`,
-  matchesByGame: (game: string) => `/public/matches/${game}`,
-  winners: "/public/winners",
-  tournamentStatus: "/public/tournament-status",
+  games: "/api/public/games",
+  results: "/api/public/results",
+  resultsByGame: (game: string) => `/api/public/results/${game}`,
+  leaderboardsByGame: (game: string) => `/api/public/leaderboards/${game}`,
+  matchesByGame: (game: string) => `/api/public/matches/${game}`,
+  winners: "/api/public/winners",
+  tournamentStatus: "/api/public/tournament-status",
 };
 
-export const POLLING_INTERVAL_MS = 8000; // 8 seconds default
+export const POLLING_INTERVAL_MS = 3000; // 3 seconds fast live polling
 
 export const TOURNAMENT = EVENT_DETAILS;
 export const GAMES = GAMES_CONFIG;

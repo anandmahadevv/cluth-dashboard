@@ -1,23 +1,35 @@
 import { NextResponse } from "next/server";
+import { getGameLeaderboard } from "@/lib/tournament-store";
+import { GameId } from "@/types";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
-  const gasUrl = process.env.NEXT_PUBLIC_CLUTCH_API_URL || "";
-  if (gasUrl && gasUrl.includes("script.google.com")) {
-    try {
-      const res = await fetch(`${gasUrl}?action=getWinners`, { cache: "no-store" });
-      if (res.ok) {
-        const json = await res.json();
-        return NextResponse.json({
-          success: true,
-          data: json.results || json.data || [],
-          meta: { source: "GOOGLE_SHEETS", approvedOnly: true, timestamp: new Date().toISOString() }
-        });
-      }
-    } catch {}
-  }
+  const games: GameId[] = ["FREE_FIRE", "BGMI", "FIFA", "MATIKS"];
+  const winners: any[] = [];
+
+  games.forEach((g) => {
+    const list = getGameLeaderboard(g);
+    if (list && list.length > 0) {
+      winners.push({
+        gameId: g,
+        game_id: g,
+        gameName: g.replace("_", " "),
+        champion: list[0].teamName,
+        winner: list[0].teamName,
+        totalPoints: list[0].totalPoints,
+        killPoints: list[0].killPoints,
+        matchesPlayed: list[0].matchesPlayed,
+        runnerUp: list[1]?.teamName || "TBD",
+        thirdPlace: list[2]?.teamName || "TBD",
+      });
+    }
+  });
+
   return NextResponse.json({
     success: true,
-    data: [],
-    meta: { source: "GOOGLE_SHEETS", approvedOnly: true, timestamp: new Date().toISOString() },
+    data: winners,
+    meta: { source: "INTERNAL_STORE", approvedOnly: true, timestamp: new Date().toISOString() },
   });
 }

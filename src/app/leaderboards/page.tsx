@@ -44,20 +44,20 @@ export default function LeaderboardsPage() {
   } = useGameLeaderboard("BGMI");
 
   const {
-    data: fifaMatches,
+    data: fifaLeaderboard,
     lastUpdated: fifaUpdated,
     isRefreshing: fifaRefreshing,
     refresh: fifaRefresh,
     isTabActive: fifaActive,
-  } = useGameMatches("FIFA");
+  } = useGameLeaderboard("FIFA");
 
   const {
-    data: matiksResults,
+    data: matiksLeaderboard,
     lastUpdated: matiksUpdated,
     isRefreshing: matiksRefreshing,
     refresh: matiksRefresh,
     isTabActive: matiksActive,
-  } = useGameMatches("MATIKS");
+  } = useGameLeaderboard("MATIKS");
 
   // Determine current active game's polling metadata
   let currentLastUpdated = ffUpdated;
@@ -141,61 +141,60 @@ export default function LeaderboardsPage() {
       stat2Value: bgmiLeaderboard[2].totalPoints,
       stat2Label: "total\npoints",
     };
-  } else if (selectedGame === "FIFA") {
+  } else if (selectedGame === "FIFA" && fifaLeaderboard && fifaLeaderboard.length >= 3) {
     first = {
       rank: 1 as const,
-      name: "Zayd 'Apex' Khan",
-      subtext: "Real Madrid • Champion",
-      stat1Value: 6,
-      stat1Label: "matches\nwon",
-      stat2Value: "Gold",
-      stat2Label: "final\ntrophy",
+      name: fifaLeaderboard[0].teamName,
+      subtext: "FIFA Champion",
+      stat1Value: fifaLeaderboard[0].killPoints,
+      stat1Label: "goals\nscored",
+      stat2Value: fifaLeaderboard[0].totalPoints,
+      stat2Label: "total\npoints",
     };
     second = {
       rank: 2 as const,
-      name: "Rohit 'Striker' Shetty",
-      subtext: "Manchester City • Finalist",
-      stat1Value: 5,
-      stat1Label: "matches\nwon",
-      stat2Value: "Silver",
-      stat2Label: "finalist\nmedal",
+      name: fifaLeaderboard[1].teamName,
+      subtext: "1st Runner-Up",
+      stat1Value: fifaLeaderboard[1].killPoints,
+      stat1Label: "goals\nscored",
+      stat2Value: fifaLeaderboard[1].totalPoints,
+      stat2Label: "total\npoints",
     };
     third = {
       rank: 3 as const,
-      name: "Neil 'Maestro' D'Souza",
-      subtext: "Bayern Munich • 3rd Place",
-      stat1Value: 4,
-      stat1Label: "matches\nwon",
-      stat2Value: "Bronze",
-      stat2Label: "3rd place\nmedal",
+      name: fifaLeaderboard[2].teamName,
+      subtext: "2nd Runner-Up",
+      stat1Value: fifaLeaderboard[2].killPoints,
+      stat1Label: "goals\nscored",
+      stat2Value: fifaLeaderboard[2].totalPoints,
+      stat2Label: "total\npoints",
     };
-  } else if (selectedGame === "MATIKS" && matiksResults && matiksResults.length >= 3) {
-    const mList = matiksResults as unknown as import("@/types").MatiksMatchResult[];
+  } else if (selectedGame === "MATIKS" && matiksLeaderboard && matiksLeaderboard.length >= 3) {
     first = {
       rank: 1 as const,
-      name: mList[0].playerName,
-      subtext: mList[0].teamName || "Championship Rank 1",
-      stat1Value: "98.8%",
-      stat1Label: "accuracy\nrate",
-      stat2Value: mList[0].score,
+      name: matiksLeaderboard[0].teamName,
+      subtext: "MATIKS 1st Place",
+      stat1Value: matiksLeaderboard[0].matchesPlayed,
+      stat1Label: "rounds\nplayed",
+      stat2Value: matiksLeaderboard[0].totalPoints,
       stat2Label: "matrix\nscore",
     };
     second = {
       rank: 2 as const,
-      name: mList[1].playerName,
-      subtext: mList[1].teamName || "Championship Rank 2",
-      stat1Value: "96.4%",
-      stat1Label: "accuracy\nrate",
-      stat2Value: mList[1].score,
+      name: matiksLeaderboard[1].teamName,
+      subtext: "1st Runner-Up",
+      stat1Value: matiksLeaderboard[1].matchesPlayed,
+      stat1Label: "rounds\nplayed",
+      stat2Value: matiksLeaderboard[1].totalPoints,
       stat2Label: "matrix\nscore",
     };
     third = {
       rank: 3 as const,
-      name: mList[2].playerName,
-      subtext: mList[2].teamName || "Championship Rank 3",
-      stat1Value: "94.0%",
-      stat1Label: "accuracy\nrate",
-      stat2Value: mList[2].score,
+      name: matiksLeaderboard[2].teamName,
+      subtext: "2nd Runner-Up",
+      stat1Value: matiksLeaderboard[2].matchesPlayed,
+      stat1Label: "rounds\nplayed",
+      stat2Value: matiksLeaderboard[2].totalPoints,
       stat2Label: "matrix\nscore",
     };
   }
@@ -290,11 +289,19 @@ export default function LeaderboardsPage() {
         )}
 
         {selectedGame === "FIFA" && (
-          <FifaTable matches={(fifaMatches as any[]) || []} />
+          <LeaderboardTable
+            entries={(fifaLeaderboard as any[]) || []}
+            gameName="FIFA 24"
+            gameColor="#10b981"
+          />
         )}
 
         {selectedGame === "MATIKS" && (
-          <MatiksTable results={(matiksResults as any[]) || []} />
+          <LeaderboardTable
+            entries={(matiksLeaderboard as any[]) || []}
+            gameName="MATIKS"
+            gameColor="#a855f7"
+          />
         )}
       </div>
     </div>

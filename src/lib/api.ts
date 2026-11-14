@@ -117,17 +117,11 @@ export async function getPublicGames(): Promise<PublicApiResponse<GameConfig[]>>
 export async function getLeaderboard(
   gameId: GameId
 ): Promise<PublicApiResponse<FreeFireLeaderboardEntry[] | BgmiLeaderboardEntry[] | any[]>> {
-  let fallback: any[] = [];
-  if (gameId === "FREE_FIRE") fallback = MOCK_FREE_FIRE_LEADERBOARD;
-  else if (gameId === "BGMI") fallback = MOCK_BGMI_LEADERBOARD;
-  else if (gameId === "MATIKS") fallback = MOCK_MATIKS_RESULTS;
-  else if (gameId === "FIFA") fallback = MOCK_FIFA_MATCHES;
-
   return safePublicFetch<any[]>(
     "getLeaderboard",
     API_ENDPOINTS.leaderboardsByGame(gameId),
     { game: gameId },
-    fallback
+    []
   );
 }
 
