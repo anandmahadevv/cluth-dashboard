@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { Search, Flame, Crosshair, Gamepad2, Brain, CheckCircle2 } from "lucide-react";
 import { GameId } from "@/types";
-import { useGameMatches } from "@/hooks/use-tournament-data";
+import { useGameMatches, useGameAwards } from "@/hooks/use-tournament-data";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { ShareModal } from "@/components/shared/share-modal";
+import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 
 export default function MatchResultsPage() {
   const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
@@ -13,6 +14,7 @@ export default function MatchResultsPage() {
 
   const { data: allMatches, lastUpdated, isRefreshing, refresh, isTabActive } =
     useGameMatches();
+  const { data: ffAwards } = useGameAwards("FREE_FIRE");
 
   const matchesList = (allMatches as any[]) || [];
 
@@ -99,6 +101,11 @@ export default function MatchResultsPage() {
           />
         </div>
       </div>
+
+      {/* Official Grand Finals Showcase on Results Page */}
+      {(selectedGameFilter === "ALL" || selectedGameFilter === "FREE_FIRE") && (
+        <SpecialAwardsCard awards={ffAwards} />
+      )}
 
       {/* Clean Table */}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">

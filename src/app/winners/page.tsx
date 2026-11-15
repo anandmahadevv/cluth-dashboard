@@ -37,6 +37,21 @@ export default function WinnersPage() {
 
       {/* Winners Section */}
       <div className="space-y-12">
+        {/* Free Fire Grand Finals Showcase (always present) */}
+        {!winners?.some((w) => w.gameId === "FREE_FIRE") && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h2 className="text-lg font-black uppercase text-slate-800 tracking-tight">
+                Free Fire (Grand Finals)
+              </h2>
+              <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-300">
+                Official Ratified
+              </span>
+            </div>
+            <SpecialAwardsCard awards={ffAwards} />
+          </div>
+        )}
+
         {winners?.map((gameWinner) => {
           const first = gameWinner.firstPlace
             ? {

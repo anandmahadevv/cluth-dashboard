@@ -106,8 +106,12 @@ export default function SuperAdminPortalPage() {
   const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  // Special Awards State (MVP & Top Fragger)
+  // Special Awards State (Winner, Runner-up, MVP & Top Fragger)
   const [awardsGame, setAwardsGame] = useState<GameId>("FREE_FIRE");
+  const [adminWinnerTeam, setAdminWinnerTeam] = useState("");
+  const [adminWinnerScore, setAdminWinnerScore] = useState("");
+  const [adminRunnerUpTeam, setAdminRunnerUpTeam] = useState("");
+  const [adminRunnerUpScore, setAdminRunnerUpScore] = useState("");
   const [adminMvpName, setAdminMvpName] = useState("");
   const [adminMvpTeam, setAdminMvpTeam] = useState("");
   const [adminMvpStats, setAdminMvpStats] = useState("");
@@ -336,6 +340,10 @@ export default function SuperAdminPortalPage() {
       const res = await fetch(`/api/public/awards?gameId=${game}&t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.awards) {
+        setAdminWinnerTeam(data.awards.winnerTeam || "");
+        setAdminWinnerScore(data.awards.winnerScore || "");
+        setAdminRunnerUpTeam(data.awards.runnerUpTeam || "");
+        setAdminRunnerUpScore(data.awards.runnerUpScore || "");
         if (data.awards.mvp) {
           setAdminMvpName(data.awards.mvp.playerName || "");
           setAdminMvpTeam(data.awards.mvp.teamName || "");
@@ -355,6 +363,10 @@ export default function SuperAdminPortalPage() {
           setAdminTopFraggerKills("");
         }
       } else {
+        setAdminWinnerTeam("");
+        setAdminWinnerScore("");
+        setAdminRunnerUpTeam("");
+        setAdminRunnerUpScore("");
         setAdminMvpName("");
         setAdminMvpTeam("");
         setAdminMvpStats("");
@@ -392,6 +404,10 @@ export default function SuperAdminPortalPage() {
           gameId: awardsGame,
           adminPassword: pass,
           awards: {
+            winnerTeam: adminWinnerTeam.trim(),
+            winnerScore: adminWinnerScore.trim(),
+            runnerUpTeam: adminRunnerUpTeam.trim(),
+            runnerUpScore: adminRunnerUpScore.trim(),
             mvp: {
               playerName: adminMvpName.trim(),
               teamName: adminMvpTeam.trim(),
@@ -2886,7 +2902,85 @@ export default function SuperAdminPortalPage() {
             {/* Awards Edit Form */}
             <form onSubmit={handleSaveAdminAwards} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 1. Tournament MVP */}
+                {/* 1. 1st Place Champion (Winner Cup) */}
+                <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+                      <Trophy className="w-4 h-4" />
+                      <span>1st PLACE CHAMPION (WINNER CUP)</span>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold">
+                      🏆 GOLD TROPHY
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Champion Squad / Team Name
+                    </label>
+                    <input
+                      type="text"
+                      value={adminWinnerTeam}
+                      onChange={(e) => setAdminWinnerTeam(e.target.value)}
+                      placeholder="e.g. TOTAL DOMINANCE"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-amber-400 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Championship Score / Subtext (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={adminWinnerScore}
+                      onChange={(e) => setAdminWinnerScore(e.target.value)}
+                      placeholder="e.g. 52 Pts • 2 Booyahs"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-amber-400 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. 2nd Place Runner-Up (Runner-Up Cup) */}
+                <div className="p-5 rounded-2xl border border-slate-600/40 bg-slate-800/20 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                      <Award className="w-4 h-4 text-slate-400" />
+                      <span>2nd PLACE (RUNNER-UP CUP)</span>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-700/50 text-slate-300 font-extrabold">
+                      🥈 SILVER TROPHY
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Runner-Up Squad / Team Name
+                    </label>
+                    <input
+                      type="text"
+                      value={adminRunnerUpTeam}
+                      onChange={(e) => setAdminRunnerUpTeam(e.target.value)}
+                      placeholder="e.g. BROTHERHOOD"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-slate-400 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Runner-Up Score / Subtext (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={adminRunnerUpScore}
+                      onChange={(e) => setAdminRunnerUpScore(e.target.value)}
+                      placeholder="e.g. 46 Pts • 1 Booyah"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-slate-400 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Tournament MVP */}
                 <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
@@ -2919,7 +3013,7 @@ export default function SuperAdminPortalPage() {
                       type="text"
                       value={adminMvpTeam}
                       onChange={(e) => setAdminMvpTeam(e.target.value)}
-                      placeholder="e.g. TOTAL DOMINANCE (Group A)"
+                      placeholder="e.g. TOTAL DOMINANCE"
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-amber-400 outline-none"
                     />
                   </div>
@@ -2938,7 +3032,7 @@ export default function SuperAdminPortalPage() {
                   </div>
                 </div>
 
-                {/* 2. Top Fragger */}
+                {/* 4. Top Fragger */}
                 <div className="p-5 rounded-2xl border border-red-500/30 bg-red-500/5 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-bold text-red-400">
@@ -2998,6 +3092,10 @@ export default function SuperAdminPortalPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    setAdminWinnerTeam("");
+                    setAdminWinnerScore("");
+                    setAdminRunnerUpTeam("");
+                    setAdminRunnerUpScore("");
                     setAdminMvpName("");
                     setAdminMvpTeam("");
                     setAdminMvpStats("");
@@ -3047,6 +3145,10 @@ export default function SuperAdminPortalPage() {
               <div className="bg-slate-950 rounded-xl p-4 border border-slate-800/80">
                 <SpecialAwardsCard
                   awards={{
+                    winnerTeam: adminWinnerTeam,
+                    winnerScore: adminWinnerScore,
+                    runnerUpTeam: adminRunnerUpTeam,
+                    runnerUpScore: adminRunnerUpScore,
                     mvp: {
                       playerName: adminMvpName,
                       teamName: adminMvpTeam,

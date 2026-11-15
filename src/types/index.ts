@@ -226,6 +226,10 @@ export interface Winner {
 }
 
 export interface IndividualAwards {
+  winnerTeam?: string;
+  winnerScore?: string;
+  runnerUpTeam?: string;
+  runnerUpScore?: string;
   mvp?: {
     playerName: string;
     teamName: string;

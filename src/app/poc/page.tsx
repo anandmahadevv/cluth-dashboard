@@ -27,6 +27,7 @@ import {
   FileImage,
   Award,
   RefreshCw,
+  Trophy,
 } from "lucide-react";
 import { GameId } from "@/types";
 import { PLACEMENT_POINTS, getFreeFireGroupInfo } from "@/lib/tournament-constants";
@@ -79,7 +80,11 @@ export default function PocPortalPage() {
   const [ffGroupFilter, setFfGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Special Awards State (MVP & Top Fragger)
+  // Special Awards State (Winner, Runner-up, MVP & Top Fragger)
+  const [winnerTeam, setWinnerTeam] = useState("");
+  const [winnerScore, setWinnerScore] = useState("");
+  const [runnerUpTeam, setRunnerUpTeam] = useState("");
+  const [runnerUpScore, setRunnerUpScore] = useState("");
   const [mvpName, setMvpName] = useState("");
   const [mvpTeam, setMvpTeam] = useState("");
   const [mvpStats, setMvpStats] = useState("");
@@ -95,6 +100,10 @@ export default function PocPortalPage() {
       const res = await fetch(`/api/public/awards?gameId=${selectedGame}&t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.awards) {
+        if (data.awards.winnerTeam) setWinnerTeam(data.awards.winnerTeam);
+        if (data.awards.winnerScore) setWinnerScore(data.awards.winnerScore);
+        if (data.awards.runnerUpTeam) setRunnerUpTeam(data.awards.runnerUpTeam);
+        if (data.awards.runnerUpScore) setRunnerUpScore(data.awards.runnerUpScore);
         if (data.awards.mvp) {
           setMvpName(data.awards.mvp.playerName || "");
           setMvpTeam(data.awards.mvp.teamName || "");
@@ -123,6 +132,10 @@ export default function PocPortalPage() {
           gameId: selectedGame,
           pocCode,
           awards: {
+            winnerTeam: winnerTeam.trim(),
+            winnerScore: winnerScore.trim(),
+            runnerUpTeam: runnerUpTeam.trim(),
+            runnerUpScore: runnerUpScore.trim(),
             mvp: {
               playerName: mvpName.trim(),
               teamName: mvpTeam.trim(),
@@ -142,7 +155,7 @@ export default function PocPortalPage() {
         throw new Error(data.error || "Failed to update awards.");
       }
 
-      setAwardsMessage("Official Tournament Accolades (MVP & Top Fragger) saved & broadcast live!");
+      setAwardsMessage("Official Grand Finals Champions & Awards saved & broadcast live!");
       setTimeout(() => setAwardsMessage(""), 4000);
     } catch (err: any) {
       setAwardsError(err.message || "Failed to save awards.");
@@ -1467,6 +1480,74 @@ export default function PocPortalPage() {
 
               <form onSubmit={handleSaveAwards} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 1st Place Champion Input Block */}
+                  <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+                      <Trophy className="w-4 h-4" />
+                      <span>1st PLACE CHAMPION (WINNER CUP)</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Winning Squad Name
+                      </label>
+                      <input
+                        type="text"
+                        value={winnerTeam}
+                        onChange={(e) => setWinnerTeam(e.target.value)}
+                        placeholder="e.g. TOTAL DOMINANCE"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-amber-400 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Grand Finals Score / Subtext (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={winnerScore}
+                        onChange={(e) => setWinnerScore(e.target.value)}
+                        placeholder="e.g. 52 Pts • 2 Booyahs"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-amber-400 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 2nd Place Runner-Up Input Block */}
+                  <div className="p-4 rounded-xl border border-slate-600/30 bg-slate-800/20 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                      <Award className="w-4 h-4 text-slate-400" />
+                      <span>2nd PLACE (RUNNER-UP CUP)</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Runner-Up Squad Name
+                      </label>
+                      <input
+                        type="text"
+                        value={runnerUpTeam}
+                        onChange={(e) => setRunnerUpTeam(e.target.value)}
+                        placeholder="e.g. BROTHERHOOD"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-slate-400 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Grand Finals Score / Subtext (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={runnerUpScore}
+                        onChange={(e) => setRunnerUpScore(e.target.value)}
+                        placeholder="e.g. 46 Pts • 1 Booyah"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-slate-400 outline-none"
+                      />
+                    </div>
+                  </div>
+
                   {/* Tournament MVP Input Block */}
                   <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
                     <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
