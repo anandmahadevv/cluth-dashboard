@@ -5,6 +5,7 @@ import {
   removeTeamFromGameAsync,
   updateTeamNameAsync,
   toggleTeamVisibilityAsync,
+  toggleTeamQualifiedAsync,
 } from "@/lib/tournament-store";
 import { GameId } from "@/types";
 
@@ -127,14 +128,17 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
-// PATCH /api/poc/teams (Toggle Team Hidden/Visible)
+// PATCH /api/poc/teams (Toggle Team Hidden/Visible OR Toggle Qualified Status)
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { gameId, teamId, hidden, adminPassword } = body as {
+    const { gameId, teamId, hidden, qualified, action, pocCode, adminPassword } = body as {
       gameId: GameId;
       teamId: string;
       hidden?: boolean;
+      qualified?: boolean;
+      action?: "TOGGLE_VISIBILITY" | "TOGGLE_QUALIFIED";
+      pocCode?: string;
       adminPassword?: string;
     };
 
@@ -145,6 +149,29 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    // Toggle Qualified Status for Finals (Q mark)
+    if (action === "TOGGLE_QUALIFIED" || qualified !== undefined) {
+      const result = await toggleTeamQualifiedAsync({
+        gameId,
+        teamId,
+        qualified,
+        pocCode,
+        adminPassword,
+      });
+
+      if (!result.success) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: result.message,
+        team: result.team,
+        teams: result.teams,
+      });
+    }
+
+    // Toggle Public Visibility (Hide / Unhide)
     const result = await toggleTeamVisibilityAsync({ gameId, teamId, hidden, adminPassword });
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });
@@ -157,7 +184,7 @@ export async function PATCH(req: NextRequest) {
       teams: result.teams,
     });
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message || "Failed to toggle team visibility." }, { status: 500 });
+    return NextResponse.json({ success: false, error: err.message || "Failed to update team." }, { status: 500 });
   }
 }
 

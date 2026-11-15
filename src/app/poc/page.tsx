@@ -25,9 +25,10 @@ import {
   Crown,
   X,
   FileImage,
+  Award,
 } from "lucide-react";
 import { GameId } from "@/types";
-import { PLACEMENT_POINTS } from "@/lib/tournament-constants";
+import { PLACEMENT_POINTS, getFreeFireGroupInfo } from "@/lib/tournament-constants";
 
 interface TeamEntry {
   id: string;
@@ -38,6 +39,8 @@ interface TeamEntry {
   killPoints: number;
   totalPoints: number;
   rank: number;
+  hidden?: boolean;
+  qualified?: boolean;
 }
 
 interface TeamScoreInput {
@@ -70,6 +73,9 @@ export default function PocPortalPage() {
   const [submitError, setSubmitError] = useState("");
   const [searchFilter, setSearchFilter] = useState("");
   const [pasteNotice, setPasteNotice] = useState(false);
+  const [togglingQualifiedId, setTogglingQualifiedId] = useState<string | null>(null);
+  const [qualifiedNotice, setQualifiedNotice] = useState<string>("");
+  const [ffGroupFilter, setFfGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
 
   // Drag-and-drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -77,6 +83,55 @@ export default function PocPortalPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // Toggle Qualified Status for Finals (Q mark)
+  const handleToggleQualified = async (teamId: string) => {
+    setTogglingQualifiedId(teamId);
+    setQualifiedNotice("");
+
+    const currentTeam = teams.find((t) => t.id === teamId);
+    const targetQualified = currentTeam ? !currentTeam.qualified : true;
+
+    // Instant optimistic update
+    setTeams((prev) =>
+      prev.map((t) => (t.id === teamId ? { ...t, qualified: targetQualified } : t))
+    );
+
+    try {
+      const res = await fetch("/api/poc/teams", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: selectedGame,
+          teamId,
+          qualified: targetQualified,
+          action: "TOGGLE_QUALIFIED",
+          pocCode,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        // Rollback optimistic update
+        setTeams((prev) =>
+          prev.map((t) => (t.id === teamId ? { ...t, qualified: !targetQualified } : t))
+        );
+        throw new Error(data.error || "Failed to update qualified status.");
+      }
+
+      setQualifiedNotice(
+        data.message || (targetQualified ? `Team "${currentTeam?.teamName}" marked as QUALIFIED!` : `Team "${currentTeam?.teamName}" removed from qualifiers.`)
+      );
+      if (Array.isArray(data.teams)) {
+        setTeams(data.teams);
+      }
+      setTimeout(() => setQualifiedNotice(""), 3500);
+    } catch (err: any) {
+      alert(err.message || "Error updating qualified status.");
+    } finally {
+      setTogglingQualifiedId(null);
+    }
+  };
 
   // Helper to calculate placement and match points for any game
   const calcMatchPoints = (placement: number, kills: number, gameId: GameId) => {
@@ -409,11 +464,23 @@ export default function PocPortalPage() {
   const top2Team = teams.find((t) => t.id === orderedTeamIds[1]);
   const top3Team = teams.find((t) => t.id === orderedTeamIds[2]);
 
-  // Filtered list for display
+  // Filtered list for display (with search + Free Fire Group / Qualifier filter)
   const filteredTeamIds = orderedTeamIds.filter((tId) => {
-    if (!searchFilter.trim()) return true;
     const team = teams.find((t) => t.id === tId);
-    return team?.teamName.toLowerCase().includes(searchFilter.toLowerCase());
+    if (!team) return false;
+    if (searchFilter.trim() && !team.teamName.toLowerCase().includes(searchFilter.toLowerCase())) {
+      return false;
+    }
+    if (selectedGame === "FREE_FIRE") {
+      if (ffGroupFilter === "QUALIFIED") {
+        return !!team.qualified;
+      }
+      if (ffGroupFilter === "A" || ffGroupFilter === "B") {
+        const grp = getFreeFireGroupInfo(team.teamName);
+        return grp.group === ffGroupFilter;
+      }
+    }
+    return true;
   });
 
   return (
@@ -680,6 +747,81 @@ export default function PocPortalPage() {
                     </div>
                   </div>
 
+                  {/* Free Fire Qualifiers Status Banner & Fast Room Filters */}
+                  {selectedGame === "FREE_FIRE" && (
+                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2">
+                        <Award className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span className="text-xs font-bold text-white">
+                          Grand Finals Qualifiers:{" "}
+                          <span className="text-emerald-400 font-mono text-sm font-black">
+                            {teams.filter((t) => t.qualified).length} / 12
+                          </span>{" "}
+                          <span className="text-slate-400 font-normal text-[11px]">
+                            (Top 6 Group A + Top 6 Group B)
+                          </span>
+                        </span>
+                      </div>
+
+                      <div className="inline-flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setFfGroupFilter("ALL")}
+                          className={`px-2.5 py-1 rounded-md transition font-semibold text-xs ${
+                            ffGroupFilter === "ALL"
+                              ? "bg-slate-800 text-white shadow-xs font-bold"
+                              : "text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          All ({teams.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFfGroupFilter("A")}
+                          className={`px-2.5 py-1 rounded-md transition font-semibold text-xs ${
+                            ffGroupFilter === "A"
+                              ? "bg-blue-600 text-white font-bold"
+                              : "text-slate-400 hover:text-blue-300"
+                          }`}
+                        >
+                          Group A (LH18)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFfGroupFilter("B")}
+                          className={`px-2.5 py-1 rounded-md transition font-semibold text-xs ${
+                            ffGroupFilter === "B"
+                              ? "bg-purple-600 text-white font-bold"
+                              : "text-slate-400 hover:text-purple-300"
+                          }`}
+                        >
+                          Group B (LH19)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFfGroupFilter("QUALIFIED")}
+                          className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
+                            ffGroupFilter === "QUALIFIED"
+                              ? "bg-emerald-600 text-white font-bold"
+                              : "text-emerald-400 hover:bg-emerald-950/40"
+                          }`}
+                        >
+                          <span>⭐ Qualifiers (Q)</span>
+                          <span className="px-1.5 py-0.2 rounded bg-emerald-950 text-[10px] font-mono font-bold">
+                            {teams.filter((t) => t.qualified).length}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {qualifiedNotice && (
+                    <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{qualifiedNotice}</span>
+                    </div>
+                  )}
+
                   {/* Toolbar & Filter */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                     <div className="relative w-full sm:w-64">
@@ -803,12 +945,63 @@ export default function PocPortalPage() {
                               {isFirst ? "🥇" : isSecond ? "🥈" : isThird ? "🥉" : `#${rank}`}
                             </span>
 
-                            {/* Team Name & Overall stats */}
+                            {/* Team Name & Overall stats + Group & Q Mark */}
                             <div className="min-w-0 flex-1">
-                              <div className="font-bold text-white text-xs sm:text-sm truncate">
-                                {t.teamName}
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-white text-xs sm:text-sm truncate">
+                                  {t.teamName}
+                                </span>
+                                {selectedGame === "FREE_FIRE" && (() => {
+                                  const grp = getFreeFireGroupInfo(t.teamName);
+                                  return (
+                                    <span
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
+                                        grp.group === "A"
+                                          ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                                          : "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                                      }`}
+                                    >
+                                      {grp.badge}
+                                    </span>
+                                  );
+                                })()}
+                                {selectedGame === "FREE_FIRE" && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleQualified(t.id);
+                                    }}
+                                    disabled={togglingQualifiedId === t.id}
+                                    className={`px-2 py-0.5 rounded-lg border text-[11px] font-black transition flex items-center gap-1.5 ${
+                                      t.qualified
+                                        ? "bg-emerald-500/25 text-emerald-300 border-emerald-400/60 shadow-xs"
+                                        : "bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border-slate-700"
+                                    }`}
+                                    title={
+                                      t.qualified
+                                        ? "Team Qualified for Grand Finals! Click to unmark"
+                                        : "Click to add Q mark (Grand Finals Qualifier)"
+                                    }
+                                  >
+                                    {togglingQualifiedId === t.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin text-emerald-400" />
+                                    ) : (
+                                      <span
+                                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black ${
+                                          t.qualified
+                                            ? "bg-emerald-400 text-slate-950 font-black"
+                                            : "bg-slate-700 text-slate-300"
+                                        }`}
+                                      >
+                                        Q
+                                      </span>
+                                    )}
+                                    <span>{t.qualified ? "QUALIFIED" : "Mark Q"}</span>
+                                  </button>
+                                )}
                               </div>
-                              <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                              <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
                                 <span>Seed #{actualIndex + 1}</span>
                                 <span>•</span>
                                 <span className="font-mono text-slate-500">

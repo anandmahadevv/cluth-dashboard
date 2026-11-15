@@ -46,6 +46,7 @@ export interface FreeFireLeaderboardEntry {
   totalPoints: number;
   lastMatchRank?: number;
   hidden?: boolean;
+  qualified?: boolean;
 }
 
 export interface BgmiLeaderboardEntry {
@@ -96,6 +97,7 @@ export interface LeaderboardEntry {
   lastMatchRank?: number;
   game_id?: GameId;
   hidden?: boolean;
+  qualified?: boolean;
 }
 
 export interface FifaMatchResult {

@@ -27,6 +27,7 @@ export interface TeamScoreEntry {
   rank: number;
   lastMatchRank?: number;
   hidden?: boolean;
+  qualified?: boolean;
 }
 
 export interface MatchSubmission {
@@ -937,3 +938,47 @@ export async function toggleTeamVisibilityAsync(params: {
     message: `Team "${team.teamName}" is now ${statusLabel}.`,
   };
 }
+
+/**
+ * Toggle team qualified for finals status (Q mark)
+ */
+export async function toggleTeamQualifiedAsync(params: {
+  gameId: GameId;
+  teamId: string;
+  qualified?: boolean;
+  pocCode?: string;
+  adminPassword?: string;
+}): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; message?: string; error?: string }> {
+  // Allow authorized POCs (with valid room code) or Super Admin
+  if (params.pocCode) {
+    const check = verifyGameCode(params.pocCode, params.gameId);
+    if (!check.valid) {
+      return { success: false, error: "Unauthorized: Invalid room verification code." };
+    }
+  } else if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
+    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
+  }
+
+  const store = await getStoreAsync();
+  const currentTeams = store.teams[params.gameId] || [];
+
+  const team = currentTeams.find((t) => t.id === params.teamId);
+  if (!team) {
+    return { success: false, error: "Team not found in this game arena." };
+  }
+
+  // Toggle or set qualified
+  team.qualified = params.qualified !== undefined ? params.qualified : !team.qualified;
+
+  store.teams[params.gameId] = sortAndRankTeams(currentTeams);
+  await saveStoreAsync(store);
+
+  const statusLabel = team.qualified ? "marked as QUALIFIED for Grand Finals" : "removed from Qualified status";
+  return {
+    success: true,
+    team,
+    teams: store.teams[params.gameId],
+    message: `Team "${team.teamName}" is now ${statusLabel}.`,
+  };
+}
+

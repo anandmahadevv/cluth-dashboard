@@ -48,7 +48,8 @@ export function LeaderboardTable({
         e.teamName?.toLowerCase().includes("khopdi phodu") ||
         e.teamName?.toLowerCase().includes("brotherhood")
     );
-  const [groupFilter, setGroupFilter] = useState<"ALL" | "A" | "B">("ALL");
+  const [groupFilter, setGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
+  const qualifiedCount = entries.filter((e) => !e.hidden && e.qualified).length;
 
   const hasLiveScores = entries.some(
     (e) => !e.hidden && ((e.matchesPlayed && e.matchesPlayed > 0) || (e.totalPoints && e.totalPoints > 0))
@@ -60,8 +61,12 @@ export function LeaderboardTable({
       const matchesSearch = entry.teamName.toLowerCase().includes(searchQuery.toLowerCase());
       if (!matchesSearch) return false;
       if (isFreeFire && groupFilter !== "ALL") {
-        const grp = getFreeFireGroupInfo(entry.teamName);
-        if (grp.group !== groupFilter) return false;
+        if (groupFilter === "QUALIFIED") {
+          if (!entry.qualified) return false;
+        } else {
+          const grp = getFreeFireGroupInfo(entry.teamName);
+          if (grp.group !== groupFilter) return false;
+        }
       }
       return true;
     })
@@ -157,6 +162,28 @@ export function LeaderboardTable({
                     )}
                   >
                     LH19
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGroupFilter("QUALIFIED")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5",
+                    groupFilter === "QUALIFIED"
+                      ? "bg-emerald-600 text-white shadow-xs font-bold"
+                      : "text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50"
+                  )}
+                >
+                  <span>⭐ Qualifiers (Q)</span>
+                  <span
+                    className={cn(
+                      "text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold leading-none",
+                      groupFilter === "QUALIFIED"
+                        ? "bg-emerald-800 text-emerald-100"
+                        : "bg-emerald-100 text-emerald-800"
+                    )}
+                  >
+                    {qualifiedCount}
                   </span>
                 </button>
               </div>
@@ -285,6 +312,17 @@ export function LeaderboardTable({
                           </span>
                         );
                       })()}
+                      {entry.qualified && (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs shrink-0"
+                          title="Qualified for Grand Finals!"
+                        >
+                          <span className="w-3.5 h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-black leading-none">
+                            Q
+                          </span>
+                          <span>QUALIFIED</span>
+                        </span>
+                      )}
                     </div>
                   </td>
 

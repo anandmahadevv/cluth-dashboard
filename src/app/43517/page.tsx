@@ -56,6 +56,7 @@ interface TeamEntry {
   totalPoints: number;
   rank: number;
   hidden?: boolean;
+  qualified?: boolean;
 }
 
 interface TeamScoreInput {
@@ -493,6 +494,67 @@ export default function SuperAdminPortalPage() {
     } catch (err: any) {
       setRosterError(err.message || "Error updating team visibility.");
       setTimeout(() => setRosterError(""), 4000);
+    } finally {
+      setTogglingVisibilityId(null);
+    }
+  };
+
+  // Toggle Team Qualified (Q mark) for Super Admin
+  const handleToggleQualified = async (teamId: string, gameTarget?: GameId) => {
+    const game = gameTarget || directGame;
+    setTogglingVisibilityId(teamId);
+
+    const currentTeam = (mainTab === "teams" ? rosterTeams : teams).find((t) => t.id === teamId);
+    const targetQualified = currentTeam ? !currentTeam.qualified : true;
+
+    // Instant optimistic update
+    setTeams((prev) =>
+      prev.map((t) => (t.id === teamId ? { ...t, qualified: targetQualified } : t))
+    );
+    setRosterTeams((prev) =>
+      prev.map((t) => (t.id === teamId ? { ...t, qualified: targetQualified } : t))
+    );
+
+    try {
+      const savedPass = typeof window !== "undefined" ? sessionStorage.getItem("clutch_admin_auth") || "" : "";
+      const pass = adminPassword || savedPass || "43517-AM";
+
+      const res = await fetch("/api/poc/teams", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: game,
+          teamId,
+          qualified: targetQualified,
+          action: "TOGGLE_QUALIFIED",
+          adminPassword: pass,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setTeams((prev) =>
+          prev.map((t) => (t.id === teamId ? { ...t, qualified: !targetQualified } : t))
+        );
+        setRosterTeams((prev) =>
+          prev.map((t) => (t.id === teamId ? { ...t, qualified: !targetQualified } : t))
+        );
+        throw new Error(data.error || "Failed to update qualified status.");
+      }
+
+      setRosterSuccess(data.message || (targetQualified ? `Team marked as QUALIFIED!` : `Team qualification removed.`));
+      if (Array.isArray(data.teams)) {
+        if (game === directGame) {
+          setTeams(data.teams);
+        }
+        if (game === rosterGame) {
+          setRosterTeams(data.teams);
+        }
+      }
+      setTimeout(() => setRosterSuccess(""), 3500);
+    } catch (err: any) {
+      setRosterError(err.message || "Error updating qualified status.");
+      setTimeout(() => setRosterError(""), 3500);
     } finally {
       setTogglingVisibilityId(null);
     }
@@ -1862,6 +1924,11 @@ export default function SuperAdminPortalPage() {
                                           </span>
                                         );
                                       })()}
+                                      {t.qualified && (
+                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                          QUALIFIED (Q)
+                                        </span>
+                                      )}
                                       {t.hidden && (
                                         <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
                                           HIDDEN
@@ -1967,6 +2034,36 @@ export default function SuperAdminPortalPage() {
                                       </>
                                     )}
                                   </button>
+
+                                  {/* Free Fire Qualifier Toggle (Q Mark) */}
+                                  {directGame === "FREE_FIRE" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleQualified(t.id, directGame)}
+                                      disabled={togglingVisibilityId === t.id}
+                                      className={`px-2 py-0.5 rounded border transition flex items-center gap-1 text-[10px] font-bold ${
+                                        t.qualified
+                                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30 shadow-xs"
+                                          : "bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border-slate-700"
+                                      }`}
+                                      title={
+                                        t.qualified
+                                          ? "Team is Qualified for Finals! Click to unmark"
+                                          : "Click to mark as Qualified for Grand Finals (Q mark)"
+                                      }
+                                    >
+                                      <span
+                                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black ${
+                                          t.qualified
+                                            ? "bg-emerald-400 text-slate-950 font-black"
+                                            : "bg-slate-700 text-slate-300"
+                                        }`}
+                                      >
+                                        Q
+                                      </span>
+                                      <span>{t.qualified ? "QUALIFIED" : "Mark Q"}</span>
+                                    </button>
+                                  )}
                                 </div>
                               </td>
 
