@@ -110,12 +110,12 @@ export default function BgmiPage() {
         </div>
       </div>
 
-      {/* Podium OR Pre-Match Arena Live Showcase */}
-      {hasMatchesPlayed && first && second && third ? (
+      {/* Podium (Pre-Match Banner Removed) */}
+      {first && (
         <div className="py-2">
           <div className="text-center mb-4">
             <span className="text-xs font-black uppercase tracking-widest text-blue-400 font-display">
-              TOP THREE RANKING
+              CHAMPIONSHIP PODIUM
             </span>
             <h2 className="text-2xl font-black text-white font-display">
               BGMI Leaders
@@ -123,12 +123,6 @@ export default function BgmiPage() {
           </div>
           <Podium first={first} second={second} third={third} />
         </div>
-      ) : (
-        <PreMatchShowcase
-          gameName="BGMI"
-          teamCount={leaderboard?.length || 0}
-          format={gameConfig.format}
-        />
       )}
 
       {/* Leaderboard Table */}

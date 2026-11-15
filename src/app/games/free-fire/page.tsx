@@ -27,20 +27,41 @@ export default function FreeFirePage() {
       )
   );
 
-  const first = activeLeaderboard[0]
-    ? {
-        rank: 1 as const,
-        name: activeLeaderboard[0].teamName,
-        subtext: "Free Fire Tournament Leader",
-        stat1Value: activeLeaderboard[0].killPoints,
-        stat1Label: "kill\npoints",
-        stat2Value: activeLeaderboard[0].totalPoints,
-        stat2Label: "total\npoints",
-      }
-    : undefined;
+  let first, second, third;
 
-  const second = activeLeaderboard[1]
-    ? {
+  if (awards?.winnerTeam && awards.winnerTeam.trim()) {
+    first = {
+      rank: 1 as const,
+      name: awards.winnerTeam,
+      subtext: "Free Fire Champion (Winner Cup)",
+      stat1Value: awards.winnerScore || "53",
+      stat1Label: "final\nscore",
+      stat2Value: "1st",
+      stat2Label: "rank",
+    };
+    if (awards.runnerUpTeam && awards.runnerUpTeam.trim()) {
+      second = {
+        rank: 2 as const,
+        name: awards.runnerUpTeam,
+        subtext: "1st Runner-Up (Runner-Up Cup)",
+        stat1Value: awards.runnerUpScore || "52",
+        stat1Label: "final\nscore",
+        stat2Value: "2nd",
+        stat2Label: "rank",
+      };
+    }
+  } else if (activeLeaderboard[0]) {
+    first = {
+      rank: 1 as const,
+      name: activeLeaderboard[0].teamName,
+      subtext: "Free Fire Tournament Leader",
+      stat1Value: activeLeaderboard[0].killPoints,
+      stat1Label: "kill\npoints",
+      stat2Value: activeLeaderboard[0].totalPoints,
+      stat2Label: "total\npoints",
+    };
+    if (activeLeaderboard[1]) {
+      second = {
         rank: 2 as const,
         name: activeLeaderboard[1].teamName,
         subtext: "1st Runner-Up",
@@ -48,11 +69,10 @@ export default function FreeFirePage() {
         stat1Label: "kill\npoints",
         stat2Value: activeLeaderboard[1].totalPoints,
         stat2Label: "total\npoints",
-      }
-    : undefined;
-
-  const third = activeLeaderboard[2]
-    ? {
+      };
+    }
+    if (activeLeaderboard[2]) {
+      third = {
         rank: 3 as const,
         name: activeLeaderboard[2].teamName,
         subtext: "2nd Runner-Up",
@@ -60,8 +80,9 @@ export default function FreeFirePage() {
         stat1Label: "kill\npoints",
         stat2Value: activeLeaderboard[2].totalPoints,
         stat2Label: "total\npoints",
-      }
-    : undefined;
+      };
+    }
+  }
 
   return (
     <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
@@ -117,25 +138,19 @@ export default function FreeFirePage() {
         </div>
       </div>
 
-      {/* Podium OR Pre-Match Arena Live Showcase */}
-      {hasMatchesPlayed && first && second && third ? (
+      {/* Podium (Pre-Match Banner Removed) */}
+      {first && (
         <div className="py-2">
           <div className="text-center mb-4">
             <span className="text-xs font-black uppercase tracking-widest text-amber-400 font-display">
-              TOP THREE RANKING
+              CHAMPIONSHIP PODIUM
             </span>
             <h2 className="text-2xl font-black text-white font-display">
-              Free Fire Leaders
+              Free Fire Champions
             </h2>
           </div>
           <Podium first={first} second={second} third={third} />
         </div>
-      ) : (
-        <PreMatchShowcase
-          gameName="Free Fire"
-          teamCount={leaderboard?.length || 0}
-          format={GAMES_CONFIG.FREE_FIRE.format}
-        />
       )}
 
       {/* Special Accolades (MVP & Top Fragger) */}

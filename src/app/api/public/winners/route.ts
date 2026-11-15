@@ -58,8 +58,7 @@ export async function GET() {
         totalPoints: list[0].totalPoints,
         killPoints: list[0].killPoints,
         matchesPlayed: list[0].matchesPlayed,
-        runnerUp: list[1]?.teamName || "TBD",
-        thirdPlace: list[2]?.teamName || "TBD",
+        runnerUp: list[1]?.teamName,
         isFinalized: true,
         firstPlace: {
           name: list[0].teamName,
@@ -73,7 +72,7 @@ export async function GET() {
               subtext: "Rank 2",
             }
           : undefined,
-        thirdPlaceData: list[2]
+        thirdPlace: list[2]
           ? {
               name: list[2].teamName,
               pointsOrScore: `${list[2].totalPoints} pts`,

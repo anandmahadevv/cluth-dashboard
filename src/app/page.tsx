@@ -70,91 +70,131 @@ export default function HomePage() {
 
   const currentGameConfig = GAMES_CONFIG[selectedGame];
 
-  if (hasMatchesPlayed) {
-    if (selectedGame === "FREE_FIRE" && ffLeaderboard && ffLeaderboard.length >= 3) {
-    first = {
-      rank: 1 as const,
-      name: ffLeaderboard[0].teamName,
-      subtext: "Free Fire 1st Place",
-      stat1Value: ffLeaderboard[0].killPoints,
-      stat1Label: "kill\npoints",
-      stat2Value: ffLeaderboard[0].totalPoints,
-      stat2Label: "total\npoints",
-    };
-    second = {
-      rank: 2 as const,
-      name: ffLeaderboard[1].teamName,
-      subtext: "1st Runner-Up",
-      stat1Value: ffLeaderboard[1].killPoints,
-      stat1Label: "kill\npoints",
-      stat2Value: ffLeaderboard[1].totalPoints,
-      stat2Label: "total\npoints",
-    };
-    third = {
-      rank: 3 as const,
-      name: ffLeaderboard[2].teamName,
-      subtext: "2nd Runner-Up",
-      stat1Value: ffLeaderboard[2].killPoints,
-      stat1Label: "kill\npoints",
-      stat2Value: ffLeaderboard[2].totalPoints,
-      stat2Label: "total\npoints",
-    };
-  } else if (selectedGame === "BGMI" && bgmiLeaderboard && bgmiLeaderboard.length >= 3) {
-    first = {
-      rank: 1 as const,
-      name: bgmiLeaderboard[0].teamName,
-      subtext: "BGMI 1st Place",
-      stat1Value: bgmiLeaderboard[0].killPoints,
-      stat1Label: "kill\npoints",
-      stat2Value: bgmiLeaderboard[0].totalPoints,
-      stat2Label: "total\npoints",
-    };
-    second = {
-      rank: 2 as const,
-      name: bgmiLeaderboard[1].teamName,
-      subtext: "1st Runner-Up",
-      stat1Value: bgmiLeaderboard[1].killPoints,
-      stat1Label: "kill\npoints",
-      stat2Value: bgmiLeaderboard[1].totalPoints,
-      stat2Label: "total\npoints",
-    };
-    third = {
-      rank: 3 as const,
-      name: bgmiLeaderboard[2].teamName,
-      subtext: "2nd Runner-Up",
-      stat1Value: bgmiLeaderboard[2].killPoints,
-      stat1Label: "kill\npoints",
-      stat2Value: bgmiLeaderboard[2].totalPoints,
-      stat2Label: "total\npoints",
-    };
-  } else if (selectedGame === "VALORANT" && valLeaderboard && valLeaderboard.length >= 3) {
-    first = {
-      rank: 1 as const,
-      name: valLeaderboard[0].teamName,
-      subtext: "Valorant Champion",
-      stat1Value: valLeaderboard[0].matchesPlayed,
-      stat1Label: "matches\nplayed",
-      stat2Value: valLeaderboard[0].totalPoints,
-      stat2Label: "placement\npoints",
-    };
-    second = {
-      rank: 2 as const,
-      name: valLeaderboard[1].teamName,
-      subtext: "1st Runner-Up",
-      stat1Value: valLeaderboard[1].matchesPlayed,
-      stat1Label: "matches\nplayed",
-      stat2Value: valLeaderboard[1].totalPoints,
-      stat2Label: "placement\npoints",
-    };
-    third = {
-      rank: 3 as const,
-      name: valLeaderboard[2].teamName,
-      subtext: "2nd Runner-Up",
-      stat1Value: valLeaderboard[2].matchesPlayed,
-      stat1Label: "matches\nplayed",
-      stat2Value: valLeaderboard[2].totalPoints,
-      stat2Label: "placement\npoints",
-    };
+  if (selectedGame === "FREE_FIRE") {
+    if (awards?.winnerTeam && awards.winnerTeam.trim()) {
+      first = {
+        rank: 1 as const,
+        name: awards.winnerTeam,
+        subtext: "Free Fire Champion (Winner Cup)",
+        stat1Value: awards.winnerScore || "53",
+        stat1Label: "final\nscore",
+        stat2Value: "1st",
+        stat2Label: "rank",
+      };
+      if (awards.runnerUpTeam && awards.runnerUpTeam.trim()) {
+        second = {
+          rank: 2 as const,
+          name: awards.runnerUpTeam,
+          subtext: "1st Runner-Up (Runner-Up Cup)",
+          stat1Value: awards.runnerUpScore || "52",
+          stat1Label: "final\nscore",
+          stat2Value: "2nd",
+          stat2Label: "rank",
+        };
+      }
+    } else if (hasMatchesPlayed && ffLeaderboard && ffLeaderboard.length >= 1) {
+      first = ffLeaderboard[0]
+        ? {
+            rank: 1 as const,
+            name: ffLeaderboard[0].teamName,
+            subtext: "Free Fire 1st Place",
+            stat1Value: ffLeaderboard[0].killPoints,
+            stat1Label: "kill\npoints",
+            stat2Value: ffLeaderboard[0].totalPoints,
+            stat2Label: "total\npoints",
+          }
+        : undefined;
+      second = ffLeaderboard[1]
+        ? {
+            rank: 2 as const,
+            name: ffLeaderboard[1].teamName,
+            subtext: "1st Runner-Up",
+            stat1Value: ffLeaderboard[1].killPoints,
+            stat1Label: "kill\npoints",
+            stat2Value: ffLeaderboard[1].totalPoints,
+            stat2Label: "total\npoints",
+          }
+        : undefined;
+      third = ffLeaderboard[2]
+        ? {
+            rank: 3 as const,
+            name: ffLeaderboard[2].teamName,
+            subtext: "2nd Runner-Up",
+            stat1Value: ffLeaderboard[2].killPoints,
+            stat1Label: "kill\npoints",
+            stat2Value: ffLeaderboard[2].totalPoints,
+            stat2Label: "total\npoints",
+          }
+        : undefined;
+    }
+  } else if (selectedGame === "BGMI" && bgmiLeaderboard && bgmiLeaderboard.length >= 1) {
+    first = bgmiLeaderboard[0]
+      ? {
+          rank: 1 as const,
+          name: bgmiLeaderboard[0].teamName,
+          subtext: "BGMI 1st Place",
+          stat1Value: bgmiLeaderboard[0].killPoints,
+          stat1Label: "kill\npoints",
+          stat2Value: bgmiLeaderboard[0].totalPoints,
+          stat2Label: "total\npoints",
+        }
+      : undefined;
+    second = bgmiLeaderboard[1]
+      ? {
+          rank: 2 as const,
+          name: bgmiLeaderboard[1].teamName,
+          subtext: "1st Runner-Up",
+          stat1Value: bgmiLeaderboard[1].killPoints,
+          stat1Label: "kill\npoints",
+          stat2Value: bgmiLeaderboard[1].totalPoints,
+          stat2Label: "total\npoints",
+        }
+      : undefined;
+    third = bgmiLeaderboard[2]
+      ? {
+          rank: 3 as const,
+          name: bgmiLeaderboard[2].teamName,
+          subtext: "2nd Runner-Up",
+          stat1Value: bgmiLeaderboard[2].killPoints,
+          stat1Label: "kill\npoints",
+          stat2Value: bgmiLeaderboard[2].totalPoints,
+          stat2Label: "total\npoints",
+        }
+      : undefined;
+  } else if (selectedGame === "VALORANT" && hasMatchesPlayed && valLeaderboard && valLeaderboard.length >= 1) {
+    first = valLeaderboard[0]
+      ? {
+          rank: 1 as const,
+          name: valLeaderboard[0].teamName,
+          subtext: "Valorant Champion",
+          stat1Value: valLeaderboard[0].matchesPlayed,
+          stat1Label: "matches\nplayed",
+          stat2Value: valLeaderboard[0].totalPoints,
+          stat2Label: "placement\npoints",
+        }
+      : undefined;
+    second = valLeaderboard[1]
+      ? {
+          rank: 2 as const,
+          name: valLeaderboard[1].teamName,
+          subtext: "1st Runner-Up",
+          stat1Value: valLeaderboard[1].matchesPlayed,
+          stat1Label: "matches\nplayed",
+          stat2Value: valLeaderboard[1].totalPoints,
+          stat2Label: "placement\npoints",
+        }
+      : undefined;
+    third = valLeaderboard[2]
+      ? {
+          rank: 3 as const,
+          name: valLeaderboard[2].teamName,
+          subtext: "2nd Runner-Up",
+          stat1Value: valLeaderboard[2].matchesPlayed,
+          stat1Label: "matches\nplayed",
+          stat2Value: valLeaderboard[2].totalPoints,
+          stat2Label: "placement\npoints",
+        }
+      : undefined;
   } else if (selectedGame === "EFOOTBALL" && efLeaderboard && efLeaderboard.length >= 1) {
     first = efLeaderboard[0]
       ? {
@@ -224,7 +264,6 @@ export default function HomePage() {
         }
       : undefined;
   }
-}
 
   const toggleProjector = async () => {
     try {
@@ -389,7 +428,23 @@ export default function HomePage() {
       </div>
 
       {/* The Iconic Reference 3-Box Podium OR Arena Live Pre-Match Showcase */}
-      {selectedGame === "MATIKS" || selectedGame === "EFOOTBALL" ? (
+      {selectedGame === "VALORANT" ? (
+        hasMatchesPlayed && first ? (
+          <Podium
+            first={first}
+            second={second}
+            third={third}
+            isProjector={isProjectorMode}
+          />
+        ) : (
+          <PreMatchShowcase
+            gameName={currentGameConfig?.name || "Valorant"}
+            teamCount={currentLeaderboard?.length || 0}
+            format={currentGameConfig?.format}
+            isProjector={isProjectorMode}
+          />
+        )
+      ) : (
         first ? (
           <Podium
             first={first}
@@ -398,20 +453,6 @@ export default function HomePage() {
             isProjector={isProjectorMode}
           />
         ) : null
-      ) : hasMatchesPlayed && first ? (
-        <Podium
-          first={first}
-          second={second}
-          third={third}
-          isProjector={isProjectorMode}
-        />
-      ) : (
-        <PreMatchShowcase
-          gameName={currentGameConfig?.name || "Championship"}
-          teamCount={currentLeaderboard?.length || 0}
-          format={currentGameConfig?.format}
-          isProjector={isProjectorMode}
-        />
       )}
 
       {/* Special Accolades (MVP & Top Fragger) */}
