@@ -110,8 +110,8 @@ export default function MatiksPage() {
         </div>
       </div>
 
-      {/* Podium OR Pre-Match Arena Live Showcase */}
-      {hasMatchesPlayed && first && second && third ? (
+      {/* Championship Podium */}
+      {first && (
         <div className="py-2">
           <div className="text-center mb-4">
             <span className="text-xs font-black uppercase tracking-widest text-purple-400 font-display">
@@ -123,12 +123,6 @@ export default function MatiksPage() {
           </div>
           <Podium first={first} second={second} third={third} />
         </div>
-      ) : (
-        <PreMatchShowcase
-          gameName="MATIKS"
-          teamCount={leaderboard?.length || 0}
-          format={gameConfig.format}
-        />
       )}
 
       {/* Standings Table */}

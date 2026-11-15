@@ -111,14 +111,9 @@ export default function EfootballPage() {
         </div>
       </div>
 
-      {hasMatchesPlayed && first && second && third ? (
+      {/* Championship Podium */}
+      {first && (
         <Podium first={first} second={second} third={third} />
-      ) : (
-        <PreMatchShowcase
-          gameName="eFootball"
-          teamCount={leaderboard?.length || 0}
-          format={gameConfig.format}
-        />
       )}
 
       <div className="pt-4">

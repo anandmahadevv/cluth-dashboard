@@ -203,62 +203,74 @@ export default function LeaderboardsPage() {
       stat2Value: valLeaderboard[2].totalPoints,
       stat2Label: "placement\npoints",
     };
-  } else if (selectedGame === "EFOOTBALL" && efLeaderboard && efLeaderboard.length >= 3) {
-    first = {
-      rank: 1 as const,
-      name: efLeaderboard[0].teamName,
-      subtext: "eFootball Champion",
-      stat1Value: efLeaderboard[0].killPoints,
-      stat1Label: "goals\nscored",
-      stat2Value: efLeaderboard[0].totalPoints,
-      stat2Label: "total\npoints",
-    };
-    second = {
-      rank: 2 as const,
-      name: efLeaderboard[1].teamName,
-      subtext: "1st Runner-Up",
-      stat1Value: efLeaderboard[1].killPoints,
-      stat1Label: "goals\nscored",
-      stat2Value: efLeaderboard[1].totalPoints,
-      stat2Label: "total\npoints",
-    };
-    third = {
-      rank: 3 as const,
-      name: efLeaderboard[2].teamName,
-      subtext: "2nd Runner-Up",
-      stat1Value: efLeaderboard[2].killPoints,
-      stat1Label: "goals\nscored",
-      stat2Value: efLeaderboard[2].totalPoints,
-      stat2Label: "total\npoints",
-    };
-  } else if (selectedGame === "MATIKS" && matiksLeaderboard && matiksLeaderboard.length >= 3) {
-    first = {
-      rank: 1 as const,
-      name: matiksLeaderboard[0].teamName,
-      subtext: "MATIKS 1st Place",
-      stat1Value: matiksLeaderboard[0].matchesPlayed,
-      stat1Label: "rounds\nplayed",
-      stat2Value: matiksLeaderboard[0].totalPoints,
-      stat2Label: "matrix\nscore",
-    };
-    second = {
-      rank: 2 as const,
-      name: matiksLeaderboard[1].teamName,
-      subtext: "1st Runner-Up",
-      stat1Value: matiksLeaderboard[1].matchesPlayed,
-      stat1Label: "rounds\nplayed",
-      stat2Value: matiksLeaderboard[1].totalPoints,
-      stat2Label: "matrix\nscore",
-    };
-    third = {
-      rank: 3 as const,
-      name: matiksLeaderboard[2].teamName,
-      subtext: "2nd Runner-Up",
-      stat1Value: matiksLeaderboard[2].matchesPlayed,
-      stat1Label: "rounds\nplayed",
-      stat2Value: matiksLeaderboard[2].totalPoints,
-      stat2Label: "matrix\nscore",
-    };
+  } else if (selectedGame === "EFOOTBALL" && efLeaderboard && efLeaderboard.length >= 1) {
+    first = efLeaderboard[0]
+      ? {
+          rank: 1 as const,
+          name: efLeaderboard[0].teamName,
+          subtext: "eFootball Champion",
+          stat1Value: efLeaderboard[0].killPoints,
+          stat1Label: "goals\nscored",
+          stat2Value: efLeaderboard[0].totalPoints,
+          stat2Label: "total\npoints",
+        }
+      : undefined;
+    second = efLeaderboard[1]
+      ? {
+          rank: 2 as const,
+          name: efLeaderboard[1].teamName,
+          subtext: "1st Runner-Up",
+          stat1Value: efLeaderboard[1].killPoints,
+          stat1Label: "goals\nscored",
+          stat2Value: efLeaderboard[1].totalPoints,
+          stat2Label: "total\npoints",
+        }
+      : undefined;
+    third = efLeaderboard[2]
+      ? {
+          rank: 3 as const,
+          name: efLeaderboard[2].teamName,
+          subtext: "2nd Runner-Up",
+          stat1Value: efLeaderboard[2].killPoints,
+          stat1Label: "goals\nscored",
+          stat2Value: efLeaderboard[2].totalPoints,
+          stat2Label: "total\npoints",
+        }
+      : undefined;
+  } else if (selectedGame === "MATIKS" && matiksLeaderboard && matiksLeaderboard.length >= 1) {
+    first = matiksLeaderboard[0]
+      ? {
+          rank: 1 as const,
+          name: matiksLeaderboard[0].teamName,
+          subtext: "MATIKS 1st Place",
+          stat1Value: matiksLeaderboard[0].matchesPlayed,
+          stat1Label: "rounds\nplayed",
+          stat2Value: matiksLeaderboard[0].totalPoints,
+          stat2Label: "matrix\nscore",
+        }
+      : undefined;
+    second = matiksLeaderboard[1]
+      ? {
+          rank: 2 as const,
+          name: matiksLeaderboard[1].teamName,
+          subtext: "1st Runner-Up",
+          stat1Value: matiksLeaderboard[1].matchesPlayed,
+          stat1Label: "rounds\nplayed",
+          stat2Value: matiksLeaderboard[1].totalPoints,
+          stat2Label: "matrix\nscore",
+        }
+      : undefined;
+    third = matiksLeaderboard[2]
+      ? {
+          rank: 3 as const,
+          name: matiksLeaderboard[2].teamName,
+          subtext: "2nd Runner-Up",
+          stat1Value: matiksLeaderboard[2].matchesPlayed,
+          stat1Label: "rounds\nplayed",
+          stat2Value: matiksLeaderboard[2].totalPoints,
+          stat2Label: "matrix\nscore",
+        }
+      : undefined;
   }
 }
 
@@ -348,7 +360,11 @@ export default function LeaderboardsPage() {
       </div>
 
       {/* Podium OR Pre-Match Arena Live Showcase */}
-      {hasMatchesPlayed && first ? (
+      {selectedGame === "MATIKS" || selectedGame === "EFOOTBALL" ? (
+        first ? (
+          <Podium first={first} second={second} third={third} />
+        ) : null
+      ) : hasMatchesPlayed && first ? (
         <Podium first={first} second={second} third={third} />
       ) : (
         <PreMatchShowcase
