@@ -62,6 +62,19 @@ export function PreMatchShowcase({
 
         {/* Feature Badges */}
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-6 pt-5 border-t border-slate-800 text-xs">
+          {gameName?.toLowerCase().includes("free fire") && (
+            <>
+              <div className="px-3 py-1.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 font-bold flex items-center gap-1.5 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-blue-400" />
+                <span>Group A: Room LH18 (9 Teams)</span>
+              </div>
+              <div className="px-3 py-1.5 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold flex items-center gap-1.5 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-purple-400" />
+                <span>Group B: Room LH19 (8 Teams)</span>
+              </div>
+            </>
+          )}
+
           {teamCount > 0 && (
             <div className="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-200 font-semibold flex items-center gap-1.5 shadow-xs">
               <Trophy className="w-3.5 h-3.5 text-amber-400" />

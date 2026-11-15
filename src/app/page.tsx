@@ -395,6 +395,7 @@ export default function HomePage() {
         {selectedGame === "FREE_FIRE" && (
           <LeaderboardTable
             entries={ffLeaderboard || []}
+            gameName="Free Fire"
             isProjector={isProjectorMode}
           />
         )}
@@ -402,6 +403,7 @@ export default function HomePage() {
         {selectedGame === "BGMI" && (
           <LeaderboardTable
             entries={bgmiLeaderboard || []}
+            gameName="BGMI"
             isProjector={isProjectorMode}
           />
         )}

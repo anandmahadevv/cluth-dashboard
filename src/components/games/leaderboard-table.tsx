@@ -39,7 +39,15 @@ export function LeaderboardTable({
   const [sortAsc, setSortAsc] = useState(false);
 
   const isValorant = gameName?.toLowerCase().includes("valorant");
-  const isFreeFire = gameName?.toLowerCase().includes("free fire");
+  const isFreeFire =
+    Boolean(gameName?.toLowerCase().includes("free fire")) ||
+    entries.some(
+      (e) =>
+        e.gameId === "FREE_FIRE" ||
+        e.id?.toLowerCase().includes("free_fire") ||
+        e.teamName?.toLowerCase().includes("khopdi phodu") ||
+        e.teamName?.toLowerCase().includes("brotherhood")
+    );
   const [groupFilter, setGroupFilter] = useState<"ALL" | "A" | "B">("ALL");
 
   const hasLiveScores = entries.some(
