@@ -26,6 +26,7 @@ import {
   X,
   FileImage,
   Award,
+  RefreshCw,
 } from "lucide-react";
 import { GameId } from "@/types";
 import { PLACEMENT_POINTS, getFreeFireGroupInfo } from "@/lib/tournament-constants";
@@ -76,6 +77,26 @@ export default function PocPortalPage() {
   const [togglingQualifiedId, setTogglingQualifiedId] = useState<string | null>(null);
   const [qualifiedNotice, setQualifiedNotice] = useState<string>("");
   const [ffGroupFilter, setFfGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Live refresh teams from server
+  const refreshTeams = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await fetch(
+        `/api/poc/teams?gameId=${selectedGame}&includeHidden=true&t=${Date.now()}`,
+        { cache: "no-store", headers: { "Cache-Control": "no-cache" } }
+      );
+      const data = await res.json();
+      if (res.ok && data.success && Array.isArray(data.teams)) {
+        setTeams(data.teams);
+      }
+    } catch (err) {
+      console.error("Failed to refresh teams:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Drag-and-drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -844,6 +865,16 @@ export default function PocPortalPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={refreshTeams}
+                        disabled={isRefreshing}
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-semibold flex items-center gap-1.5 transition"
+                        title="Sync latest roster and qualifier status from server"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${isRefreshing ? "animate-spin text-blue-400" : ""}`} />
+                        <span>{isRefreshing ? "Refreshing..." : "Refresh Roster"}</span>
+                      </button>
                       <button
                         type="button"
                         onClick={handleResetOrder}

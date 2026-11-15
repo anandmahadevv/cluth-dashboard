@@ -19,17 +19,21 @@ export async function POST(req: NextRequest) {
     }
 
     const isSuperAdmin = !!check.isSuperAdmin;
-    let currentTeams = getGameLeaderboard(check.gameId, isSuperAdmin);
-    if (!currentTeams || currentTeams.length === 0) {
-      currentTeams = await getGameLeaderboardAsync(check.gameId, isSuperAdmin);
-    }
+    const currentTeams = await getGameLeaderboardAsync(check.gameId, true);
 
-    return NextResponse.json({
-      success: true,
-      gameId: check.gameId,
-      isSuperAdmin,
-      teams: currentTeams,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        gameId: check.gameId,
+        isSuperAdmin,
+        teams: currentTeams,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message || "Authentication failed" }, { status: 500 });
   }

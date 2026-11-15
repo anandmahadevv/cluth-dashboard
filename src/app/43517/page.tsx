@@ -149,7 +149,8 @@ export default function SuperAdminPortalPage() {
   const [swapTeamId, setSwapTeamId] = useState<string | null>(null);
   const [swapNotice, setSwapNotice] = useState<string>("");
   const [togglingVisibilityId, setTogglingVisibilityId] = useState<string | null>(null);
-  const [directGroupFilter, setDirectGroupFilter] = useState<"ALL" | "A" | "B">("ALL");
+  const [directGroupFilter, setDirectGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
+  const [rosterGroupFilter, setRosterGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
 
   // Reset State
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -290,7 +291,10 @@ export default function SuperAdminPortalPage() {
     setIsLoadingRoster(true);
     setRosterError("");
     try {
-      const res = await fetch(`/api/poc/teams?gameId=${gameId}`);
+      const res = await fetch(`/api/poc/teams?gameId=${gameId}&includeHidden=true&t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       const data = await res.json();
       if (res.ok && data.success) {
         setRosterTeams(data.teams);
@@ -1503,7 +1507,23 @@ export default function SuperAdminPortalPage() {
                                       #{t.placement}
                                     </td>
                                     <td className="py-2 px-3 font-semibold text-white">
-                                      {t.teamName}
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span>{t.teamName}</span>
+                                        {sub.gameId === "FREE_FIRE" && (() => {
+                                          const grp = getFreeFireGroupInfo(t.teamName);
+                                          return (
+                                            <span
+                                              className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase border ${
+                                                grp.group === "A"
+                                                  ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                                                  : "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                                              }`}
+                                            >
+                                              {grp.badge}
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
                                     </td>
                                     <td className="py-2 px-2 text-center text-slate-300">
                                       {t.placementPoints}
@@ -1733,55 +1753,84 @@ export default function SuperAdminPortalPage() {
                     </h3>
 
                     {directGame === "FREE_FIRE" && (
-                      <div className="inline-flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setDirectGroupFilter("ALL")}
-                          className={`px-2.5 py-1 rounded-md transition font-semibold text-xs ${
-                            directGroupFilter === "ALL"
-                              ? "bg-slate-800 text-white shadow-xs font-bold"
-                              : "text-slate-400 hover:text-white"
-                          }`}
-                        >
-                          All (17)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDirectGroupFilter("A")}
-                          className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
-                            directGroupFilter === "A"
-                              ? "bg-blue-600 text-white shadow-xs font-bold"
-                              : "text-slate-400 hover:text-blue-300"
-                          }`}
-                        >
-                          <span>Group A</span>
-                          <span
-                            className={`text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none ${
-                              directGroupFilter === "A" ? "bg-blue-800 text-blue-100" : "bg-blue-950 text-blue-300 border border-blue-800"
+                      <>
+                        <div className="inline-flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setDirectGroupFilter("ALL")}
+                            className={`px-2.5 py-1 rounded-md transition font-semibold text-xs ${
+                              directGroupFilter === "ALL"
+                                ? "bg-slate-800 text-white shadow-xs font-bold"
+                                : "text-slate-400 hover:text-white"
                             }`}
                           >
-                            LH18 (9)
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDirectGroupFilter("B")}
-                          className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
-                            directGroupFilter === "B"
-                              ? "bg-purple-600 text-white shadow-xs font-bold"
-                              : "text-slate-400 hover:text-purple-300"
-                          }`}
-                        >
-                          <span>Group B</span>
-                          <span
-                            className={`text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none ${
-                              directGroupFilter === "B" ? "bg-purple-800 text-purple-100" : "bg-purple-950 text-purple-300 border border-purple-800"
+                            All ({teams.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDirectGroupFilter("A")}
+                            className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
+                              directGroupFilter === "A"
+                                ? "bg-blue-600 text-white shadow-xs font-bold"
+                                : "text-slate-400 hover:text-blue-300"
                             }`}
                           >
-                            LH19 (8)
+                            <span>Group A</span>
+                            <span
+                              className={`text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none ${
+                                directGroupFilter === "A" ? "bg-blue-800 text-blue-100" : "bg-blue-950 text-blue-300 border border-blue-800"
+                              }`}
+                            >
+                              LH18
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDirectGroupFilter("B")}
+                            className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
+                              directGroupFilter === "B"
+                                ? "bg-purple-600 text-white shadow-xs font-bold"
+                                : "text-slate-400 hover:text-purple-300"
+                            }`}
+                          >
+                            <span>Group B</span>
+                            <span
+                              className={`text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none ${
+                                directGroupFilter === "B" ? "bg-purple-800 text-purple-100" : "bg-purple-950 text-purple-300 border border-purple-800"
+                              }`}
+                            >
+                              LH19
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDirectGroupFilter("QUALIFIED")}
+                            className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
+                              directGroupFilter === "QUALIFIED"
+                                ? "bg-emerald-600 text-white font-bold"
+                                : "text-emerald-400 hover:bg-emerald-950/40"
+                            }`}
+                          >
+                            <span>⭐ Qualifiers (Q)</span>
+                            <span className="px-1.5 py-0.2 rounded bg-emerald-950 text-[10px] font-mono font-bold">
+                              {teams.filter((t) => t.qualified).length}
+                            </span>
+                          </button>
+                        </div>
+
+                        <div className="px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-1.5 text-xs">
+                          <Award className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span className="font-bold text-white text-[11px]">
+                            Qualifiers:{" "}
+                            <span className="text-emerald-400 font-mono font-black">
+                              {teams.filter((t) => t.qualified).length} / 12
+                            </span>{" "}
+                            <span className="text-slate-400 font-normal">
+                              (Top 6 Group A + Top 6 Group B)
+                            </span>
                           </span>
-                        </button>
-                      </div>
+                        </div>
+                      </>
                     )}
                   </div>
 
@@ -1818,8 +1867,12 @@ export default function SuperAdminPortalPage() {
                             if (directGame === "FREE_FIRE" && directGroupFilter !== "ALL") {
                               const t = teams.find((item) => item.id === teamId);
                               if (t) {
-                                const grp = getFreeFireGroupInfo(t.teamName);
-                                if (grp.group !== directGroupFilter) return false;
+                                if (directGroupFilter === "QUALIFIED") {
+                                  if (!t.qualified) return false;
+                                } else {
+                                  const grp = getFreeFireGroupInfo(t.teamName);
+                                  if (grp.group !== directGroupFilter) return false;
+                                }
                               }
                             }
                             return true;
@@ -2346,6 +2399,80 @@ export default function SuperAdminPortalPage() {
                 </span>
               </div>
 
+              {/* Free Fire Group & Qualifiers Banner in Roster Manager */}
+              {rosterGame === "FREE_FIRE" && (
+                <div className="p-3 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="text-xs font-bold text-white">
+                      Grand Finals Qualifiers:{" "}
+                      <span className="text-emerald-400 font-mono text-sm font-black">
+                        {rosterTeams.filter((t) => t.qualified).length} / 12
+                      </span>{" "}
+                      <span className="text-slate-400 font-normal text-[11px]">
+                        (Top 6 Group A + Top 6 Group B)
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className="inline-flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setRosterGroupFilter("ALL")}
+                      className={`px-2.5 py-1 rounded-md transition font-semibold text-xs ${
+                        rosterGroupFilter === "ALL"
+                          ? "bg-slate-800 text-white shadow-xs font-bold"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      All ({rosterTeams.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRosterGroupFilter("A")}
+                      className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
+                        rosterGroupFilter === "A"
+                          ? "bg-blue-600 text-white shadow-xs font-bold"
+                          : "text-slate-400 hover:text-blue-300"
+                      }`}
+                    >
+                      <span>Group A</span>
+                      <span className="text-[10px] px-1 py-0.5 rounded font-mono font-bold bg-blue-950 text-blue-300 border border-blue-800">
+                        LH18
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRosterGroupFilter("B")}
+                      className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
+                        rosterGroupFilter === "B"
+                          ? "bg-purple-600 text-white shadow-xs font-bold"
+                          : "text-slate-400 hover:text-purple-300"
+                      }`}
+                    >
+                      <span>Group B</span>
+                      <span className="text-[10px] px-1 py-0.5 rounded font-mono font-bold bg-purple-950 text-purple-300 border border-purple-800">
+                        LH19
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRosterGroupFilter("QUALIFIED")}
+                      className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
+                        rosterGroupFilter === "QUALIFIED"
+                          ? "bg-emerald-600 text-white font-bold"
+                          : "text-emerald-400 hover:bg-emerald-950/40"
+                      }`}
+                    >
+                      <span>⭐ Qualifiers (Q)</span>
+                      <span className="px-1.5 py-0.2 rounded bg-emerald-950 text-[10px] font-mono font-bold">
+                        {rosterTeams.filter((t) => t.qualified).length}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {isLoadingRoster ? (
                 <div className="p-12 text-center space-y-3">
                   <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto" />
@@ -2370,7 +2497,19 @@ export default function SuperAdminPortalPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
-                      {rosterTeams.map((t, idx) => {
+                      {rosterTeams
+                        .filter((t) => {
+                          if (rosterGame === "FREE_FIRE" && rosterGroupFilter !== "ALL") {
+                            if (rosterGroupFilter === "QUALIFIED") {
+                              if (!t.qualified) return false;
+                            } else {
+                              const grp = getFreeFireGroupInfo(t.teamName);
+                              if (grp.group !== rosterGroupFilter) return false;
+                            }
+                          }
+                          return true;
+                        })
+                        .map((t, idx) => {
                         const isEditing = editingTeamId === t.id;
                         return (
                           <tr key={t.id} className="hover:bg-slate-800/40 transition">
@@ -2431,6 +2570,11 @@ export default function SuperAdminPortalPage() {
                                       </span>
                                     );
                                   })()}
+                                  {t.qualified && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                      ⭐ QUALIFIED (Q)
+                                    </span>
+                                  )}
                                   {t.hidden && (
                                     <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
                                       HIDDEN FROM PUBLIC
@@ -2454,6 +2598,36 @@ export default function SuperAdminPortalPage() {
                             <td className="py-3 px-4 text-right">
                               {!isEditing && (
                                 <div className="flex items-center justify-end gap-1.5">
+                                  {/* Free Fire Qualifier Toggle (Q Mark) */}
+                                  {rosterGame === "FREE_FIRE" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleQualified(t.id, rosterGame)}
+                                      disabled={togglingVisibilityId === t.id}
+                                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition ${
+                                        t.qualified
+                                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30 shadow-xs"
+                                          : "bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border-slate-700"
+                                      }`}
+                                      title={
+                                        t.qualified
+                                          ? "Team is Qualified for Finals! Click to unmark"
+                                          : "Click to mark as Qualified for Grand Finals (Q mark)"
+                                      }
+                                    >
+                                      <span
+                                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black ${
+                                          t.qualified
+                                            ? "bg-emerald-400 text-slate-950 font-black"
+                                            : "bg-slate-700 text-slate-300"
+                                        }`}
+                                      >
+                                        Q
+                                      </span>
+                                      <span>{t.qualified ? "QUALIFIED" : "Mark Q"}</span>
+                                    </button>
+                                  )}
+
                                   {/* Toggle Hide / Unhide Button */}
                                   <button
                                     onClick={() => handleToggleVisibility(t.id, rosterGame)}

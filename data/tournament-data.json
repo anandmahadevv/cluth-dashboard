@@ -164,6 +164,16 @@
         "totalPoints": 0,
         "matchesPlayed": 0,
         "placementPoints": 0
+      },
+      {
+        "id": "matiks-mwhcdfgo-6j4",
+        "rank": 13,
+        "gameId": "MATIKS",
+        "teamName": "Nishanth Shetty",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       }
     ],
     "VALORANT": [
@@ -393,6 +403,7 @@
         "gameId": "FREE_FIRE",
         "hidden": false,
         "teamName": "Khopdi Phodu gng",
+        "qualified": false,
         "killPoints": 0,
         "totalPoints": 0,
         "matchesPlayed": 0,
@@ -588,5 +599,5 @@
   },
   "matches": [],
   "version": 2,
-  "lastUpdated": "2026-11-15T04:18:52.709Z"
+  "lastUpdated": "2026-11-15T04:42:00.008Z"
 }
