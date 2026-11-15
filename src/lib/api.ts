@@ -151,6 +151,10 @@ export async function getAwards(gameId: GameId = "FREE_FIRE"): Promise<PublicApi
   try {
     const res = await fetch(`/api/public/awards?gameId=${gameId}&t=${Date.now()}`, {
       cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+      },
     });
     if (res.ok) {
       const json = await res.json();

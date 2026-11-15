@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { usePolling } from "./use-polling";
 import {
   getTournamentStatus,
@@ -20,11 +21,13 @@ export function usePublicGames() {
 }
 
 export function useGameLeaderboard(gameId: GameId) {
-  return usePolling(() => getLeaderboard(gameId));
+  const fetcher = useCallback(() => getLeaderboard(gameId), [gameId]);
+  return usePolling(fetcher);
 }
 
 export function useGameMatches(gameId?: GameId) {
-  return usePolling(() => getMatches(gameId));
+  const fetcher = useCallback(() => getMatches(gameId), [gameId]);
+  return usePolling(fetcher);
 }
 
 export function useTournamentWinners() {
@@ -32,5 +35,6 @@ export function useTournamentWinners() {
 }
 
 export function useGameAwards(gameId: GameId = "FREE_FIRE") {
-  return usePolling(() => getAwards(gameId));
+  const fetcher = useCallback(() => getAwards(gameId), [gameId]);
+  return usePolling(fetcher);
 }

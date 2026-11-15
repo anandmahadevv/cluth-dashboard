@@ -128,7 +128,6 @@ export function getStore(): TournamentStoreData {
     if (fs.existsSync(SEED_FILE_PATH)) {
       const raw = fs.readFileSync(SEED_FILE_PATH, "utf-8");
       inMemoryStore = JSON.parse(raw);
-      saveStore(inMemoryStore!);
       return inMemoryStore!;
     }
   } catch (err) {
@@ -137,7 +136,6 @@ export function getStore(): TournamentStoreData {
 
   const initial = createInitialStoreData();
   inMemoryStore = initial;
-  saveStore(initial);
   return initial;
 }
 
@@ -145,24 +143,29 @@ export function getStore(): TournamentStoreData {
  * Load store data asynchronously (from Supabase if configured, falling back to disk/seed)
  * Optimized with 2s cache and promise deduplication to prevent redundant network round-trips
  */
-export async function getStoreAsync(): Promise<TournamentStoreData> {
+export async function getStoreAsync(forceRefresh = false): Promise<TournamentStoreData> {
   if (isSupabaseConfigured()) {
     const now = Date.now();
-    // 1. Fast path: return in-memory cache if fresh
-    if (inMemoryStore && inMemoryStore.teams && (now - lastSupabaseFetchTime < SUPABASE_CACHE_TTL_MS)) {
+    // 1. Fast path: return in-memory cache if fresh, has teams, and not forced
+    if (
+      !forceRefresh &&
+      inMemoryStore &&
+      inMemoryStore.teams &&
+      now - lastSupabaseFetchTime < SUPABASE_CACHE_TTL_MS
+    ) {
       return inMemoryStore;
     }
 
     // 2. Promise deduplication: join in-flight request if one exists
-    if (pendingSupabaseFetch) {
-      try {
-        const remote = await pendingSupabaseFetch;
-        if (remote && remote.teams) return remote;
-      } catch {}
-    } else {
+    if (!pendingSupabaseFetch) {
       pendingSupabaseFetch = (async () => {
         try {
-          const remote = await fetchStoreFromSupabase();
+          let remote = await fetchStoreFromSupabase();
+          // Single retry on transient network blip
+          if (!remote) {
+            await new Promise((r) => setTimeout(r, 100));
+            remote = await fetchStoreFromSupabase();
+          }
           if (remote && remote.teams) {
             inMemoryStore = remote;
             lastSupabaseFetchTime = Date.now();
@@ -178,13 +181,18 @@ export async function getStoreAsync(): Promise<TournamentStoreData> {
           pendingSupabaseFetch = null;
         }
       })();
+    }
 
-      try {
-        const remote = await pendingSupabaseFetch;
-        if (remote && remote.teams) return remote;
-      } catch (err) {
-        console.warn("Supabase fetch fallback to disk:", err);
-      }
+    try {
+      const remote = await pendingSupabaseFetch;
+      if (remote && remote.teams) return remote;
+    } catch (err) {
+      console.warn("Supabase fetch fallback to disk:", err);
+    }
+
+    // If inMemoryStore is already populated, NEVER discard it for an empty disk fallback
+    if (inMemoryStore && inMemoryStore.teams) {
+      return inMemoryStore;
     }
   }
 
@@ -987,7 +995,20 @@ export async function toggleTeamQualifiedAsync(params: {
  * Retrieve individual accolades & special awards for a game (MVP, Top Fragger)
  */
 export async function getAwardsAsync(gameId: GameId): Promise<IndividualAwards> {
-  const store = await getStoreAsync();
+  let store = await getStoreAsync();
+  const currentAward = store.awards?.[gameId];
+  const hasContent = Boolean(
+    currentAward?.winnerTeam ||
+    currentAward?.runnerUpTeam ||
+    currentAward?.mvp?.playerName ||
+    currentAward?.topFragger?.playerName
+  );
+
+  // If this instance didn't find awards in memory, force a fresh Supabase fetch
+  if (!hasContent && isSupabaseConfigured()) {
+    store = await getStoreAsync(true);
+  }
+
   if (!store.awards) {
     store.awards = {};
   }
@@ -1014,7 +1035,7 @@ export async function saveAwardsAsync(params: {
     return { success: false, error: "Unauthorized: Passkey or verification code required." };
   }
 
-  const store = await getStoreAsync();
+  const store = await getStoreAsync(true);
   if (!store.awards) {
     store.awards = {};
   }

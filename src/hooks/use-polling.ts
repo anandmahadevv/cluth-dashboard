@@ -26,6 +26,7 @@ export function usePolling<T>(
 
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
+  const initialFetchDone = useRef(false);
 
   const executeFetch = useCallback(async (isManual = false) => {
     if (isManual) {
@@ -34,7 +35,39 @@ export function usePolling<T>(
     try {
       const response = await fetcherRef.current();
       if (response.success && response.data !== undefined) {
-        setData(response.data);
+        setData((prev) => {
+          // Anti-flicker guard: if previous data had real content, do not overwrite with empty object/array on background poll
+          if (!isManual && prev !== undefined && response.data !== undefined) {
+            const hasPrev = Array.isArray(prev)
+              ? prev.length > 0
+              : typeof prev === "object" && prev !== null
+              ? Object.values(prev).some(
+                  (v) =>
+                    v !== undefined &&
+                    v !== null &&
+                    v !== "" &&
+                    (typeof v !== "object" || Object.keys(v).length > 0)
+                )
+              : Boolean(prev);
+
+            const hasNew = Array.isArray(response.data)
+              ? response.data.length > 0
+              : typeof response.data === "object" && response.data !== null
+              ? Object.values(response.data).some(
+                  (v) =>
+                    v !== undefined &&
+                    v !== null &&
+                    v !== "" &&
+                    (typeof v !== "object" || Object.keys(v).length > 0)
+                )
+              : Boolean(response.data);
+
+            if (hasPrev && !hasNew) {
+              return prev;
+            }
+          }
+          return response.data;
+        });
         setMeta(response.meta);
         setError(null);
         setLastUpdated(new Date());
@@ -71,9 +104,12 @@ export function usePolling<T>(
   useEffect(() => {
     if (!enabled) return;
 
-    // Initial fetch if no initial data
-    if (!data) {
-      executeFetch(false);
+    // Initial fetch if needed
+    if (!initialFetchDone.current) {
+      initialFetchDone.current = true;
+      if (!initialData) {
+        executeFetch(false);
+      }
     }
 
     const timer = setInterval(() => {
@@ -83,7 +119,7 @@ export function usePolling<T>(
     }, interval);
 
     return () => clearInterval(timer);
-  }, [enabled, interval, executeFetch, data]);
+  }, [enabled, interval, executeFetch, initialData]);
 
   const manualRefresh = useCallback(() => {
     return executeFetch(true);
