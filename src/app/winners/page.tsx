@@ -1,13 +1,15 @@
 "use client";
 
-import { useTournamentWinners } from "@/hooks/use-tournament-data";
+import { useTournamentWinners, useGameAwards } from "@/hooks/use-tournament-data";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { Podium } from "@/components/leaderboards/podium";
 import { ShareModal } from "@/components/shared/share-modal";
+import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 
 export default function WinnersPage() {
   const { data: winners, lastUpdated, isRefreshing, refresh, isTabActive } =
     useTournamentWinners();
+  const { data: ffAwards } = useGameAwards("FREE_FIRE");
 
   return (
     <div className="min-h-screen px-4 py-8 sm:px-6 max-w-5xl mx-auto space-y-10 bg-white text-slate-900">
@@ -83,6 +85,13 @@ export default function WinnersPage() {
                 </span>
               </div>
               <Podium first={first} second={second} third={third} />
+
+              {/* Special Awards (MVP & Top Fragger) for Free Fire */}
+              {gameWinner.gameId === "FREE_FIRE" && (
+                <div className="pt-2">
+                  <SpecialAwardsCard awards={ffAwards} />
+                </div>
+              )}
             </div>
           );
         })}

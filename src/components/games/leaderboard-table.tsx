@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, ArrowUpDown } from "lucide-react";
+import { Search, ArrowUpDown, Trophy, Award, Crown, Sparkles } from "lucide-react";
 import {
   FreeFireLeaderboardEntry,
   BgmiLeaderboardEntry,
@@ -49,6 +49,7 @@ export function LeaderboardTable({
         e.teamName?.toLowerCase().includes("brotherhood")
     );
   const [groupFilter, setGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
+  const [ffStage, setFfStage] = useState<"FINALS" | "QUALIFIERS">("FINALS");
   const qualifiedCount = entries.filter((e) => !e.hidden && e.qualified).length;
 
   const hasLiveScores = entries.some(
@@ -60,12 +61,16 @@ export function LeaderboardTable({
       if (entry.hidden) return false;
       const matchesSearch = entry.teamName.toLowerCase().includes(searchQuery.toLowerCase());
       if (!matchesSearch) return false;
-      if (isFreeFire && groupFilter !== "ALL") {
-        if (groupFilter === "QUALIFIED") {
+      if (isFreeFire) {
+        if (ffStage === "FINALS") {
           if (!entry.qualified) return false;
-        } else {
-          const grp = getFreeFireGroupInfo(entry.teamName);
-          if (grp.group !== groupFilter) return false;
+        } else if (groupFilter !== "ALL") {
+          if (groupFilter === "QUALIFIED") {
+            if (!entry.qualified) return false;
+          } else {
+            const grp = getFreeFireGroupInfo(entry.teamName);
+            if (grp.group !== groupFilter) return false;
+          }
         }
       }
       return true;
@@ -109,83 +114,99 @@ export function LeaderboardTable({
               />
             </div>
 
-            {/* Free Fire Group A & B Fast Switcher */}
+            {/* Free Fire Dual-Stage Switcher (Grand Finals vs Qualifiers) */}
             {isFreeFire && (
-              <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setGroupFilter("ALL")}
-                  className={cn(
-                    "px-2.5 py-1 rounded-md transition font-semibold text-xs",
-                    groupFilter === "ALL"
-                      ? "bg-white text-slate-900 shadow-xs font-bold"
-                      : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  All (17)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGroupFilter("A")}
-                  className={cn(
-                    "px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5",
-                    groupFilter === "A"
-                      ? "bg-blue-600 text-white shadow-xs font-bold"
-                      : "text-slate-600 hover:text-blue-700 hover:bg-slate-200/60"
-                  )}
-                >
-                  <span>Group A</span>
-                  <span
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-0.5 text-xs shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFfStage("FINALS");
+                      setGroupFilter("QUALIFIED");
+                    }}
                     className={cn(
-                      "text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none",
-                      groupFilter === "A" ? "bg-blue-800 text-blue-100" : "bg-blue-100 text-blue-700"
+                      "px-3 py-1 rounded-md text-xs font-black transition flex items-center gap-1.5",
+                      ffStage === "FINALS"
+                        ? "bg-amber-500 text-slate-950 shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
                     )}
                   >
-                    LH18
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGroupFilter("B")}
-                  className={cn(
-                    "px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5",
-                    groupFilter === "B"
-                      ? "bg-purple-600 text-white shadow-xs font-bold"
-                      : "text-slate-600 hover:text-purple-700 hover:bg-slate-200/60"
-                  )}
-                >
-                  <span>Group B</span>
-                  <span
+                    <Trophy className="w-3.5 h-3.5" />
+                    <span>Grand Finals ({qualifiedCount})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFfStage("QUALIFIERS");
+                      setGroupFilter("ALL");
+                    }}
                     className={cn(
-                      "text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none",
-                      groupFilter === "B" ? "bg-purple-800 text-purple-100" : "bg-purple-100 text-purple-700"
+                      "px-3 py-1 rounded-md text-xs font-bold transition flex items-center gap-1.5",
+                      ffStage === "QUALIFIERS"
+                        ? "bg-slate-900 text-white shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
                     )}
                   >
-                    LH19
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGroupFilter("QUALIFIED")}
-                  className={cn(
-                    "px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5",
-                    groupFilter === "QUALIFIED"
-                      ? "bg-emerald-600 text-white shadow-xs font-bold"
-                      : "text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50"
-                  )}
-                >
-                  <span>⭐ Qualifiers (Q)</span>
-                  <span
-                    className={cn(
-                      "text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold leading-none",
-                      groupFilter === "QUALIFIED"
-                        ? "bg-emerald-800 text-emerald-100"
-                        : "bg-emerald-100 text-emerald-800"
-                    )}
-                  >
-                    {qualifiedCount}
-                  </span>
-                </button>
+                    <span>Round 1: Qualifiers (17)</span>
+                  </button>
+                </div>
+
+                {ffStage === "QUALIFIERS" && (
+                  <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setGroupFilter("ALL")}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md transition font-semibold text-xs",
+                        groupFilter === "ALL"
+                          ? "bg-white text-slate-900 shadow-xs font-bold"
+                          : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      All (17)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGroupFilter("A")}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5",
+                        groupFilter === "A"
+                          ? "bg-blue-600 text-white shadow-xs font-bold"
+                          : "text-slate-600 hover:text-blue-700 hover:bg-slate-200/60"
+                      )}
+                    >
+                      <span>Group A</span>
+                      <span
+                        className={cn(
+                          "text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none",
+                          groupFilter === "A" ? "bg-blue-800 text-blue-100" : "bg-blue-100 text-blue-700"
+                        )}
+                      >
+                        LH18
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGroupFilter("B")}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5",
+                        groupFilter === "B"
+                          ? "bg-purple-600 text-white shadow-xs font-bold"
+                          : "text-slate-600 hover:text-purple-700 hover:bg-slate-200/60"
+                      )}
+                    >
+                      <span>Group B</span>
+                      <span
+                        className={cn(
+                          "text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none",
+                          groupFilter === "B" ? "bg-purple-800 text-purple-100" : "bg-purple-100 text-purple-700"
+                        )}
+                      >
+                        LH19
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -193,6 +214,34 @@ export function LeaderboardTable({
           <span className="text-xs font-semibold text-slate-400 self-end sm:self-center">
             {filteredEntries.length} Teams
           </span>
+        </div>
+      )}
+
+      {/* Grand Finals Stage Header Banner */}
+      {isFreeFire && ffStage === "FINALS" && !isProjector && (
+        <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-300 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-xs">
+              <Trophy className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-black text-slate-900 text-xs sm:text-sm font-display uppercase tracking-wide">
+                ROUND 2: GRAND FINALS ARENA
+              </div>
+              <div className="text-[11px] text-slate-600 font-medium">
+                {qualifiedCount} Qualified Squads Battling for the Official CLUTCH Championship
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px] font-bold">
+            <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs flex items-center gap-1 font-black">
+              🏆 1st: Winner Cup
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-slate-200 text-slate-800 border border-slate-300 shadow-2xs flex items-center gap-1 font-bold">
+              🥈 2nd: Runner-Up Cup
+            </span>
+          </div>
         </div>
       )}
 
@@ -322,6 +371,17 @@ export function LeaderboardTable({
                           </span>
                           <span>QUALIFIED</span>
                         </span>
+                      )}
+                      {isFreeFire && ffStage === "FINALS" && (
+                        rank === 1 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                            🏆 WINNER CUP
+                          </span>
+                        ) : rank === 2 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-200 text-slate-800 border border-slate-300 shadow-2xs">
+                            🥈 RUNNER-UP CUP
+                          </span>
+                        ) : null
                       )}
                     </div>
                   </td>

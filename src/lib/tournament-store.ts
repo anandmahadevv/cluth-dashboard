@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { GameId } from "@/types";
+import { GameId, IndividualAwards } from "@/types";
 import {
   VALID_GAME_CODES,
   PLACEMENT_POINTS,
@@ -56,6 +56,7 @@ export interface TournamentStoreData {
   lastUpdated: string;
   teams: Record<GameId, TeamScoreEntry[]>;
   matches: MatchSubmission[];
+  awards?: Partial<Record<GameId, IndividualAwards>>;
 }
 
 // On Vercel serverless functions, root (/var/task) is read-only. /tmp is the writable scratch space.
@@ -979,6 +980,55 @@ export async function toggleTeamQualifiedAsync(params: {
     team,
     teams: store.teams[params.gameId],
     message: `Team "${team.teamName}" is now ${statusLabel}.`,
+  };
+}
+
+/**
+ * Retrieve individual accolades & special awards for a game (MVP, Top Fragger)
+ */
+export async function getAwardsAsync(gameId: GameId): Promise<IndividualAwards> {
+  const store = await getStoreAsync();
+  if (!store.awards) {
+    store.awards = {};
+  }
+  return store.awards[gameId] || {};
+}
+
+/**
+ * Save or update individual accolades & special awards (MVP, Top Fragger)
+ */
+export async function saveAwardsAsync(params: {
+  gameId: GameId;
+  awards: IndividualAwards;
+  pocCode?: string;
+  adminPassword?: string;
+}): Promise<{ success: boolean; awards?: IndividualAwards; error?: string; message?: string }> {
+  if (params.pocCode) {
+    const check = verifyGameCode(params.pocCode, params.gameId);
+    if (!check.valid) {
+      return { success: false, error: "Unauthorized: Invalid room verification code." };
+    }
+  } else if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
+    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
+  } else if (!params.pocCode && !params.adminPassword) {
+    return { success: false, error: "Unauthorized: Passkey or verification code required." };
+  }
+
+  const store = await getStoreAsync();
+  if (!store.awards) {
+    store.awards = {};
+  }
+  store.awards[params.gameId] = {
+    ...store.awards[params.gameId],
+    ...params.awards,
+  };
+
+  await saveStoreAsync(store);
+
+  return {
+    success: true,
+    awards: store.awards[params.gameId],
+    message: "Special Awards (MVP & Top Fragger) updated successfully!",
   };
 }
 

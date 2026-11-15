@@ -79,6 +79,78 @@ export default function PocPortalPage() {
   const [ffGroupFilter, setFfGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Special Awards State (MVP & Top Fragger)
+  const [mvpName, setMvpName] = useState("");
+  const [mvpTeam, setMvpTeam] = useState("");
+  const [mvpStats, setMvpStats] = useState("");
+  const [topFraggerName, setTopFraggerName] = useState("");
+  const [topFraggerTeam, setTopFraggerTeam] = useState("");
+  const [topFraggerKills, setTopFraggerKills] = useState<number | string>("");
+  const [isSavingAwards, setIsSavingAwards] = useState(false);
+  const [awardsMessage, setAwardsMessage] = useState("");
+  const [awardsError, setAwardsError] = useState("");
+
+  const fetchAwards = async () => {
+    try {
+      const res = await fetch(`/api/public/awards?gameId=${selectedGame}&t=${Date.now()}`);
+      const data = await res.json();
+      if (data.success && data.awards) {
+        if (data.awards.mvp) {
+          setMvpName(data.awards.mvp.playerName || "");
+          setMvpTeam(data.awards.mvp.teamName || "");
+          setMvpStats(data.awards.mvp.stats || "");
+        }
+        if (data.awards.topFragger) {
+          setTopFraggerName(data.awards.topFragger.playerName || "");
+          setTopFraggerTeam(data.awards.topFragger.teamName || "");
+          setTopFraggerKills(data.awards.topFragger.kills ?? "");
+        }
+      }
+    } catch {}
+  };
+
+  const handleSaveAwards = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingAwards(true);
+    setAwardsMessage("");
+    setAwardsError("");
+
+    try {
+      const res = await fetch("/api/poc/awards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: selectedGame,
+          pocCode,
+          awards: {
+            mvp: {
+              playerName: mvpName.trim(),
+              teamName: mvpTeam.trim(),
+              stats: mvpStats.trim(),
+            },
+            topFragger: {
+              playerName: topFraggerName.trim(),
+              teamName: topFraggerTeam.trim(),
+              kills: topFraggerKills !== "" ? Number(topFraggerKills) : undefined,
+            },
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update awards.");
+      }
+
+      setAwardsMessage("Official Tournament Accolades (MVP & Top Fragger) saved & broadcast live!");
+      setTimeout(() => setAwardsMessage(""), 4000);
+    } catch (err: any) {
+      setAwardsError(err.message || "Failed to save awards.");
+    } finally {
+      setIsSavingAwards(false);
+    }
+  };
+
   // Live refresh teams from server
   const refreshTeams = async () => {
     setIsRefreshing(true);
@@ -267,6 +339,7 @@ export default function PocPortalPage() {
 
       setScores(initialScores);
       setIsUnlocked(true);
+      fetchAwards();
     } catch (err: any) {
       setAuthError(err.message || "Network error. Please try again.");
     } finally {
@@ -1356,6 +1429,159 @@ export default function PocPortalPage() {
                 </div>
               </div>
             )}
+
+            {/* Special Accolades Editor (MVP & Top Fragger) */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+                    <Crown className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider font-display">
+                      Tournament Special Awards (MVP & Top Fragger)
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Submit official player awards for the live broadcast & winners podium.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                  GRAND FINALS ACCOLADES
+                </span>
+              </div>
+
+              {awardsMessage && (
+                <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{awardsMessage}</span>
+                </div>
+              )}
+
+              {awardsError && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{awardsError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveAwards} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Tournament MVP Input Block */}
+                  <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+                      <Crown className="w-4 h-4" />
+                      <span>TOURNAMENT MVP</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        MVP Player Name (IGN)
+                      </label>
+                      <input
+                        type="text"
+                        value={mvpName}
+                        onChange={(e) => setMvpName(e.target.value)}
+                        placeholder="e.g. Akash 'CLUTCH' Verma"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-amber-400 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Team Name
+                      </label>
+                      <input
+                        type="text"
+                        value={mvpTeam}
+                        onChange={(e) => setMvpTeam(e.target.value)}
+                        placeholder="e.g. Khopdi Phodu gng"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-amber-400 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Highlight / Impact Stat (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={mvpStats}
+                        onChange={(e) => setMvpStats(e.target.value)}
+                        placeholder="e.g. 10 Kills • 2 Booyahs"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-amber-400 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Top Fragger Input Block */}
+                  <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/5 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-rose-400">
+                      <Crosshair className="w-4 h-4" />
+                      <span>TOP FRAGGER (HIGHEST INDIVIDUAL KILLS)</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Player Name (IGN)
+                      </label>
+                      <input
+                        type="text"
+                        value={topFraggerName}
+                        onChange={(e) => setTopFraggerName(e.target.value)}
+                        placeholder="e.g. Rahul 'SNIPER' Kumar"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-rose-400 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Team Name
+                      </label>
+                      <input
+                        type="text"
+                        value={topFraggerTeam}
+                        onChange={(e) => setTopFraggerTeam(e.target.value)}
+                        placeholder="e.g. BROTHERHOOD"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-rose-400 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Total Confirmed Kills
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={topFraggerKills}
+                        onChange={(e) => setTopFraggerKills(e.target.value)}
+                        placeholder="e.g. 14"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:border-rose-400 outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSavingAwards}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingAwards ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Saving Awards...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Save & Broadcast Awards Live</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
           </div>
         )}
       </main>

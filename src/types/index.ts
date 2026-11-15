@@ -225,6 +225,19 @@ export interface Winner {
   thirdPlace?: { name: string; pointsOrScore: string; subtext?: string };
 }
 
+export interface IndividualAwards {
+  mvp?: {
+    playerName: string;
+    teamName: string;
+    stats?: string;
+  };
+  topFragger?: {
+    playerName: string;
+    teamName: string;
+    kills?: number | string;
+  };
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

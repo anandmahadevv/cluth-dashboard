@@ -42,9 +42,11 @@ import {
   ArrowLeftRight,
   Trash2,
   Pencil,
+  Sparkles,
 } from "lucide-react";
 import { GameId } from "@/types";
 import { PLACEMENT_POINTS, getFreeFireGroupInfo } from "@/lib/tournament-constants";
+import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 
 interface TeamEntry {
   id: string;
@@ -100,9 +102,22 @@ export default function SuperAdminPortalPage() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Main UI Mode
-  const [mainTab, setMainTab] = useState<"inbox" | "direct" | "history" | "teams">("inbox");
+  const [mainTab, setMainTab] = useState<"inbox" | "direct" | "history" | "teams" | "awards">("inbox");
   const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  // Special Awards State (MVP & Top Fragger)
+  const [awardsGame, setAwardsGame] = useState<GameId>("FREE_FIRE");
+  const [adminMvpName, setAdminMvpName] = useState("");
+  const [adminMvpTeam, setAdminMvpTeam] = useState("");
+  const [adminMvpStats, setAdminMvpStats] = useState("");
+  const [adminTopFraggerName, setAdminTopFraggerName] = useState("");
+  const [adminTopFraggerTeam, setAdminTopFraggerTeam] = useState("");
+  const [adminTopFraggerKills, setAdminTopFraggerKills] = useState<number | string>("");
+  const [isLoadingAwards, setIsLoadingAwards] = useState(false);
+  const [isSavingAwards, setIsSavingAwards] = useState(false);
+  const [awardsSuccessMsg, setAwardsSuccessMsg] = useState("");
+  const [awardsErrorMsg, setAwardsErrorMsg] = useState("");
 
   // Teams Management State
   const [rosterGame, setRosterGame] = useState<GameId>("FREE_FIRE");
@@ -313,6 +328,97 @@ export default function SuperAdminPortalPage() {
       fetchRoster(rosterGame);
     }
   }, [isAuthenticated, mainTab, rosterGame]);
+
+  // Special Awards Fetch & Save
+  const fetchAdminAwards = async (game: GameId) => {
+    setIsLoadingAwards(true);
+    try {
+      const res = await fetch(`/api/public/awards?gameId=${game}&t=${Date.now()}`);
+      const data = await res.json();
+      if (data.success && data.awards) {
+        if (data.awards.mvp) {
+          setAdminMvpName(data.awards.mvp.playerName || "");
+          setAdminMvpTeam(data.awards.mvp.teamName || "");
+          setAdminMvpStats(data.awards.mvp.stats || "");
+        } else {
+          setAdminMvpName("");
+          setAdminMvpTeam("");
+          setAdminMvpStats("");
+        }
+        if (data.awards.topFragger) {
+          setAdminTopFraggerName(data.awards.topFragger.playerName || "");
+          setAdminTopFraggerTeam(data.awards.topFragger.teamName || "");
+          setAdminTopFraggerKills(data.awards.topFragger.kills ?? "");
+        } else {
+          setAdminTopFraggerName("");
+          setAdminTopFraggerTeam("");
+          setAdminTopFraggerKills("");
+        }
+      } else {
+        setAdminMvpName("");
+        setAdminMvpTeam("");
+        setAdminMvpStats("");
+        setAdminTopFraggerName("");
+        setAdminTopFraggerTeam("");
+        setAdminTopFraggerKills("");
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsLoadingAwards(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && mainTab === "awards") {
+      fetchAdminAwards(awardsGame);
+    }
+  }, [isAuthenticated, mainTab, awardsGame]);
+
+  const handleSaveAdminAwards = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingAwards(true);
+    setAwardsSuccessMsg("");
+    setAwardsErrorMsg("");
+
+    try {
+      const savedPass = typeof window !== "undefined" ? sessionStorage.getItem("clutch_admin_auth") || "" : "";
+      const pass = adminPassword || savedPass || "43517-AM";
+
+      const res = await fetch("/api/poc/awards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: awardsGame,
+          adminPassword: pass,
+          awards: {
+            mvp: {
+              playerName: adminMvpName.trim(),
+              teamName: adminMvpTeam.trim(),
+              stats: adminMvpStats.trim(),
+            },
+            topFragger: {
+              playerName: adminTopFraggerName.trim(),
+              teamName: adminTopFraggerTeam.trim(),
+              kills: adminTopFraggerKills !== "" ? Number(adminTopFraggerKills) : undefined,
+            },
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update awards.");
+      }
+
+      setAwardsSuccessMsg("Tournament accolades (MVP & Top Fragger) saved & broadcast live!");
+      setTimeout(() => setAwardsSuccessMsg(""), 4000);
+    } catch (err: any) {
+      setAwardsErrorMsg(err.message || "Failed to save awards.");
+    } finally {
+      setIsSavingAwards(false);
+    }
+  };
 
   // Add Team
   const handleAddTeam = async (e: React.FormEvent) => {
@@ -1237,6 +1343,18 @@ export default function SuperAdminPortalPage() {
             >
               <Users className="w-4 h-4" />
               <span>Manage Teams & Rosters</span>
+            </button>
+
+            <button
+              onClick={() => setMainTab("awards")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+                mainTab === "awards"
+                  ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20"
+                  : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              <Crown className="w-4 h-4" />
+              <span>Special Awards (MVP)</span>
             </button>
           </div>
 
@@ -2681,6 +2799,267 @@ export default function SuperAdminPortalPage() {
                   </table>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB 4: SPECIAL AWARDS (MVP & TOP FRAGGER)            */}
+        {/* ---------------------------------------------------- */}
+        {mainTab === "awards" && (
+          <div className="space-y-6">
+            {/* Header & Game Selector */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                    <Crown className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white flex items-center gap-2">
+                      <span>Tournament Special Awards & Accolades</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                        OFFICIAL RATIFIED
+                      </span>
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      Configure official accolades (Tournament MVP & Top Fragger) broadcasted live on the public dashboard, game pages, and winners podium.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => fetchAdminAwards(awardsGame)}
+                  disabled={isLoadingAwards}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition shrink-0"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingAwards ? "animate-spin" : ""}`} />
+                  <span>Reload Awards</span>
+                </button>
+              </div>
+
+              {/* Game Filter */}
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80">
+                <span className="text-xs font-semibold text-slate-400 mr-2">Select Arena:</span>
+                {(
+                  [
+                    { id: "FREE_FIRE" as GameId, name: "Free Fire (Grand Finals)", icon: Flame },
+                    { id: "BGMI" as GameId, name: "BGMI", icon: Crosshair },
+                    { id: "VALORANT" as GameId, name: "eFootball / Valorant", icon: Gamepad2 },
+                    { id: "CHESS" as GameId, name: "Matiks / Chess", icon: Brain },
+                  ] as const
+                ).map(({ id, name, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      setAwardsGame(id);
+                      fetchAdminAwards(id);
+                    }}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                      awardsGame === id
+                        ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20"
+                        : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Notification Alerts */}
+            {awardsSuccessMsg && (
+              <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <span>{awardsSuccessMsg}</span>
+              </div>
+            )}
+
+            {awardsErrorMsg && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>{awardsErrorMsg}</span>
+              </div>
+            )}
+
+            {/* Awards Edit Form */}
+            <form onSubmit={handleSaveAdminAwards} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 1. Tournament MVP */}
+                <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+                      <Crown className="w-4 h-4" />
+                      <span>TOURNAMENT MVP (MOST VALUABLE PLAYER)</span>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold">
+                      TOP IMPACT
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Player Name / In-Game Name (IGN)
+                    </label>
+                    <input
+                      type="text"
+                      value={adminMvpName}
+                      onChange={(e) => setAdminMvpName(e.target.value)}
+                      placeholder="e.g. VIPER_YT / Rahul"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-amber-400 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Team / Squad Name
+                    </label>
+                    <input
+                      type="text"
+                      value={adminMvpTeam}
+                      onChange={(e) => setAdminMvpTeam(e.target.value)}
+                      placeholder="e.g. TOTAL DOMINANCE (Group A)"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-amber-400 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Accolade Highlights / Performance Stat
+                    </label>
+                    <input
+                      type="text"
+                      value={adminMvpStats}
+                      onChange={(e) => setAdminMvpStats(e.target.value)}
+                      placeholder="e.g. 14 Kills • 2 Booyahs • 1v3 Grand Finals Clutch"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-amber-400 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Top Fragger */}
+                <div className="p-5 rounded-2xl border border-red-500/30 bg-red-500/5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-red-400">
+                      <Crosshair className="w-4 h-4" />
+                      <span>TOP FRAGGER (HIGHEST INDIVIDUAL KILLS)</span>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-red-500/20 text-red-300 font-extrabold flex items-center gap-1">
+                      <Flame className="w-3 h-3 text-red-400" />
+                      KILL LEADER
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Player Name / In-Game Name (IGN)
+                    </label>
+                    <input
+                      type="text"
+                      value={adminTopFraggerName}
+                      onChange={(e) => setAdminTopFraggerName(e.target.value)}
+                      placeholder="e.g. DEADSHOT_99 / Amit"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-red-400 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Team / Squad Name
+                    </label>
+                    <input
+                      type="text"
+                      value={adminTopFraggerTeam}
+                      onChange={(e) => setAdminTopFraggerTeam(e.target.value)}
+                      placeholder="e.g. DEADLY SINS"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-red-400 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Total Confirmed Individual Kills
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={adminTopFraggerKills}
+                      onChange={(e) => setAdminTopFraggerKills(e.target.value)}
+                      placeholder="e.g. 19"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:border-red-400 outline-none font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminMvpName("");
+                    setAdminMvpTeam("");
+                    setAdminMvpStats("");
+                    setAdminTopFraggerName("");
+                    setAdminTopFraggerTeam("");
+                    setAdminTopFraggerKills("");
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-semibold transition"
+                >
+                  Clear Form Fields
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSavingAwards}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingAwards ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Broadcasting Awards...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Save & Broadcast Awards Live</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* Live Broadcast Preview Card */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Live Broadcast Preview (Public Dashboard Display)
+                  </h3>
+                </div>
+                <span className="text-[10px] text-slate-400">
+                  Updates instantly as you type
+                </span>
+              </div>
+
+              <div className="bg-slate-950 rounded-xl p-4 border border-slate-800/80">
+                <SpecialAwardsCard
+                  awards={{
+                    mvp: {
+                      playerName: adminMvpName,
+                      teamName: adminMvpTeam,
+                      stats: adminMvpStats,
+                    },
+                    topFragger: {
+                      playerName: adminTopFraggerName,
+                      teamName: adminTopFraggerTeam,
+                      kills: adminTopFraggerKills !== "" ? Number(adminTopFraggerKills) : undefined,
+                    },
+                  }}
+                />
+              </div>
             </div>
           </div>
         )}

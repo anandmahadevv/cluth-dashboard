@@ -7,6 +7,7 @@ import {
   getLeaderboard,
   getMatches,
   getWinners,
+  getAwards,
 } from "@/lib/api";
 import { GameId } from "@/types";
 
@@ -28,4 +29,8 @@ export function useGameMatches(gameId?: GameId) {
 
 export function useTournamentWinners() {
   return usePolling(getWinners);
+}
+
+export function useGameAwards(gameId: GameId = "FREE_FIRE") {
+  return usePolling(() => getAwards(gameId));
 }

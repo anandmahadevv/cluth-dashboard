@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { Flame, ShieldCheck, ArrowLeft, Trophy, Calendar, MapPin } from "lucide-react";
 import { GAMES_CONFIG, EVENT_DETAILS } from "@/lib/constants";
-import { useGameLeaderboard, useGameMatches } from "@/hooks/use-tournament-data";
+import { useGameLeaderboard, useGameMatches, useGameAwards } from "@/hooks/use-tournament-data";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { Podium } from "@/components/leaderboards/podium";
 import { PreMatchShowcase } from "@/components/leaderboards/pre-match-showcase";
 import { LeaderboardTable } from "@/components/games/leaderboard-table";
+import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 import { ShareModal } from "@/components/shared/share-modal";
 
 export default function FreeFirePage() {
@@ -15,6 +16,7 @@ export default function FreeFirePage() {
   const { data: leaderboard, lastUpdated, isRefreshing, refresh, isTabActive } =
     useGameLeaderboard("FREE_FIRE");
   const { data: matches } = useGameMatches("FREE_FIRE");
+  const { data: awards } = useGameAwards("FREE_FIRE");
 
   const activeLeaderboard = leaderboard?.filter((t) => !t.hidden) || [];
 
@@ -135,6 +137,9 @@ export default function FreeFirePage() {
           format={GAMES_CONFIG.FREE_FIRE.format}
         />
       )}
+
+      {/* Special Accolades (MVP & Top Fragger) */}
+      <SpecialAwardsCard awards={awards} />
 
       {/* Leaderboard Table */}
       <div className="space-y-3">

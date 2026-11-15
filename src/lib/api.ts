@@ -7,6 +7,7 @@ import {
   GenericMatchResult,
   GameWinner,
   PublicApiResponse,
+  IndividualAwards,
 } from "@/types";
 import { GAMES_CONFIG, API_ENDPOINTS } from "./constants";
 import {
@@ -144,4 +145,35 @@ export async function getWinners(): Promise<PublicApiResponse<GameWinner[]>> {
     {},
     MOCK_GAME_WINNERS
   );
+}
+
+export async function getAwards(gameId: GameId = "FREE_FIRE"): Promise<PublicApiResponse<IndividualAwards>> {
+  try {
+    const res = await fetch(`/api/public/awards?gameId=${gameId}&t=${Date.now()}`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return {
+        success: true,
+        data: json.awards || {},
+        meta: {
+          source: "API",
+          approvedOnly: true,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+  } catch (err) {
+    console.error("Failed to fetch awards:", err);
+  }
+  return {
+    success: false,
+    data: {},
+    meta: {
+      source: "CACHED_FALLBACK",
+      approvedOnly: true,
+      timestamp: new Date().toISOString(),
+    },
+  };
 }

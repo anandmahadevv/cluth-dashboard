@@ -17,10 +17,12 @@ import {
   useTournamentStatus,
   useGameLeaderboard,
   useGameMatches,
+  useGameAwards,
 } from "@/hooks/use-tournament-data";
 import { Podium } from "@/components/leaderboards/podium";
 import { PreMatchShowcase } from "@/components/leaderboards/pre-match-showcase";
 import { LeaderboardTable } from "@/components/games/leaderboard-table";
+import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 import { FifaTable } from "@/components/games/fifa-table";
 import { MatiksTable } from "@/components/games/matiks-table";
 import { ShareModal } from "@/components/shared/share-modal";
@@ -41,6 +43,7 @@ export default function HomePage() {
   const { data: valLeaderboard } = useGameLeaderboard("VALORANT");
   const { data: efLeaderboard } = useGameLeaderboard("EFOOTBALL");
   const { data: matiksLeaderboard } = useGameLeaderboard("MATIKS");
+  const { data: awards } = useGameAwards(selectedGame);
 
   // Determine current active leaderboard
   let first, second, third;
@@ -409,6 +412,11 @@ export default function HomePage() {
           format={currentGameConfig?.format}
           isProjector={isProjectorMode}
         />
+      )}
+
+      {/* Special Accolades (MVP & Top Fragger) */}
+      {selectedGame === "FREE_FIRE" && (
+        <SpecialAwardsCard awards={awards} isProjector={isProjectorMode} />
       )}
 
       {/* Clean Table Below */}
