@@ -10,6 +10,7 @@ import {
   LeaderboardEntry,
 } from "@/types";
 import { cn } from "@/lib/utils";
+import { getFreeFireGroupInfo } from "@/lib/tournament-constants";
 
 type LeaderboardRow =
   | FreeFireLeaderboardEntry
@@ -38,14 +39,24 @@ export function LeaderboardTable({
   const [sortAsc, setSortAsc] = useState(false);
 
   const isValorant = gameName?.toLowerCase().includes("valorant");
+  const isFreeFire = gameName?.toLowerCase().includes("free fire");
+  const [groupFilter, setGroupFilter] = useState<"ALL" | "A" | "B">("ALL");
+
   const hasLiveScores = entries.some(
-    (e) => (e.matchesPlayed && e.matchesPlayed > 0) || (e.totalPoints && e.totalPoints > 0)
+    (e) => !e.hidden && ((e.matchesPlayed && e.matchesPlayed > 0) || (e.totalPoints && e.totalPoints > 0))
   );
 
   const filteredEntries = entries
-    .filter((entry) =>
-      entry.teamName.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    .filter((entry) => {
+      if (entry.hidden) return false;
+      const matchesSearch = entry.teamName.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesSearch) return false;
+      if (isFreeFire && groupFilter !== "ALL") {
+        const grp = getFreeFireGroupInfo(entry.teamName);
+        if (grp.group !== groupFilter) return false;
+      }
+      return true;
+    })
     .sort((a, b) => {
       let valA = a.totalPoints;
       let valB = b.totalPoints;
@@ -70,20 +81,81 @@ export function LeaderboardTable({
 
   return (
     <div className={cn("w-full max-w-4xl mx-auto space-y-3", isProjector && "max-w-5xl", className)}>
-      {/* Search Input - Hidden or simplified in projector mode */}
+      {/* Search & Group Filters - Hidden or simplified in projector mode */}
       {!isProjector && (
-        <div className="flex items-center justify-between pb-1">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search team..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#fbbf24] focus:outline-none focus:ring-1 focus:ring-[#fbbf24] transition shadow-sm"
-            />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search team..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#fbbf24] focus:outline-none focus:ring-1 focus:ring-[#fbbf24] transition shadow-xs"
+              />
+            </div>
+
+            {/* Free Fire Group A & B Fast Switcher */}
+            {isFreeFire && (
+              <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setGroupFilter("ALL")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md transition font-semibold text-xs",
+                    groupFilter === "ALL"
+                      ? "bg-white text-slate-900 shadow-xs font-bold"
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  All (17)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGroupFilter("A")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5",
+                    groupFilter === "A"
+                      ? "bg-blue-600 text-white shadow-xs font-bold"
+                      : "text-slate-600 hover:text-blue-700 hover:bg-slate-200/60"
+                  )}
+                >
+                  <span>Group A</span>
+                  <span
+                    className={cn(
+                      "text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none",
+                      groupFilter === "A" ? "bg-blue-800 text-blue-100" : "bg-blue-100 text-blue-700"
+                    )}
+                  >
+                    LH18
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGroupFilter("B")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5",
+                    groupFilter === "B"
+                      ? "bg-purple-600 text-white shadow-xs font-bold"
+                      : "text-slate-600 hover:text-purple-700 hover:bg-slate-200/60"
+                  )}
+                >
+                  <span>Group B</span>
+                  <span
+                    className={cn(
+                      "text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none",
+                      groupFilter === "B" ? "bg-purple-800 text-purple-100" : "bg-purple-100 text-purple-700"
+                    )}
+                  >
+                    LH19
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
-          <span className="text-xs font-semibold text-slate-400">
+
+          <span className="text-xs font-semibold text-slate-400 self-end sm:self-center">
             {filteredEntries.length} Teams
           </span>
         </div>
@@ -169,23 +241,43 @@ export function LeaderboardTable({
                     )}
                   </td>
 
-                  {/* Team Name colored per rank */}
+                  {/* Team Name colored per rank + Free Fire Group & Venue Badge */}
                   <td className="py-3.5 px-4 font-semibold whitespace-nowrap">
-                    <span
-                      className={cn(
-                        "text-sm font-bold tracking-tight",
-                        isFirst
-                          ? "text-[#d97706]"
-                          : isSecond
-                          ? "text-[#64748b]"
-                          : isThird
-                          ? "text-[#b45309]"
-                          : "text-slate-800",
-                        isProjector && "text-base"
-                      )}
-                    >
-                      {entry.teamName}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={cn(
+                          "text-sm font-bold tracking-tight",
+                          isFirst
+                            ? "text-[#d97706]"
+                            : isSecond
+                            ? "text-[#64748b]"
+                            : isThird
+                            ? "text-[#b45309]"
+                            : "text-slate-800",
+                          isProjector && "text-base"
+                        )}
+                      >
+                        {entry.teamName}
+                      </span>
+                      {isFreeFire && (() => {
+                        const grp = getFreeFireGroupInfo(entry.teamName);
+                        return (
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wide uppercase border shadow-2xs",
+                              grp.group === "A"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-purple-50 text-purple-700 border-purple-200"
+                            )}
+                            title={`Assigned Room: ${grp.venue}`}
+                          >
+                            <span>{grp.group === "A" ? "Group A" : "Group B"}</span>
+                            <span className="opacity-40">•</span>
+                            <span className="font-mono">{grp.venue}</span>
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </td>
 
                   {/* Matches */}

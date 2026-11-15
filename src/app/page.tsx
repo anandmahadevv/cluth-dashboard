@@ -45,7 +45,7 @@ export default function HomePage() {
   // Determine current active leaderboard
   let first, second, third;
 
-  const currentLeaderboard =
+  const rawLeaderboard =
     selectedGame === "FREE_FIRE"
       ? ffLeaderboard
       : selectedGame === "BGMI"
@@ -56,8 +56,10 @@ export default function HomePage() {
       ? (efLeaderboard as any[])
       : (matiksLeaderboard as any[]);
 
+  const currentLeaderboard = (rawLeaderboard || []).filter((t: any) => !t.hidden);
+
   const hasMatchesPlayed = Boolean(
-    currentLeaderboard &&
+    currentLeaderboard.length > 0 &&
       currentLeaderboard.some(
         (t) => (t.matchesPlayed && t.matchesPlayed > 0) || (t.totalPoints && t.totalPoints > 0)
       )

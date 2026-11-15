@@ -98,3 +98,49 @@ export const INITIAL_TEAMS: Record<GameId, string[]> = {
   ],
 };
 
+// Official Free Fire Mangalore Edition Tournament Groups & Venues
+export const FREE_FIRE_GROUP_A_TEAMS = [
+  "Khopdi Phodu gng",
+  "GLOBEL HUNTERS",
+  "AURA RUSHERZ",
+  "TAG BOYSS !!",
+  "IDFC",
+  "TEAM NOX",
+  "Zain warriors",
+  "BAD SQUAD",
+  "BROTHERHOOD",
+];
+
+export const FREE_FIRE_GROUP_B_TEAMS = [
+  "Teamstack",
+  "Hunters",
+  "DAMN BROS",
+  "Gaza",
+  "ROCKERS",
+  "V4",
+  "LAGLORDS",
+  "MALNAD WARRIORS",
+];
+
+export function getFreeFireGroupInfo(teamName: string) {
+  const norm = (teamName || "").toLowerCase().trim();
+  const isA = FREE_FIRE_GROUP_A_TEAMS.some(
+    (t) => norm === t.toLowerCase().trim() || norm.startsWith(t.toLowerCase().trim())
+  );
+  if (isA) {
+    return {
+      group: "A" as const,
+      venue: "LH18",
+      label: "Group A (LH18)",
+      badge: "Group A • LH18",
+    };
+  }
+  return {
+    group: "B" as const,
+    venue: "LH19",
+    label: "Group B (LH19)",
+    badge: "Group B • LH19",
+  };
+}
+
+

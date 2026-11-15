@@ -16,45 +16,47 @@ export default function FreeFirePage() {
     useGameLeaderboard("FREE_FIRE");
   const { data: matches } = useGameMatches("FREE_FIRE");
 
+  const activeLeaderboard = leaderboard?.filter((t) => !t.hidden) || [];
+
   const hasMatchesPlayed = Boolean(
-    leaderboard &&
-      leaderboard.some(
+    activeLeaderboard.length > 0 &&
+      activeLeaderboard.some(
         (t) => (t.matchesPlayed && t.matchesPlayed > 0) || (t.totalPoints && t.totalPoints > 0)
       )
   );
 
-  const first = leaderboard?.[0]
+  const first = activeLeaderboard[0]
     ? {
         rank: 1 as const,
-        name: leaderboard[0].teamName,
+        name: activeLeaderboard[0].teamName,
         subtext: "Free Fire Tournament Leader",
-        stat1Value: leaderboard[0].killPoints,
+        stat1Value: activeLeaderboard[0].killPoints,
         stat1Label: "kill\npoints",
-        stat2Value: leaderboard[0].totalPoints,
+        stat2Value: activeLeaderboard[0].totalPoints,
         stat2Label: "total\npoints",
       }
     : undefined;
 
-  const second = leaderboard?.[1]
+  const second = activeLeaderboard[1]
     ? {
         rank: 2 as const,
-        name: leaderboard[1].teamName,
+        name: activeLeaderboard[1].teamName,
         subtext: "1st Runner-Up",
-        stat1Value: leaderboard[1].killPoints,
+        stat1Value: activeLeaderboard[1].killPoints,
         stat1Label: "kill\npoints",
-        stat2Value: leaderboard[1].totalPoints,
+        stat2Value: activeLeaderboard[1].totalPoints,
         stat2Label: "total\npoints",
       }
     : undefined;
 
-  const third = leaderboard?.[2]
+  const third = activeLeaderboard[2]
     ? {
         rank: 3 as const,
-        name: leaderboard[2].teamName,
+        name: activeLeaderboard[2].teamName,
         subtext: "2nd Runner-Up",
-        stat1Value: leaderboard[2].killPoints,
+        stat1Value: activeLeaderboard[2].killPoints,
         stat1Label: "kill\npoints",
-        stat2Value: leaderboard[2].totalPoints,
+        stat2Value: activeLeaderboard[2].totalPoints,
         stat2Label: "total\npoints",
       }
     : undefined;
@@ -96,7 +98,8 @@ export default function FreeFirePage() {
           </p>
 
           <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-400 pt-1 font-mono">
-            <div>Format: <span className="text-white font-sans">{gameConfig.format}</span></div>
+            <div>Format: <span className="text-white font-sans">2 Groups (9 + 8 Teams) • B2B 2 Matches</span></div>
+            <div>Rooms: <span className="text-blue-400 font-sans font-semibold">Group A (LH18)</span> • <span className="text-purple-400 font-sans font-semibold">Group B (LH19)</span></div>
             <div>Scoring: <span className="text-amber-400 font-sans">{gameConfig.scoringFormat}</span></div>
           </div>
         </div>

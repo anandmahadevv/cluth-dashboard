@@ -44,7 +44,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { GameId } from "@/types";
-import { PLACEMENT_POINTS } from "@/lib/tournament-constants";
+import { PLACEMENT_POINTS, getFreeFireGroupInfo } from "@/lib/tournament-constants";
 
 interface TeamEntry {
   id: string;
@@ -148,6 +148,7 @@ export default function SuperAdminPortalPage() {
   const [swapTeamId, setSwapTeamId] = useState<string | null>(null);
   const [swapNotice, setSwapNotice] = useState<string>("");
   const [togglingVisibilityId, setTogglingVisibilityId] = useState<string | null>(null);
+  const [directGroupFilter, setDirectGroupFilter] = useState<"ALL" | "A" | "B">("ALL");
 
   // Reset State
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -250,18 +251,14 @@ export default function SuperAdminPortalPage() {
     }
   };
 
-  // Fetch Teams for direct scoring
+  // Fetch Teams for direct scoring (always includes all teams for Super Admin)
   const fetchTeamsForDirectGame = async (gameId: GameId) => {
     setIsLoadingTeams(true);
     try {
-      const res = await fetch("/api/poc/verify-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: SUPER_CODE, gameId }),
-      });
+      const res = await fetch(`/api/poc/teams?gameId=${gameId}&includeHidden=true&t=${Date.now()}`);
 
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (res.ok && data.success && Array.isArray(data.teams)) {
         setTeams(data.teams);
         setDirectOrderedTeamIds(data.teams.map((t: TeamEntry) => t.id));
 
@@ -434,33 +431,64 @@ export default function SuperAdminPortalPage() {
     }
   };
 
-  // Toggle Team Visibility (Hide / Unhide)
+  // Toggle Team Visibility (Hide / Unhide with instant optimistic update)
   const handleToggleVisibility = async (teamId: string, gameTarget?: GameId) => {
     const game = gameTarget || rosterGame;
     setTogglingVisibilityId(teamId);
     setRosterError("");
     setRosterSuccess("");
+
+    // Identify current hidden state and calculate target
+    const currentTeam = (mainTab === "teams" ? rosterTeams : teams).find((t) => t.id === teamId);
+    const targetHidden = currentTeam ? !currentTeam.hidden : true;
+
+    // Instant optimistic update in both states
+    setTeams((prev) =>
+      prev.map((t) => (t.id === teamId ? { ...t, hidden: targetHidden } : t))
+    );
+    setRosterTeams((prev) =>
+      prev.map((t) => (t.id === teamId ? { ...t, hidden: targetHidden } : t))
+    );
+
     try {
+      const savedPass = typeof window !== "undefined" ? sessionStorage.getItem("clutch_admin_auth") || "" : "";
+      const pass = adminPassword || savedPass || "43517-AM";
+
       const res = await fetch("/api/poc/teams", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: game,
           teamId,
-          adminPassword,
+          hidden: targetHidden,
+          adminPassword: pass,
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
+        // Rollback optimistic update
+        setTeams((prev) =>
+          prev.map((t) => (t.id === teamId ? { ...t, hidden: !targetHidden } : t))
+        );
+        setRosterTeams((prev) =>
+          prev.map((t) => (t.id === teamId ? { ...t, hidden: !targetHidden } : t))
+        );
         throw new Error(data.error || "Failed to update team visibility.");
       }
 
-      setRosterSuccess(data.message || "Team visibility updated.");
-      if (mainTab === "teams") {
-        await fetchRoster(game);
+      setRosterSuccess(data.message || `Team is now ${targetHidden ? "hidden from public view" : "visible on public view"}.`);
+
+      if (Array.isArray(data.teams)) {
+        if (game === directGame) {
+          setTeams(data.teams);
+          setDirectOrderedTeamIds(data.teams.map((t: TeamEntry) => t.id));
+        }
+        if (game === rosterGame) {
+          setRosterTeams(data.teams);
+        }
       }
-      await fetchTeamsForDirectGame(directGame);
+
       setTimeout(() => setRosterSuccess(""), 4000);
     } catch (err: any) {
       setRosterError(err.message || "Error updating team visibility.");
@@ -1637,9 +1665,63 @@ export default function SuperAdminPortalPage() {
                 )}
 
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    {directGame} Team Roster ({teams.length} Squads)
-                  </h3>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      {directGame} Team Roster ({teams.length} Squads)
+                    </h3>
+
+                    {directGame === "FREE_FIRE" && (
+                      <div className="inline-flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setDirectGroupFilter("ALL")}
+                          className={`px-2.5 py-1 rounded-md transition font-semibold text-xs ${
+                            directGroupFilter === "ALL"
+                              ? "bg-slate-800 text-white shadow-xs font-bold"
+                              : "text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          All (17)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDirectGroupFilter("A")}
+                          className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
+                            directGroupFilter === "A"
+                              ? "bg-blue-600 text-white shadow-xs font-bold"
+                              : "text-slate-400 hover:text-blue-300"
+                          }`}
+                        >
+                          <span>Group A</span>
+                          <span
+                            className={`text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none ${
+                              directGroupFilter === "A" ? "bg-blue-800 text-blue-100" : "bg-blue-950 text-blue-300 border border-blue-800"
+                            }`}
+                          >
+                            LH18 (9)
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDirectGroupFilter("B")}
+                          className={`px-2.5 py-1 rounded-md transition font-semibold text-xs flex items-center gap-1.5 ${
+                            directGroupFilter === "B"
+                              ? "bg-purple-600 text-white shadow-xs font-bold"
+                              : "text-slate-400 hover:text-purple-300"
+                          }`}
+                        >
+                          <span>Group B</span>
+                          <span
+                            className={`text-[10px] px-1 py-0.5 rounded font-mono font-bold leading-none ${
+                              directGroupFilter === "B" ? "bg-purple-800 text-purple-100" : "bg-purple-950 text-purple-300 border border-purple-800"
+                            }`}
+                          >
+                            LH19 (8)
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
                   <button
                     onClick={handleAutoFillPlacements}
@@ -1669,7 +1751,18 @@ export default function SuperAdminPortalPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
-                        {(directOrderedTeamIds.length > 0 ? directOrderedTeamIds : teams.map((t) => t.id)).map((teamId) => {
+                        {(directOrderedTeamIds.length > 0 ? directOrderedTeamIds : teams.map((t) => t.id))
+                          .filter((teamId) => {
+                            if (directGame === "FREE_FIRE" && directGroupFilter !== "ALL") {
+                              const t = teams.find((item) => item.id === teamId);
+                              if (t) {
+                                const grp = getFreeFireGroupInfo(t.teamName);
+                                if (grp.group !== directGroupFilter) return false;
+                              }
+                            }
+                            return true;
+                          })
+                          .map((teamId) => {
                           const actualIndex = (directOrderedTeamIds.length > 0 ? directOrderedTeamIds : teams.map((t) => t.id)).indexOf(teamId);
                           const t = teams.find((item) => item.id === teamId);
                           if (!t) return null;
@@ -1755,6 +1848,20 @@ export default function SuperAdminPortalPage() {
                                       <span className={`font-bold text-xs ${t.hidden ? "text-slate-400 line-through" : "text-white"}`}>
                                         {t.teamName}
                                       </span>
+                                      {directGame === "FREE_FIRE" && (() => {
+                                        const grp = getFreeFireGroupInfo(t.teamName);
+                                        return (
+                                          <span
+                                            className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
+                                              grp.group === "A"
+                                                ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                                                : "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                                            }`}
+                                          >
+                                            {grp.badge}
+                                          </span>
+                                        );
+                                      })()}
                                       {t.hidden && (
                                         <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
                                           HIDDEN
@@ -1839,13 +1946,25 @@ export default function SuperAdminPortalPage() {
                                     type="button"
                                     onClick={() => handleToggleVisibility(t.id, directGame)}
                                     disabled={togglingVisibilityId === t.id}
-                                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                                    className={`px-2 py-0.5 rounded border transition flex items-center gap-1 text-[10px] font-bold ${
+                                      t.hidden
+                                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
+                                        : "bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border-slate-700"
+                                    }`}
                                     title={t.hidden ? "Unhide team (make visible on public dashboard)" : "Hide team from public dashboard"}
                                   >
-                                    {t.hidden ? (
-                                      <Eye className="w-3.5 h-3.5 text-amber-400" />
+                                    {togglingVisibilityId === t.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
+                                    ) : t.hidden ? (
+                                      <>
+                                        <Eye className="w-3 h-3 text-amber-400" />
+                                        <span>Unhide</span>
+                                      </>
                                     ) : (
-                                      <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+                                      <>
+                                        <EyeOff className="w-3 h-3 text-slate-400" />
+                                        <span>Hide</span>
+                                      </>
                                     )}
                                   </button>
                                 </div>
@@ -2201,6 +2320,20 @@ export default function SuperAdminPortalPage() {
                                   <span className={`font-bold text-sm ${t.hidden ? "text-slate-400 line-through" : "text-white"}`}>
                                     {t.teamName}
                                   </span>
+                                  {rosterGame === "FREE_FIRE" && (() => {
+                                    const grp = getFreeFireGroupInfo(t.teamName);
+                                    return (
+                                      <span
+                                        className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                                          grp.group === "A"
+                                            ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                                            : "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                                        }`}
+                                      >
+                                        {grp.badge}
+                                      </span>
+                                    );
+                                  })()}
                                   {t.hidden && (
                                     <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
                                       HIDDEN FROM PUBLIC

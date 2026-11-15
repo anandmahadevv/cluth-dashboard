@@ -1,548 +1,582 @@
 {
-  "version": 2,
-  "lastUpdated": "2026-11-14T10:36:32.005Z",
-  "matches": [],
   "teams": {
-    "FREE_FIRE": [
-      {
-        "id": "free_fire-1",
-        "teamName": "Khopdi Phodu gng",
-        "rank": 1,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-2",
-        "teamName": "GLOBEL HUNTERS",
-        "rank": 2,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-3",
-        "teamName": "AURA RUSHERZ",
-        "rank": 3,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-4",
-        "teamName": "TAG BOYSS !!",
-        "rank": 4,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-5",
-        "teamName": "IDFC",
-        "rank": 5,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-6",
-        "teamName": "TEAM NOX",
-        "rank": 6,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-7",
-        "teamName": "Zain warriors",
-        "rank": 7,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-8",
-        "teamName": "BAD SQUAD",
-        "rank": 8,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-9",
-        "teamName": "BROTHERHOOD",
-        "rank": 9,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-10",
-        "teamName": "Teamstack",
-        "rank": 10,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-11",
-        "teamName": "Hunters",
-        "rank": 11,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-12",
-        "teamName": "DAMN BROS",
-        "rank": 12,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-13",
-        "teamName": "Gaza",
-        "rank": 13,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-14",
-        "teamName": "ROCKERS",
-        "rank": 14,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-15",
-        "teamName": "V4",
-        "rank": 15,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-16",
-        "teamName": "LAGLORDS",
-        "rank": 16,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "free_fire-17",
-        "teamName": "MALNAD WARRIORS",
-        "rank": 17,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      }
-    ],
     "BGMI": [
       {
         "id": "bgmi-1",
-        "teamName": "Abdul Badi Syed Kazhi",
         "rank": 1,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Abdul Badi Syed Kazhi",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "bgmi-2",
-        "teamName": "Mohammed Muzaffer",
         "rank": 2,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Mohammed Muzaffer",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "bgmi-3",
-        "teamName": "Tarun Kumar Br",
         "rank": 3,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Tarun Kumar Br",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "bgmi-4",
-        "teamName": "Bexin Kuriakose",
         "rank": 4,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Bexin Kuriakose",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "bgmi-5",
-        "teamName": "Somya Ranjan Parida",
         "rank": 5,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Somya Ranjan Parida",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "bgmi-6",
+        "rank": 6,
         "teamName": "Sanmithraj T C",
-        "rank": 6,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
         "killPoints": 0,
-        "totalPoints": 0
-      }
-    ],
-    "VALORANT": [
-      {
-        "id": "valorant-1",
-        "teamName": "Vrashab",
-        "rank": 1,
+        "totalPoints": 0,
         "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-2",
-        "teamName": "Nousheen",
-        "rank": 2,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-3",
-        "teamName": "Larren Tomson Dsouza",
-        "rank": 3,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-4",
-        "teamName": "Vineeth Dsouza",
-        "rank": 4,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-5",
-        "teamName": "Abhishek Mohanty",
-        "rank": 5,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-6",
-        "teamName": "Nishan N",
-        "rank": 6,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-7",
-        "teamName": "Harsha D",
-        "rank": 7,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-8",
-        "teamName": "Mahesh R",
-        "rank": 8,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-9",
-        "teamName": "Srithan",
-        "rank": 9,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-10",
-        "teamName": "Prem B T",
-        "rank": 10,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-11",
-        "teamName": "Sanjay D R",
-        "rank": 11,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-12",
-        "teamName": "Pavan devadig",
-        "rank": 12,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-13",
-        "teamName": "Shubham Jain",
-        "rank": 13,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "valorant-14",
-        "teamName": "Sharath",
-        "rank": 14,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      }
-    ],
-    "EFOOTBALL": [
-      {
-        "id": "efootball-1",
-        "teamName": "R Pavan Kumar",
-        "rank": 1,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "efootball-2",
-        "teamName": "Mohammed Anoush Yasir",
-        "rank": 2,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "efootball-3",
-        "teamName": "Akhil ahmed",
-        "rank": 3,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "efootball-4",
-        "teamName": "Mohammed zain",
-        "rank": 4,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "efootball-5",
-        "teamName": "MUHAMMED SUFAIL",
-        "rank": 5,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "efootball-6",
-        "teamName": "MUHAMMED FAHIM ABDULLA",
-        "rank": 6,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "efootball-7",
-        "teamName": "Mohammed Nihan",
-        "rank": 7,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "efootball-8",
-        "teamName": "Abinraj pp",
-        "rank": 8,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "efootball-9",
-        "teamName": "muhammed nazal",
-        "rank": 9,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
-      },
-      {
-        "id": "efootball-10",
-        "teamName": "Abdulla Wafi",
-        "rank": 10,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
-        "killPoints": 0,
-        "totalPoints": 0
+        "placementPoints": 0
       }
     ],
     "MATIKS": [
       {
         "id": "matiks-1",
-        "teamName": "Nousheen Rumman",
         "rank": 1,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Nousheen Rumman",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-2",
-        "teamName": "Limitha M",
         "rank": 2,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Limitha M",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-3",
-        "teamName": "Abhishek Venkatesh Naik",
         "rank": 3,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Abhishek Venkatesh Naik",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-4",
-        "teamName": "Shreehari G S",
         "rank": 4,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Shreehari G S",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-5",
-        "teamName": "Shreyas S",
         "rank": 5,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Shreyas S",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-6",
-        "teamName": "Sangam J K",
         "rank": 6,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Sangam J K",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-7",
-        "teamName": "Karthik Gowda M G",
         "rank": 7,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Karthik Gowda M G",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-8",
-        "teamName": "Abhilash Pattar",
         "rank": 8,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Abhilash Pattar",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-9",
-        "teamName": "Madhu",
         "rank": 9,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Madhu",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-10",
-        "teamName": "Harshitha",
         "rank": 10,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Harshitha",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-11",
-        "teamName": "Praveen K Jummanagol",
         "rank": 11,
-        "matchesPlayed": 0,
-        "placementPoints": 0,
+        "teamName": "Praveen K Jummanagol",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
       },
       {
         "id": "matiks-12",
-        "teamName": "Arachana Jalihal",
         "rank": 12,
+        "teamName": "Arachana Jalihal",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      }
+    ],
+    "VALORANT": [
+      {
+        "id": "valorant-1",
+        "rank": 1,
+        "teamName": "Vrashab",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-2",
+        "rank": 2,
+        "teamName": "Nousheen",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-3",
+        "rank": 3,
+        "teamName": "Larren Tomson Dsouza",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-4",
+        "rank": 4,
+        "teamName": "Vineeth Dsouza",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-5",
+        "rank": 5,
+        "teamName": "Abhishek Mohanty",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-6",
+        "rank": 6,
+        "teamName": "Nishan N",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-7",
+        "rank": 7,
+        "teamName": "Harsha D",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-8",
+        "rank": 8,
+        "teamName": "Mahesh R",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-9",
+        "rank": 9,
+        "teamName": "Srithan",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-10",
+        "rank": 10,
+        "teamName": "Prem B T",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-11",
+        "rank": 11,
+        "teamName": "Sanjay D R",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-12",
+        "rank": 12,
+        "teamName": "Pavan devadig",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-13",
+        "rank": 13,
+        "teamName": "Shubham Jain",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "valorant-14",
+        "rank": 14,
+        "teamName": "Sharath",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      }
+    ],
+    "EFOOTBALL": [
+      {
+        "id": "efootball-1",
+        "rank": 1,
+        "teamName": "R Pavan Kumar",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "efootball-2",
+        "rank": 2,
+        "teamName": "Mohammed Anoush Yasir",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "efootball-3",
+        "rank": 3,
+        "teamName": "Akhil ahmed",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "efootball-4",
+        "rank": 4,
+        "teamName": "Mohammed zain",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "efootball-5",
+        "rank": 5,
+        "teamName": "MUHAMMED SUFAIL",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "efootball-6",
+        "rank": 6,
+        "teamName": "MUHAMMED FAHIM ABDULLA",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "efootball-7",
+        "rank": 7,
+        "teamName": "Mohammed Nihan",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "efootball-8",
+        "rank": 8,
+        "teamName": "Abinraj pp",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "efootball-9",
+        "rank": 9,
+        "teamName": "muhammed nazal",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "efootball-10",
+        "rank": 10,
+        "teamName": "Abdulla Wafi",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      }
+    ],
+    "FREE_FIRE": [
+      {
+        "id": "free_fire-1",
+        "rank": 1,
+        "gameId": "FREE_FIRE",
+        "hidden": false,
+        "teamName": "Khopdi Phodu gng",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "free_fire-2",
+        "rank": 2,
+        "gameId": "FREE_FIRE",
+        "hidden": false,
+        "teamName": "GLOBEL HUNTERS",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "free_fire-3",
+        "rank": 3,
+        "gameId": "FREE_FIRE",
+        "hidden": false,
+        "teamName": "AURA RUSHERZ",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "free_fire-4",
+        "rank": 4,
+        "gameId": "FREE_FIRE",
+        "hidden": false,
+        "teamName": "TAG BOYSS !!",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0
+      },
+      {
+        "id": "free_fire-5",
+        "rank": 5,
+        "gameId": "FREE_FIRE",
+        "teamName": "IDFC",
+        "killPoints": 0,
+        "totalPoints": 0,
         "matchesPlayed": 0,
         "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-6",
+        "rank": 6,
+        "gameId": "FREE_FIRE",
+        "teamName": "TEAM NOX",
         "killPoints": 0,
-        "totalPoints": 0
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-7",
+        "rank": 7,
+        "gameId": "FREE_FIRE",
+        "teamName": "Zain warriors",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-8",
+        "rank": 8,
+        "gameId": "FREE_FIRE",
+        "teamName": "BAD SQUAD",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-9",
+        "rank": 9,
+        "gameId": "FREE_FIRE",
+        "teamName": "BROTHERHOOD",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-10",
+        "rank": 10,
+        "gameId": "FREE_FIRE",
+        "teamName": "Teamstack",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-11",
+        "rank": 11,
+        "gameId": "FREE_FIRE",
+        "teamName": "Hunters",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-12",
+        "rank": 12,
+        "gameId": "FREE_FIRE",
+        "teamName": "DAMN BROS",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-13",
+        "rank": 13,
+        "gameId": "FREE_FIRE",
+        "teamName": "Gaza",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-14",
+        "rank": 14,
+        "gameId": "FREE_FIRE",
+        "teamName": "ROCKERS",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-15",
+        "rank": 15,
+        "gameId": "FREE_FIRE",
+        "teamName": "V4",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-16",
+        "rank": 16,
+        "gameId": "FREE_FIRE",
+        "teamName": "LAGLORDS",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
+      },
+      {
+        "id": "free_fire-17",
+        "rank": 17,
+        "gameId": "FREE_FIRE",
+        "teamName": "MALNAD WARRIORS",
+        "killPoints": 0,
+        "totalPoints": 0,
+        "matchesPlayed": 0,
+        "placementPoints": 0,
+        "hidden": false
       }
     ]
-  }
+  },
+  "matches": [],
+  "version": 2,
+  "lastUpdated": "2026-11-14T18:52:46.524Z"
 }

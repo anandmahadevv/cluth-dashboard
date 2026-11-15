@@ -18,16 +18,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: check.error || "Invalid code." }, { status: 401 });
     }
 
-    // Fast-path: Instant in-memory / local disk read (< 2ms)
-    let currentTeams = getGameLeaderboard(check.gameId);
+    const isSuperAdmin = !!check.isSuperAdmin;
+    let currentTeams = getGameLeaderboard(check.gameId, isSuperAdmin);
     if (!currentTeams || currentTeams.length === 0) {
-      currentTeams = await getGameLeaderboardAsync(check.gameId);
+      currentTeams = await getGameLeaderboardAsync(check.gameId, isSuperAdmin);
     }
 
     return NextResponse.json({
       success: true,
       gameId: check.gameId,
-      isSuperAdmin: !!check.isSuperAdmin,
+      isSuperAdmin,
       teams: currentTeams,
     });
   } catch (err: any) {
