@@ -38,7 +38,9 @@ export function LeaderboardTable({
   const [sortField, setSortField] = useState<"total" | "placement" | "kills">("total");
   const [sortAsc, setSortAsc] = useState(false);
 
-  const isValorant = gameName?.toLowerCase().includes("valorant");
+  const isValorant = Boolean(gameName?.toLowerCase().includes("valorant"));
+  const isEfootball = Boolean(gameName?.toLowerCase().includes("efootball"));
+  const isMatiks = Boolean(gameName?.toLowerCase().includes("matiks"));
   const isFreeFire =
     Boolean(gameName?.toLowerCase().includes("free fire")) ||
     entries.some(
@@ -48,6 +50,28 @@ export function LeaderboardTable({
         e.teamName?.toLowerCase().includes("khopdi phodu") ||
         e.teamName?.toLowerCase().includes("brotherhood")
     );
+
+  // Dynamic game-specific column labels
+  const matchColLabel = isMatiks ? "Rounds" : "Matches";
+  const placementColLabel = isValorant
+    ? "Placement Points"
+    : isEfootball
+    ? "Match Pts"
+    : isMatiks
+    ? "Rank Pts"
+    : "Placement";
+
+  const statColLabel = isEfootball
+    ? "Goals"
+    : isMatiks
+    ? "Matiks Score"
+    : "Kills";
+
+  const totalColLabel = isValorant
+    ? "Placement Points"
+    : isMatiks
+    ? "Total Score"
+    : "Total Points";
   const [groupFilter, setGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
   const qualifiedCount = entries.filter((e) => !e.hidden && e.qualified).length;
 
@@ -202,8 +226,10 @@ export function LeaderboardTable({
           <thead>
             <tr className="border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-400 bg-slate-50/90">
               <th className="py-3.5 pl-6 pr-3 w-18">Rank</th>
-              <th className="py-3.5 px-4 font-black">Team / Squad</th>
-              <th className="py-3.5 px-4 text-center">Matches</th>
+              <th className="py-3.5 px-4 font-black">
+                {isEfootball ? "Player" : isMatiks ? "Participant" : "Team / Squad"}
+              </th>
+              <th className="py-3.5 px-4 text-center">{matchColLabel}</th>
               {!isValorant && (
                 <>
                   <th
@@ -211,7 +237,7 @@ export function LeaderboardTable({
                     className="py-3.5 px-4 text-right cursor-pointer hover:text-slate-800 transition select-none"
                   >
                     <div className="flex items-center justify-end gap-1">
-                      <span>Placement</span>
+                      <span>{placementColLabel}</span>
                       <ArrowUpDown className="w-3 h-3 opacity-60" />
                     </div>
                   </th>
@@ -220,7 +246,7 @@ export function LeaderboardTable({
                     className="py-3.5 px-4 text-right cursor-pointer hover:text-slate-800 transition select-none"
                   >
                     <div className="flex items-center justify-end gap-1">
-                      <span>Kills</span>
+                      <span>{statColLabel}</span>
                       <ArrowUpDown className="w-3 h-3 opacity-60" />
                     </div>
                   </th>
@@ -231,7 +257,7 @@ export function LeaderboardTable({
                 className="py-3.5 pl-4 pr-6 text-right cursor-pointer hover:text-slate-800 transition select-none"
               >
                 <div className="flex items-center justify-end gap-1">
-                  <span>{isValorant ? "Placement Points" : "Total Points"}</span>
+                  <span>{totalColLabel}</span>
                   <ArrowUpDown className="w-3 h-3 opacity-60" />
                 </div>
               </th>

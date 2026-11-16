@@ -253,10 +253,10 @@ function LeaderboardsContent() {
           rank: 1 as const,
           name: matiksLeaderboard[0].teamName,
           subtext: "MATIKS 1st Place",
-          stat1Value: matiksLeaderboard[0].matchesPlayed,
-          stat1Label: "rounds\nplayed",
+          stat1Value: matiksLeaderboard[0].killPoints,
+          stat1Label: "matiks\nscore",
           stat2Value: matiksLeaderboard[0].totalPoints,
-          stat2Label: "matrix\nscore",
+          stat2Label: "total\npoints",
         }
       : undefined;
     second = matiksLeaderboard[1]
@@ -264,10 +264,10 @@ function LeaderboardsContent() {
           rank: 2 as const,
           name: matiksLeaderboard[1].teamName,
           subtext: "1st Runner-Up",
-          stat1Value: matiksLeaderboard[1].matchesPlayed,
-          stat1Label: "rounds\nplayed",
+          stat1Value: matiksLeaderboard[1].killPoints,
+          stat1Label: "matiks\nscore",
           stat2Value: matiksLeaderboard[1].totalPoints,
-          stat2Label: "matrix\nscore",
+          stat2Label: "total\npoints",
         }
       : undefined;
     third = matiksLeaderboard[2]
@@ -275,10 +275,10 @@ function LeaderboardsContent() {
           rank: 3 as const,
           name: matiksLeaderboard[2].teamName,
           subtext: "2nd Runner-Up",
-          stat1Value: matiksLeaderboard[2].matchesPlayed,
-          stat1Label: "rounds\nplayed",
+          stat1Value: matiksLeaderboard[2].killPoints,
+          stat1Label: "matiks\nscore",
           stat2Value: matiksLeaderboard[2].totalPoints,
-          stat2Label: "matrix\nscore",
+          stat2Label: "total\npoints",
         }
       : undefined;
   }
