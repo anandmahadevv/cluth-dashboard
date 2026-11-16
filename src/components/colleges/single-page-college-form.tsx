@@ -388,22 +388,24 @@ export function SinglePageCollegeForm() {
               </div>
             </div>
 
-            {/* Direct Action Button */}
+            {/* Ultra-Premium Tactical Action Button */}
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 px-5 py-3.5 font-display text-[15px] font-black uppercase tracking-wider text-white shadow-xl shadow-orange-600/25 transition hover:brightness-110 active:scale-[0.99]"
+              className="clutch-btn-premium group"
             >
-              <Trophy className="h-4 w-4" />
-              <span>
-                {currentCollege.slug === "kanyakumari"
-                  ? "Build Squad / Join Kanyakumari"
-                  : "Enter Tournament Dashboard"}
-              </span>
-              {currentCollege.slug === "kanyakumari" ? (
-                <ExternalLink className="h-4 w-4" />
-              ) : (
-                <ArrowRight className="h-4 w-4" />
-              )}
+              <div className="relative z-10 flex items-center justify-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-orange-500 clutch-blink shadow-[0_0_8px_#ff5500]" />
+                <span className="font-mono text-[13px] font-extrabold tracking-[0.2em] text-white">
+                  {currentCollege.slug === "kanyakumari"
+                    ? "ENTER KANYAKUMARI ARENA"
+                    : "ENTER TOURNAMENT DASHBOARD"}
+                </span>
+                {currentCollege.slug === "kanyakumari" ? (
+                  <ExternalLink className="h-4 w-4 text-orange-400 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-0.5" />
+                ) : (
+                  <ArrowRight className="h-4 w-4 text-orange-400 transition-transform duration-300 group-hover:translate-x-1.5" />
+                )}
+              </div>
             </button>
           </form>
         </div>

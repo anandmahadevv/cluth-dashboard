@@ -354,3 +354,80 @@ body {
   align-items: center;
   padding: 2rem 1.5rem;
 }
+
+/* ----------------------------------------------------
+   CLUTCH ULTRA-PREMIUM TACTICAL BUTTON
+   ---------------------------------------------------- */
+.clutch-btn-premium {
+  --cut: 12px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 24px;
+  background: transparent;
+  color: #ffffff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  isolation: isolate;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  clip-path: polygon(
+    var(--cut) 0%,
+    100% 0%,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0% 100%,
+    0% var(--cut)
+  );
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 0 25px rgba(255, 85, 0, 0.15);
+}
+
+.clutch-btn-premium::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(135deg, #ff5500 0%, #ff8800 45%, #ea580c 100%);
+  transition: opacity 0.3s ease;
+}
+
+.clutch-btn-premium::after {
+  content: "";
+  position: absolute;
+  inset: 1.5px;
+  z-index: -1;
+  background: 
+    linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.25) 50%, transparent 65%) 160% 0 / 250% 100% no-repeat,
+    radial-gradient(ellipse at top, #1e1916 0%, #09090b 85%);
+  clip-path: polygon(
+    calc(var(--cut) - 1px) 0%,
+    100% 0%,
+    100% calc(100% - calc(var(--cut) - 1px)),
+    calc(100% - calc(var(--cut) - 1px)) 100%,
+    0% 100%,
+    0% calc(var(--cut) - 1px)
+  );
+  transition: background-position 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+}
+
+.clutch-btn-premium:hover::after {
+  background-position: -60% 0, 0 0;
+  background-color: #141210;
+}
+
+.clutch-btn-premium:hover {
+  box-shadow: 0 6px 30px rgba(255, 85, 0, 0.4), 0 0 35px rgba(255, 85, 0, 0.25);
+  transform: translateY(-1px);
+}
+
+.clutch-btn-premium:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 12px rgba(255, 85, 0, 0.2);
+}
+
