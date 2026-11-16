@@ -6,8 +6,11 @@ import { usePathname } from "next/navigation";
 import {
   Menu,
   X,
-  MapPin,
-  Trophy,
+  Flame,
+  Crosshair,
+  Gamepad2,
+  Brain,
+  Maximize2,
 } from "lucide-react";
 import { EVENT_DETAILS } from "@/lib/constants";
 import { ShareModal } from "../shared/share-modal";
@@ -16,11 +19,6 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Hide default navbar on the dedicated single-screen college selector home page
-  if (pathname === "/") {
-    return null;
-  }
-
   const isActive = (path: string) => {
     if (path === "/" && pathname === "/") return true;
     if (path !== "/" && pathname.startsWith(path)) return true;
@@ -28,43 +26,29 @@ export function Navbar() {
   };
 
   const navLinks = [
-    { name: "Choose College", href: "/" },
-    { name: "Live Leaderboard", href: "/leaderboards" },
+    { name: "Leaderboard", href: "/" },
     { name: "Match Results", href: "/results" },
     { name: "Winners", href: "/winners" },
   ];
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md transition-all shadow-2xs">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
         {/* Brand */}
-        <Link href="/" className="group flex items-center gap-3 transition-opacity hover:opacity-90">
-          <div className="relative flex items-center">
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="h-9 w-9 rounded-lg bg-black border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0">
             <img
-              src="/brand/clutch-logo-320.webp"
+              src="/images/clutch-logo.jpg"
               alt="CLUTCH"
-              className="h-7 sm:h-8 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+              className="w-full h-full object-contain"
             />
           </div>
-          <span className="font-mono text-[11px] font-bold text-slate-400 uppercase tracking-[0.22em]">
-            by
-          </span>
-          <div className="flex items-center gap-2 rounded-lg bg-[#7a1c22]/10 border border-[#7a1c22]/30 px-2.5 py-1">
-            <div className="h-4 w-4 max-h-4 max-w-4 rounded-full overflow-hidden border border-[#7a1c22]/40 shrink-0 flex items-center justify-center">
-              <img
-                src="/images/niat-logo.jpg"
-                alt="NIAT Crest"
-                width={16}
-                height={16}
-                className="h-4 w-4 max-h-4 max-w-4 object-cover shrink-0"
-              />
-            </div>
-            <span className="font-rajdhani text-[15px] font-bold tracking-[0.22em] text-[#7a1c22] uppercase leading-none">
-              NIAT
+          <div className="flex flex-col">
+            <span className="font-black text-base tracking-tight text-slate-900 leading-none font-display">
+              {EVENT_DETAILS.brand}
             </span>
-            <span className="h-2.5 w-px bg-[#7a1c22]/30" />
-            <span className="font-mono text-[9.5px] font-bold tracking-[0.2em] text-orange-600 uppercase leading-none">
-              ESPORTS
+            <span className="text-[10px] font-semibold text-slate-400">
+              NIAT Championship 2026
             </span>
           </div>
         </Link>
@@ -86,18 +70,8 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* Right CTA / Campus Indicator */}
+        {/* Right CTA */}
         <div className="hidden sm:flex items-center gap-3">
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-mono font-semibold text-orange-700 hover:bg-orange-100 transition"
-            title="Switch College Campus"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-orange-500 clutch-blink" />
-            <MapPin className="h-3 w-3 text-orange-600" />
-            <span>Mangalore (Yenepoya)</span>
-          </Link>
-
           <div className="h-8 w-8 rounded-lg bg-[#7a1c22] border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0" title="NIAT">
             <img
               src="/images/niat-logo.jpg"
@@ -110,14 +84,6 @@ export function Navbar() {
 
         {/* Mobile menu trigger */}
         <div className="sm:hidden flex items-center gap-2">
-          <Link
-            href="/"
-            className="flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-mono font-bold text-orange-700"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-orange-500 clutch-blink" />
-            <span>Mangalore</span>
-          </Link>
-
           <div className="h-7 w-7 rounded-md bg-[#7a1c22] border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0">
             <img
               src="/images/niat-logo.jpg"
