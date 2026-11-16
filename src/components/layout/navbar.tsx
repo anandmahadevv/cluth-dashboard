@@ -38,20 +38,20 @@ export function Navbar() {
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md transition-all shadow-2xs">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-lg bg-black border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0">
+        <Link href="/" className="group flex items-center gap-3 transition-opacity hover:opacity-90">
+          <div className="relative flex items-center">
             <img
-              src="/images/clutch-logo.jpg"
+              src="/brand/clutch-logo-320.webp"
               alt="CLUTCH"
-              className="w-full h-full object-contain"
+              className="h-7 sm:h-8 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
             />
           </div>
-          <div className="flex flex-col">
-            <span className="font-black text-base tracking-tight text-slate-900 leading-none font-display">
-              {EVENT_DETAILS.brand}
-            </span>
-            <span className="text-[10px] font-semibold text-slate-400">
-              NIAT Championship 2026
+          <span className="font-mono text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+            by
+          </span>
+          <div className="flex items-center gap-1.5 rounded-md bg-[#7a1c22]/10 border border-[#7a1c22]/30 px-2 py-0.5">
+            <span className="font-mono text-[11px] font-extrabold tracking-wider text-[#7a1c22]">
+              NIAT
             </span>
           </div>
         </Link>

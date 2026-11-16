@@ -61,28 +61,40 @@ export function SinglePageCollegeForm() {
       <header className="relative z-30 w-full border-b border-white/[0.08] bg-black/60 backdrop-blur-xl px-4 sm:px-8 py-3.5 shrink-0">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           {/* Brand Lockup */}
-          <div className="flex items-center gap-3.5">
-            <div className="h-9 w-9 rounded-lg bg-black border border-white/15 shadow-md shadow-black/80 overflow-hidden flex items-center justify-center p-0.5">
+          <Link href="/" className="group flex items-center gap-3 transition-opacity hover:opacity-95">
+            {/* Official Stylized CLUTCH Logo */}
+            <div className="relative flex items-center">
+              <div className="absolute -inset-1 rounded-lg bg-orange-500/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               <img
-                src="/images/clutch-logo.jpg"
+                src="/brand/clutch-logo-320.webp"
                 alt="CLUTCH"
-                className="w-full h-full object-contain"
+                className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.03] drop-shadow-[0_0_14px_rgba(255,85,0,0.5)]"
               />
             </div>
-            <div className="flex items-center gap-2.5">
-              <span className="font-display text-[22px] font-black tracking-tight text-white leading-none">
-                CLUTCH
-              </span>
-              <span className="text-[12px] font-mono text-zinc-500 uppercase tracking-widest">
-                by
-              </span>
-              <div className="flex items-center gap-1.5 rounded bg-[#7a1c22]/25 border border-[#7a1c22]/60 px-2 py-0.5">
-                <span className="text-[12px] font-mono font-bold tracking-wider text-rose-300">
-                  NIAT
-                </span>
+
+            {/* Refined 'BY' Separator */}
+            <span className="font-mono text-[11px] font-bold text-zinc-500 uppercase tracking-[0.2em] select-none">
+              by
+            </span>
+
+            {/* NIAT Premium Crest & Badge */}
+            <div className="flex items-center gap-2 rounded-lg bg-[#7a1c22]/20 border border-[#7a1c22]/60 px-2.5 py-1 backdrop-blur-md shadow-sm transition-colors group-hover:border-[#7a1c22]/90 group-hover:bg-[#7a1c22]/30">
+              <div className="h-4 w-4 rounded-full overflow-hidden border border-rose-400/40 shrink-0">
+                <img
+                  src="/images/niat-logo.jpg"
+                  alt="NIAT Crest"
+                  className="h-full w-full object-cover"
+                />
               </div>
+              <span className="font-mono text-[12px] font-extrabold tracking-[0.14em] text-rose-300 uppercase">
+                NIAT
+              </span>
+              <span className="hidden sm:inline-block h-2.5 w-px bg-rose-400/30" />
+              <span className="hidden sm:inline-block font-mono text-[10px] tracking-wider text-rose-300/80">
+                ESPORTS
+              </span>
             </div>
-          </div>
+          </Link>
 
           {/* Right Status Indicator */}
           <div className="flex items-center gap-3">
