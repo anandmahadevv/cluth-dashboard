@@ -105,8 +105,8 @@ export const COLLEGES_DATA: CollegeDetail[] = [
     coordinates: { x: 54.08, y: 95.3 },
     totalTeams: 48,
     featured: true,
-    hasActiveDashboard: false,
-    externalLink: "https://niat-clutch.vercel.app/join",
+    hasActiveDashboard: true,
+    dashboardPath: "/leaderboards?college=kanyakumari",
   },
   {
     id: "bengaluru-svyasa",

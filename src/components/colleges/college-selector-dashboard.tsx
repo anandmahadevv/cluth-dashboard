@@ -426,32 +426,19 @@ export function CollegeSelectorDashboard() {
 
             {/* Action */}
             <div className="flex items-center gap-3">
-              {modalCollege.slug === "mangalore" ? (
-                <Link
-                  href="/leaderboards"
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-white hover:bg-orange-500 transition shadow-lg shadow-orange-600/30"
-                >
-                  <Trophy className="h-4 w-4" />
-                  Launch Live Leaderboard
-                </Link>
-              ) : modalCollege.slug === "kanyakumari" ? (
-                <a
-                  href="https://niat-clutch.vercel.app/join"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-white hover:bg-orange-500 transition shadow-lg shadow-orange-600/30"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Join Kanyakumari Tournament
-                </a>
-              ) : (
-                <button
-                  onClick={() => setModalCollege(null)}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-zinc-300 hover:bg-white/10"
-                >
-                  Close Brief
-                </button>
-              )}
+              <Link
+                href={`/leaderboards?college=${modalCollege.slug}`}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-white hover:bg-orange-500 transition shadow-lg shadow-orange-600/30"
+              >
+                <Trophy className="h-4 w-4" />
+                Launch Campus Leaderboard
+              </Link>
+              <button
+                onClick={() => setModalCollege(null)}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-zinc-300 hover:bg-white/10"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

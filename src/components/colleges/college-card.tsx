@@ -139,39 +139,15 @@ export function CollegeCard({
 
         {/* Action Button Row */}
         <div className="flex items-center gap-2">
-          {isMangaloreLive ? (
-            <Link
-              href="/leaderboards"
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-3 py-2 font-display text-xs font-bold uppercase tracking-wider text-white transition hover:bg-orange-500 active:scale-95 shadow-md shadow-orange-600/20"
-            >
-              <Trophy className="h-3.5 w-3.5" />
-              Enter Live Leaderboard
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          ) : college.slug === "kanyakumari" ? (
-            <a
-              href="https://niat-clutch.vercel.app/join"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-3 py-2 font-display text-xs font-bold uppercase tracking-wider text-white transition hover:bg-orange-500 active:scale-95 shadow-md shadow-orange-600/20"
-            >
-              <Users className="h-3.5 w-3.5" />
-              Build Squad / Join
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          ) : (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenDetails?.(college);
-              }}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-display text-xs font-bold uppercase tracking-wider text-zinc-300 transition hover:bg-white/10 hover:text-white"
-            >
-              View Campus Brief
-            </button>
-          )}
+          <Link
+            href={`/leaderboards?college=${college.slug}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-3 py-2 font-display text-xs font-bold uppercase tracking-wider text-white transition hover:bg-orange-500 active:scale-95 shadow-md shadow-orange-600/20"
+          >
+            <Trophy className="h-3.5 w-3.5" />
+            <span>{isMangaloreLive ? "Enter Live Leaderboard" : "Enter Leaderboard"}</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
 
           <button
             onClick={(e) => {

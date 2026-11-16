@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Trophy,
   Flame,
@@ -10,9 +12,12 @@ import {
   Brain,
   ShieldCheck,
   Sparkles,
+  ArrowLeft,
+  MapPin,
 } from "lucide-react";
 import { GameId } from "@/types";
 import { GAMES_CONFIG } from "@/lib/constants";
+import { COLLEGES_DATA } from "@/lib/colleges-data";
 import {
   useGameLeaderboard,
   useGameMatches,
@@ -26,7 +31,12 @@ import { FifaTable } from "@/components/games/fifa-table";
 import { MatiksTable } from "@/components/games/matiks-table";
 import { ShareModal } from "@/components/shared/share-modal";
 
-export default function LeaderboardsPage() {
+function LeaderboardsContent() {
+  const searchParams = useSearchParams();
+  const collegeParam = searchParams.get("college");
+  const activeCollege =
+    COLLEGES_DATA.find((c) => c.slug === collegeParam) || COLLEGES_DATA[0];
+
   const [selectedGame, setSelectedGame] = useState<GameId>("FREE_FIRE");
 
   const {
@@ -281,23 +291,45 @@ export default function LeaderboardsPage() {
       {/* Top Header matching reference styling */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-black border border-zinc-700/80 shadow-sm overflow-hidden flex items-center justify-center p-1.5 shrink-0">
+          <Link
+            href="/"
+            title="Return to College Selection"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-black border border-zinc-700/80 shadow-sm overflow-hidden flex items-center justify-center p-1.5 shrink-0 group hover:border-orange-500/50 transition"
+          >
             <img
-              src="/images/clutch-logo.jpg"
+              src="/brand/clutch-logo-320.webp"
               alt="CLUTCH"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain group-hover:scale-105 transition-transform"
             />
-          </div>
+          </Link>
           <div>
-            <div className="text-xs font-black uppercase tracking-widest text-[#f59e0b] font-display">
-              CLUTCH 2026 STANDINGS
+            <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-widest text-[#f59e0b] font-display">
+              <span>CLUTCH 2026 STANDINGS</span>
+              {activeCollege && (
+                <>
+                  <span className="text-zinc-600">//</span>
+                  <span className="text-zinc-200 font-mono bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 rounded text-[11px] flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-orange-400" />
+                    {activeCollege.name} ({activeCollege.city})
+                  </span>
+                </>
+              )}
             </div>
             <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white font-display mt-0.5">
               THE LEADERBOARD
             </h1>
-            <p className="text-xs text-zinc-400 mt-1">
-              Displaying real-time Super Admin authorized rankings and approved point tables.
-            </p>
+            <div className="flex flex-wrap items-center gap-3 mt-1">
+              <p className="text-xs text-zinc-400">
+                Displaying real-time Super Admin authorized rankings and approved point tables.
+              </p>
+              <Link
+                href="/"
+                className="text-xs font-mono text-orange-400 hover:text-orange-300 font-bold transition underline underline-offset-2 flex items-center gap-1"
+              >
+                <ArrowLeft className="h-3 w-3" />
+                Switch College
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -417,5 +449,21 @@ export default function LeaderboardsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function LeaderboardsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#050608] flex items-center justify-center">
+          <div className="font-mono text-xs uppercase tracking-widest text-orange-400">
+            LOADING CLUTCH LEADERBOARD...
+          </div>
+        </div>
+      }
+    >
+      <LeaderboardsContent />
+    </Suspense>
   );
 }
