@@ -19,6 +19,8 @@ import {
   ShieldCheck,
   Radio,
   Flame,
+  Crosshair,
+  Sparkles,
 } from "lucide-react";
 
 export function SinglePageCollegeForm() {
@@ -51,14 +53,14 @@ export function SinglePageCollegeForm() {
   };
 
   return (
-    <div className="relative h-screen max-h-screen w-full flex flex-col justify-between overflow-hidden bg-[#060709] text-zinc-100 selection:bg-orange-500 selection:text-white">
-      {/* Background Cyber Texture & Lighting */}
-      <div className="cyber-grid-floor absolute inset-0 pointer-events-none opacity-20 overflow-hidden" />
-      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[420px] w-[800px] bg-gradient-to-b from-orange-500/15 via-orange-600/5 to-transparent blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-32 left-1/2 -translate-x-1/2 h-64 w-[600px] bg-gradient-to-t from-orange-500/10 to-transparent blur-[100px]" />
+    <div className="relative h-screen max-h-screen w-full flex flex-col justify-between overflow-hidden bg-[#050608] text-zinc-100 selection:bg-orange-500 selection:text-white">
+      {/* Background Cyber Floor & Ambient Neon Blooms */}
+      <div className="cyber-grid-floor absolute inset-0 pointer-events-none opacity-25 overflow-hidden" />
+      <div className="pointer-events-none absolute -top-44 left-1/2 -translate-x-1/2 h-[450px] w-[850px] bg-gradient-to-b from-orange-500/18 via-orange-600/5 to-transparent blur-[140px]" />
+      <div className="pointer-events-none absolute -bottom-36 left-1/2 -translate-x-1/2 h-72 w-[700px] bg-gradient-to-t from-orange-500/12 to-transparent blur-[120px]" />
 
-      {/* TOP BRANDING: NIAT & CLUTCH */}
-      <header className="relative z-30 w-full border-b border-white/[0.08] bg-black/60 backdrop-blur-xl px-4 sm:px-8 py-3.5 shrink-0">
+      {/* TOP BRANDING BAR: NIAT & CLUTCH */}
+      <header className="relative z-30 w-full border-b border-white/[0.08] bg-black/60 backdrop-blur-2xl px-4 sm:px-8 py-3.5 shrink-0">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           {/* Brand Lockup */}
           <Link href="/" className="group flex items-center gap-3 transition-opacity hover:opacity-95">
@@ -116,78 +118,93 @@ export function SinglePageCollegeForm() {
         </div>
       </header>
 
-      {/* CENTER: STREAMLINED PREMIUM FORM */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-3 sm:py-6 overflow-hidden">
-        <div className="w-full max-w-[540px]">
-          {/* Header */}
-          <div className="text-center mb-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-widest text-orange-400 mb-2.5">
+      {/* CENTER: ULTRA-STYLISH HERO & CARD */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 sm:py-5 overflow-hidden">
+        <div className="w-full max-w-[560px]">
+          {/* Header with Teko Font */}
+          <div className="text-center mb-4 sm:mb-5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-0.5 font-mono text-[11px] font-bold uppercase tracking-widest text-orange-400 mb-1.5 backdrop-blur-md">
               <span className="h-1.5 w-1.5 rounded-full bg-orange-500 clutch-blink" />
               <span>COLLEGIATE ESPORTS ARENA</span>
             </div>
 
-            <h1 className="clutch-glitch font-display text-[34px] sm:text-[40px] font-black uppercase tracking-tight text-white leading-none">
-              CHOOSE YOUR <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500">COLLEGE</span>
+            {/* STYLISH TEKO ESPORTS TITLE */}
+            <h1 className="clutch-glitch font-teko text-[50px] sm:text-[62px] font-bold tracking-[0.05em] uppercase leading-[0.92] text-white">
+              CHOOSE YOUR <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500 drop-shadow-[0_0_24px_rgba(255,85,0,0.5)]">COLLEGE</span>
             </h1>
 
-            <p className="text-[14px] text-zinc-400 mt-1.5 max-w-md mx-auto leading-relaxed">
+            <p className="text-[13px] text-zinc-400 mt-1 max-w-md mx-auto leading-relaxed font-sans">
               Select your NIAT campus to view verified standings, tournament brackets, and live results.
             </p>
           </div>
 
-          {/* Premium Form Card */}
+          {/* THE STYLISH HOLOGRAPHIC CYBER CARD */}
           <form
             onSubmit={handleSubmit}
-            className="clutch-hud relative rounded-2xl border border-white/[0.12] bg-zinc-950/85 p-6 shadow-2xl backdrop-blur-2xl"
+            className="clutch-hud relative rounded-2xl border border-white/[0.14] bg-gradient-to-b from-zinc-950/95 via-black/95 to-zinc-950/95 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_40px_rgba(255,85,0,0.1)] backdrop-blur-3xl"
           >
-            {/* Top Tactical Telemetry Header */}
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 mb-4.5 font-mono text-[12px]">
-              <span className="text-zinc-400 flex items-center gap-1.5 font-medium">
-                <ShieldCheck className="h-4 w-4 text-orange-400" />
-                CAMPUS SECTOR SELECTOR
+            {/* Top Glowing Ambient Light Bar */}
+            <div className="absolute top-0 inset-x-10 h-[1.5px] bg-gradient-to-r from-transparent via-orange-500/90 to-transparent pointer-events-none" />
+
+            {/* Cyber Corner Brackets */}
+            <span className="absolute -top-[1px] -left-[1px] w-3 h-3 border-t-2 border-l-2 border-orange-500 pointer-events-none rounded-tl-sm" />
+            <span className="absolute -top-[1px] -right-[1px] w-3 h-3 border-t-2 border-r-2 border-orange-500 pointer-events-none rounded-tr-sm" />
+            <span className="absolute -bottom-[1px] -left-[1px] w-3 h-3 border-b-2 border-l-2 border-orange-500 pointer-events-none rounded-bl-sm" />
+            <span className="absolute -bottom-[1px] -right-[1px] w-3 h-3 border-b-2 border-r-2 border-orange-500 pointer-events-none rounded-br-sm" />
+
+            {/* Tactical Telemetry Bar */}
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 mb-4 font-mono text-[11px]">
+              <span className="text-zinc-400 flex items-center gap-2 font-semibold tracking-wider">
+                <Crosshair className="h-3.5 w-3.5 text-orange-400" />
+                CAMPUS SECTOR MATRIX // PROTOCOL ACTIVE
               </span>
-              <span className="rounded bg-white/[0.06] px-2 py-0.5 text-zinc-300 font-semibold text-[11px]">
-                11 CAMPUSES
+              <span className="rounded bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 text-orange-300 font-bold text-[10px] tracking-widest">
+                11 SECTORS
               </span>
             </div>
 
-            {/* Custom Interactive College Selector */}
+            {/* Custom Interactive Campus Selector */}
             <div className="relative mb-4" ref={dropdownRef}>
-              <label className="block text-[12px] font-mono font-bold uppercase tracking-wider text-zinc-300 mb-1.5">
-                Target Campus
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-mono font-bold uppercase tracking-[0.16em] text-zinc-300">
+                  Target Campus
+                </label>
+                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                  CLICK TO SWITCH
+                </span>
+              </div>
 
               {/* Selector Trigger Button */}
               <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between rounded-xl border border-white/15 bg-zinc-900/90 px-4 py-3 text-left transition hover:border-orange-500/50 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-gradient-to-b from-zinc-900/90 to-black px-4 py-3 text-left transition-all duration-200 hover:border-orange-500/70 hover:shadow-[0_0_24px_rgba(255,85,0,0.18)] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
               >
                 <div className="flex items-center gap-3 overflow-hidden">
                   <span
                     className={`h-2.5 w-2.5 rounded-full shrink-0 ${
                       currentCollege.status === "live"
-                        ? "bg-orange-500 clutch-blink shadow-[0_0_8px_#ff5500]"
+                        ? "bg-orange-500 clutch-blink shadow-[0_0_10px_#ff5500]"
                         : currentCollege.status === "soon"
                         ? "bg-cyan-400"
                         : "bg-zinc-500"
                     }`}
                   />
                   <div className="truncate">
-                    <span className="text-[15px] font-bold text-white">
+                    <span className="font-rajdhani text-[17px] font-bold text-white tracking-wide">
                       {currentCollege.name}
                     </span>
-                    <span className="text-[13px] text-zinc-400 font-medium ml-2">
-                      — {currentCollege.city}
+                    <span className="text-[13px] text-zinc-400 font-mono ml-2">
+                      // {currentCollege.city}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 ml-2">
+                <div className="flex items-center gap-2.5 shrink-0 ml-2">
                   <span
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider ${
+                    className={`rounded px-2 py-0.5 text-[10px] font-mono font-extrabold uppercase tracking-wider ${
                       currentCollege.status === "live"
-                        ? "bg-orange-500/20 text-orange-400 border border-orange-500/40"
+                        ? "bg-orange-500/20 text-orange-400 border border-orange-500/40 shadow-[0_0_8px_rgba(255,85,0,0.25)]"
                         : currentCollege.status === "soon"
                         ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30"
                         : "bg-zinc-800 text-zinc-400 border border-zinc-700"
@@ -200,19 +217,20 @@ export function SinglePageCollegeForm() {
                       : "ARCHIVED"}
                   </span>
                   <ChevronDown
-                    className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${
+                    className={`h-4 w-4 text-zinc-400 transition-transform duration-300 ${
                       isOpen ? "rotate-180 text-orange-400" : ""
                     }`}
                   />
                 </div>
               </button>
 
-              {/* Custom Dropdown Menu */}
+              {/* Custom Dropdown Floating Panel */}
               {isOpen && (
-                <div className="absolute left-0 right-0 top-full mt-2 z-50 max-h-64 overflow-y-auto rounded-xl border border-white/15 bg-zinc-950/95 shadow-2xl backdrop-blur-2xl p-1.5 space-y-1">
+                <div className="absolute left-0 right-0 top-full mt-2 z-50 max-h-64 overflow-y-auto rounded-xl border border-white/20 bg-zinc-950/95 shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl p-1.5 space-y-1">
                   {/* Category: Live */}
-                  <div className="px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-orange-400">
-                    Live Active Tournaments
+                  <div className="px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-widest text-orange-400 flex items-center justify-between">
+                    <span>Live Active Tournaments</span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-orange-500 clutch-blink" />
                   </div>
                   {COLLEGES_DATA.filter((c) => c.status === "live").map((col) => {
                     const isSelected = col.slug === selectedSlug;
@@ -226,19 +244,19 @@ export function SinglePageCollegeForm() {
                         }}
                         className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-[14px] transition ${
                           isSelected
-                            ? "bg-orange-500/20 text-white font-bold border border-orange-500/40"
-                            : "text-zinc-200 hover:bg-white/[0.06] hover:text-white"
+                            ? "bg-orange-500/20 text-white font-bold border border-orange-500/40 shadow-[0_0_12px_rgba(255,85,0,0.2)]"
+                            : "text-zinc-200 hover:bg-white/[0.08] hover:text-white"
                         }`}
                       >
                         <div className="flex items-center gap-2.5 truncate">
                           <span className="h-2 w-2 rounded-full bg-orange-500 clutch-blink shrink-0" />
-                          <span className="truncate">{col.name}</span>
+                          <span className="truncate font-rajdhani text-[16px] font-bold">{col.name}</span>
                           <span className="text-[12px] text-zinc-400 font-mono">
                             ({col.city})
                           </span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-orange-300">
+                          <span className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[9px] font-mono font-extrabold text-orange-300">
                             LIVE
                           </span>
                           {isSelected && <Check className="h-3.5 w-3.5 text-orange-400" />}
@@ -248,7 +266,7 @@ export function SinglePageCollegeForm() {
                   })}
 
                   {/* Category: Upcoming */}
-                  <div className="px-2.5 pt-2 pb-1 text-[11px] font-mono font-bold uppercase tracking-wider text-cyan-400 border-t border-white/[0.06]">
+                  <div className="px-2.5 pt-2 pb-1 text-[10px] font-mono font-bold uppercase tracking-widest text-cyan-400 border-t border-white/[0.06]">
                     Upcoming Campus Circuits
                   </div>
                   {COLLEGES_DATA.filter((c) => c.status === "soon").map((col) => {
@@ -264,18 +282,18 @@ export function SinglePageCollegeForm() {
                         className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-[14px] transition ${
                           isSelected
                             ? "bg-cyan-500/20 text-white font-bold border border-cyan-500/40"
-                            : "text-zinc-200 hover:bg-white/[0.06] hover:text-white"
+                            : "text-zinc-200 hover:bg-white/[0.08] hover:text-white"
                         }`}
                       >
                         <div className="flex items-center gap-2.5 truncate">
                           <span className="h-2 w-2 rounded-full bg-cyan-400 shrink-0" />
-                          <span className="truncate">{col.name}</span>
+                          <span className="truncate font-rajdhani text-[16px] font-bold">{col.name}</span>
                           <span className="text-[12px] text-zinc-400 font-mono">
                             ({col.city})
                           </span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-mono font-bold text-cyan-300">
+                          <span className="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-mono font-extrabold text-cyan-300">
                             SOON
                           </span>
                           {isSelected && <Check className="h-3.5 w-3.5 text-cyan-400" />}
@@ -285,7 +303,7 @@ export function SinglePageCollegeForm() {
                   })}
 
                   {/* Category: Archived */}
-                  <div className="px-2.5 pt-2 pb-1 text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-400 border-t border-white/[0.06]">
+                  <div className="px-2.5 pt-2 pb-1 text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-400 border-t border-white/[0.06]">
                     Hall of Fame (Completed)
                   </div>
                   {COLLEGES_DATA.filter((c) => c.status === "finished").map((col) => {
@@ -301,18 +319,18 @@ export function SinglePageCollegeForm() {
                         className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-[14px] transition ${
                           isSelected
                             ? "bg-zinc-800 text-white font-bold border border-zinc-700"
-                            : "text-zinc-300 hover:bg-white/[0.06] hover:text-white"
+                            : "text-zinc-300 hover:bg-white/[0.08] hover:text-white"
                         }`}
                       >
                         <div className="flex items-center gap-2.5 truncate">
                           <span className="h-2 w-2 rounded-full bg-zinc-500 shrink-0" />
-                          <span className="truncate">{col.name}</span>
+                          <span className="truncate font-rajdhani text-[16px] font-bold">{col.name}</span>
                           <span className="text-[12px] text-zinc-400 font-mono">
                             ({col.city})
                           </span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-mono font-bold text-zinc-400">
+                          <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[9px] font-mono font-bold text-zinc-400">
                             ARCHIVED
                           </span>
                           {isSelected && <Check className="h-3.5 w-3.5 text-zinc-300" />}
@@ -324,13 +342,17 @@ export function SinglePageCollegeForm() {
               )}
             </div>
 
-            {/* Selected Campus Information Card */}
-            <div className="rounded-xl border border-white/[0.08] bg-black/50 p-4 mb-5 space-y-2.5">
-              <div className="flex items-center justify-between">
+            {/* STYLISH HOLOGRAPHIC CAMPUS DOSSIER */}
+            <div className="relative overflow-hidden rounded-xl border border-white/[0.1] bg-gradient-to-r from-orange-500/[0.07] via-black/70 to-black/70 p-4 mb-5 space-y-3">
+              {/* Left Glowing Vertical Bevel Bar */}
+              <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r bg-gradient-to-b from-orange-500 via-amber-400 to-orange-600 shadow-[0_0_12px_#ff5500]" />
+
+              {/* Status Header */}
+              <div className="flex items-center justify-between pl-1">
                 <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider ${
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
                     currentCollege.status === "live"
-                      ? "bg-orange-500/20 text-orange-400 border border-orange-500/40"
+                      ? "bg-orange-500/20 text-orange-400 border border-orange-500/40 shadow-[0_0_10px_rgba(255,85,0,0.25)]"
                       : currentCollege.status === "soon"
                       ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30"
                       : "bg-zinc-800 text-zinc-400 border border-zinc-700"
@@ -342,24 +364,24 @@ export function SinglePageCollegeForm() {
                   {currentCollege.statusLabel}
                 </span>
 
-                <span className="text-[12px] font-mono text-zinc-400 flex items-center gap-1 font-medium">
+                <span className="text-[11px] font-mono text-zinc-400 flex items-center gap-1 font-medium">
                   <MapPin className="h-3.5 w-3.5 text-orange-400" />
                   {currentCollege.city}, {currentCollege.state}
                 </span>
               </div>
 
               {/* Campus Name & Venue */}
-              <div>
-                <h3 className="font-display text-[19px] font-bold text-white tracking-tight">
+              <div className="pl-1">
+                <h3 className="font-teko text-[30px] sm:text-[34px] font-bold uppercase text-white tracking-wide leading-none">
                   {currentCollege.name}
                 </h3>
-                <p className="text-[12px] text-zinc-400 line-clamp-1 mt-0.5">
+                <p className="text-[12px] text-zinc-400 line-clamp-1 mt-0.5 font-sans">
                   {currentCollege.venue}
                 </p>
               </div>
 
               {/* Tournament Key Date & Competitive Titles */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-2.5 text-[12px] font-mono">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.08] pt-2.5 text-[11px] font-mono pl-1">
                 {currentCollege.dates && currentCollege.dates[0] && (
                   <div className="text-zinc-300 flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5 text-zinc-400" />
@@ -374,7 +396,7 @@ export function SinglePageCollegeForm() {
                   {currentCollege.games.slice(0, 3).map((g) => (
                     <span
                       key={g.slug}
-                      className="rounded bg-white/[0.06] border border-white/[0.08] px-2 py-0.5 text-[10px] text-zinc-300 font-mono"
+                      className="rounded bg-white/[0.08] border border-white/10 px-2 py-0.5 text-[10px] text-zinc-300 font-mono tracking-wider"
                     >
                       {g.name}
                     </span>
