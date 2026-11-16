@@ -4,7 +4,6 @@ import {
   TournamentStatusResponse,
   FreeFireLeaderboardEntry,
   BgmiLeaderboardEntry,
-  GenericMatchResult,
   GameWinner,
   PublicApiResponse,
   IndividualAwards,
@@ -12,38 +11,18 @@ import {
 import { GAMES_CONFIG, API_ENDPOINTS } from "./constants";
 import {
   MOCK_TOURNAMENT_STATUS,
-  MOCK_FREE_FIRE_LEADERBOARD,
-  MOCK_BGMI_LEADERBOARD,
-  MOCK_FIFA_MATCHES,
-  MOCK_MATIKS_RESULTS,
-  MOCK_GENERIC_MATCHES,
   MOCK_GAME_WINNERS,
 } from "./mock-data";
 
-const APPS_SCRIPT_API_URL = process.env.NEXT_PUBLIC_CLUTCH_API_URL || "";
-const USE_REMOTE_GAS = process.env.NEXT_PUBLIC_USE_REMOTE_GAS === "true";
-
 /**
- * Universal safe fetcher: defaults to internal native store API routes, with optional Google Apps Script bridge
+ * Universal safe fetcher for internal API routes powered by Supabase store
  */
 async function safePublicFetch<T>(
-  actionName: string,
   restEndpoint: string,
-  extraParams: Record<string, string>,
   fallbackData: T
 ): Promise<PublicApiResponse<T>> {
   try {
-    let fullUrl = restEndpoint;
-
-    // Use remote Google Apps Script if explicitly toggled on
-    if (APPS_SCRIPT_API_URL && APPS_SCRIPT_API_URL.includes("script.google.com") && USE_REMOTE_GAS) {
-      const urlObj = new URL(APPS_SCRIPT_API_URL);
-      urlObj.searchParams.set("action", actionName);
-      Object.entries(extraParams).forEach(([k, v]) => urlObj.searchParams.set(k, v));
-      fullUrl = urlObj.toString();
-    }
-
-    const res = await fetch(fullUrl, {
+    const res = await fetch(restEndpoint, {
       cache: "no-store",
       headers: {
         Accept: "application/json",
@@ -82,7 +61,7 @@ async function safePublicFetch<T>(
       };
     }
   } catch (err) {
-    console.warn(`[CLUTCH API] Fetch (${actionName}) error:`, err);
+    console.warn(`[CLUTCH API] Fetch (${restEndpoint}) error:`, err);
   }
 
   return {
@@ -98,9 +77,7 @@ async function safePublicFetch<T>(
 
 export async function getTournamentStatus(): Promise<PublicApiResponse<TournamentStatusResponse>> {
   return safePublicFetch<TournamentStatusResponse>(
-    "getTournamentStatus",
     API_ENDPOINTS.tournamentStatus,
-    {},
     MOCK_TOURNAMENT_STATUS
   );
 }
@@ -108,9 +85,7 @@ export async function getTournamentStatus(): Promise<PublicApiResponse<Tournamen
 export async function getPublicGames(): Promise<PublicApiResponse<GameConfig[]>> {
   const gamesList = Object.values(GAMES_CONFIG);
   return safePublicFetch<GameConfig[]>(
-    "getGames",
     API_ENDPOINTS.games,
-    {},
     gamesList
   );
 }
@@ -119,9 +94,7 @@ export async function getLeaderboard(
   gameId: GameId
 ): Promise<PublicApiResponse<FreeFireLeaderboardEntry[] | BgmiLeaderboardEntry[] | any[]>> {
   return safePublicFetch<any[]>(
-    "getLeaderboard",
     API_ENDPOINTS.leaderboardsByGame(gameId),
-    { game: gameId },
     []
   );
 }
@@ -131,18 +104,14 @@ export async function getMatches(
 ): Promise<PublicApiResponse<any[]>> {
   const endpoint = gameId ? API_ENDPOINTS.matchesByGame(gameId) : API_ENDPOINTS.results;
   return safePublicFetch<any[]>(
-    "getMatchHistory",
     endpoint,
-    gameId ? { game: gameId } : {},
     []
   );
 }
 
 export async function getWinners(): Promise<PublicApiResponse<GameWinner[]>> {
   return safePublicFetch<GameWinner[]>(
-    "getWinners",
     API_ENDPOINTS.winners,
-    {},
     MOCK_GAME_WINNERS
   );
 }

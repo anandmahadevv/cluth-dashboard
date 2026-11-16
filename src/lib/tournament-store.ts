@@ -269,7 +269,7 @@ export function sortAndRankTeams(teams: TeamScoreEntry[]): TeamScoreEntry[] {
 }
 
 /**
- * Get sorted leaderboard for a specific game (filters hidden teams by default for public views)
+ * Synchronous local snapshot helpers (for fallback/offline usage)
  */
 export function getGameLeaderboard(gameId: GameId, includeHidden = false): TeamScoreEntry[] {
   const store = getStore();
@@ -278,9 +278,6 @@ export function getGameLeaderboard(gameId: GameId, includeHidden = false): TeamS
   return sortAndRankTeams(filtered);
 }
 
-/**
- * Get matches for a game (default: approved only for public display)
- */
 export function getGameMatches(gameId?: GameId, approvedOnly = true): MatchSubmission[] {
   const store = getStore();
   return store.matches.filter((m) => {
@@ -300,127 +297,6 @@ export function verifyAdminPassword(password: string): boolean {
 }
 
 /**
- * Process a match submission from a verified POC or Super Admin
- * - If submitted by POC: marked as PENDING (does NOT alter public leaderboard until Super Admin approves)
- * - If submitted by Super Admin or autoApprove is true: marked as APPROVED & immediately broadcasts to leaderboard
- */
-export function recordMatchSubmission(params: {
-  gameId: GameId;
-  pocCode: string;
-  matchNumber: number | string;
-  proofUrl: string;
-  notes?: string;
-  autoApprove?: boolean;
-  teamResults: {
-    teamId: string;
-    placement: number;
-    placementPoints?: number;
-    kills?: number;
-  }[];
-}): { success: boolean; pending?: boolean; submissionId?: string; leaderboard?: TeamScoreEntry[]; message?: string; error?: string } {
-  const auth = verifyGameCode(params.pocCode, params.gameId);
-  if (!auth.valid) {
-    return { success: false, error: auth.error };
-  }
-
-  const store = getStore();
-  const teams = store.teams[params.gameId];
-  if (!teams || teams.length === 0) {
-    return { success: false, error: "No teams configured for this game." };
-  }
-
-  const detailedResults: MatchSubmission["teamResults"] = [];
-
-  // Calculate detailed points for each team
-  params.teamResults.forEach((res) => {
-    const team = teams.find((t) => t.id === res.teamId);
-    if (!team) return;
-
-    let placementPts = res.placementPoints || 0;
-    // For Valorant: pure placement points only, no combat/kill score
-    const kills = params.gameId === "VALORANT" ? 0 : (res.kills || 0);
-
-    // Auto-calculate placement points based on game matrix
-    const matrix = PLACEMENT_POINTS[params.gameId];
-    if (matrix && res.placement >= 1 && res.placement <= matrix.length) {
-      if (placementPts === 0) {
-        placementPts = matrix[res.placement - 1];
-      }
-    }
-
-    const matchPoints = placementPts + kills;
-
-    detailedResults.push({
-      teamId: team.id,
-      teamName: team.teamName,
-      placement: res.placement,
-      placementPoints: placementPts,
-      kills: kills,
-      matchPoints: matchPoints,
-    });
-  });
-
-  const isSuperAdminCode = !!auth.isSuperAdmin && params.pocCode === "CLUTCH-SUPER-2026";
-  const shouldApprove = isSuperAdminCode && params.autoApprove === true;
-  const status: SubmissionStatus = shouldApprove ? "APPROVED" : "PENDING";
-
-  if (shouldApprove) {
-    // Apply scores to teams immediately
-    detailedResults.forEach((res) => {
-      const team = teams.find((t) => t.id === res.teamId);
-      if (!team) return;
-
-      team.matchesPlayed += 1;
-      team.placementPoints += res.placementPoints;
-      team.killPoints += res.kills;
-      team.totalPoints += res.matchPoints;
-      team.lastMatchRank = res.placement;
-    });
-
-    // Re-rank teams
-    store.teams[params.gameId] = sortAndRankTeams(teams);
-  }
-
-  // Add submission record
-  const matchEntry: MatchSubmission = {
-    id: `SUB-${params.gameId.substring(0, 2)}-${Date.now()}`,
-    gameId: params.gameId,
-    matchNumber: params.matchNumber,
-    timestamp: new Date().toISOString(),
-    pocCode: params.pocCode,
-    proofUrl: params.proofUrl,
-    notes: params.notes || "",
-    status: status,
-    reviewedAt: shouldApprove ? new Date().toISOString() : undefined,
-    reviewedBy: shouldApprove ? "SuperAdmin" : undefined,
-    teamResults: detailedResults,
-  };
-
-  store.matches.unshift(matchEntry);
-  saveStore(store);
-
-  if (shouldApprove) {
-    return {
-      success: true,
-      pending: false,
-      submissionId: matchEntry.id,
-      leaderboard: store.teams[params.gameId],
-      message: `Match ${params.matchNumber} results approved and broadcast live to leaderboard!`,
-    };
-  }
-
-  return {
-    success: true,
-    pending: true,
-    submissionId: matchEntry.id,
-    message: `Match ${params.matchNumber} results submitted! Awaiting Super Admin review and publishing.`,
-  };
-}
-
-/**
- * Super Admin review action: APPROVE or REJECT a submission
- */
-/**
  * Helper to rollback points awarded by an approved match
  */
 function rollbackMatchScores(store: TournamentStoreData, match: MatchSubmission) {
@@ -438,94 +314,6 @@ function rollbackMatchScores(store: TournamentStoreData, match: MatchSubmission)
       });
       store.teams[match.gameId] = sortAndRankTeams(teams);
     }
-  }
-}
-
-/**
- * Super Admin Review/Action on a submission: APPROVE, REJECT, UNDO (revert to pending), or DELETE
- */
-export function reviewMatchSubmission(params: {
-  submissionId: string;
-  action: "APPROVE" | "REJECT" | "UNDO" | "DELETE";
-  adminPassword: string;
-  rejectionReason?: string;
-}): { success: boolean; match?: MatchSubmission; leaderboard?: TeamScoreEntry[]; error?: string } {
-  if (!verifyAdminPassword(params.adminPassword)) {
-    return { success: false, error: "Invalid Super Admin password. Access denied." };
-  }
-
-  const store = getStore();
-  const match = store.matches.find((m) => m.id === params.submissionId);
-  if (!match) {
-    return { success: false, error: "Submission not found." };
-  }
-
-  if (params.action === "APPROVE") {
-    if (match.status !== "APPROVED") {
-      const teams = store.teams[match.gameId];
-      if (teams && match.teamResults) {
-        match.teamResults.forEach((res) => {
-          const team = teams.find((t) => t.id === res.teamId);
-          if (team) {
-            team.matchesPlayed += 1;
-            team.placementPoints += res.placementPoints;
-            team.killPoints += res.kills;
-            team.totalPoints += res.matchPoints;
-            team.lastMatchRank = res.placement;
-          }
-        });
-        store.teams[match.gameId] = sortAndRankTeams(teams);
-      }
-    }
-
-    match.status = "APPROVED";
-    match.reviewedAt = new Date().toISOString();
-    match.reviewedBy = "SuperAdmin";
-    match.rejectionReason = undefined;
-    saveStore(store);
-
-    return {
-      success: true,
-      match,
-      leaderboard: store.teams[match.gameId],
-    };
-  } else if (params.action === "UNDO") {
-    // Revert approved match back to PENDING and rollback points
-    rollbackMatchScores(store, match);
-    match.status = "PENDING";
-    match.reviewedAt = undefined;
-    match.reviewedBy = undefined;
-    match.rejectionReason = undefined;
-    saveStore(store);
-
-    return {
-      success: true,
-      match,
-      leaderboard: store.teams[match.gameId],
-    };
-  } else if (params.action === "DELETE") {
-    // Permanently delete match and rollback points if approved
-    rollbackMatchScores(store, match);
-    const idx = store.matches.findIndex((m) => m.id === params.submissionId);
-    if (idx !== -1) {
-      store.matches.splice(idx, 1);
-    }
-    saveStore(store);
-
-    return {
-      success: true,
-      leaderboard: store.teams[match.gameId],
-    };
-  } else {
-    // REJECT action: rollback points if it was approved
-    rollbackMatchScores(store, match);
-    match.status = "REJECTED";
-    match.reviewedAt = new Date().toISOString();
-    match.reviewedBy = "SuperAdmin";
-    match.rejectionReason = params.rejectionReason || "Submission rejected by Super Admin.";
-    saveStore(store);
-
-    return { success: true, match, leaderboard: store.teams[match.gameId] };
   }
 }
 

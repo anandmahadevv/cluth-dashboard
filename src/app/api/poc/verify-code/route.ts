@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyGameCode, getGameLeaderboard, getGameLeaderboardAsync } from "@/lib/tournament-store";
+import { verifyGameCode, getGameLeaderboardAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";

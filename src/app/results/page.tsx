@@ -41,7 +41,7 @@ export default function MatchResultsPage() {
             MATCH RESULTS
           </h1>
           <p className="text-xs text-slate-500">
-            Certified published match results from Google Sheets
+            Certified tournament match results ratified by Super Admin
           </p>
         </div>
 
