@@ -75,24 +75,24 @@ export function SinglePageCollegeForm() {
             </div>
 
             {/* Refined 'BY' Separator */}
-            <span className="font-mono text-[11px] font-bold text-zinc-500 uppercase tracking-[0.2em] select-none">
+            <span className="font-mono text-[11px] font-bold text-zinc-500 uppercase tracking-[0.22em] select-none">
               by
             </span>
 
-            {/* NIAT Premium Crest & Badge */}
-            <div className="flex items-center gap-2 rounded-lg bg-[#7a1c22]/20 border border-[#7a1c22]/60 px-2.5 py-1 backdrop-blur-md shadow-sm transition-colors group-hover:border-[#7a1c22]/90 group-hover:bg-[#7a1c22]/30">
-              <div className="h-4 w-4 rounded-full overflow-hidden border border-rose-400/40 shrink-0">
+            {/* NIAT Premium Crest & Badge Lockup */}
+            <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#7a1c22]/35 via-[#5a1419]/25 to-zinc-950/40 border border-[#c1272d]/45 px-2.5 py-1 backdrop-blur-md shadow-[0_0_12px_rgba(193,39,45,0.2)] transition-all duration-300 group-hover:border-[#c1272d]/80 group-hover:shadow-[0_0_20px_rgba(193,39,45,0.4)]">
+              <div className="h-4.5 w-4.5 rounded-full overflow-hidden border border-rose-300/40 shrink-0 ring-1 ring-white/10 shadow-inner">
                 <img
                   src="/images/niat-logo.jpg"
                   alt="NIAT Crest"
                   className="h-full w-full object-cover"
                 />
               </div>
-              <span className="font-mono text-[12px] font-extrabold tracking-[0.14em] text-rose-300 uppercase">
+              <span className="font-rajdhani text-[16px] sm:text-[17px] font-bold tracking-[0.22em] text-white uppercase leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
                 NIAT
               </span>
-              <span className="hidden sm:inline-block h-2.5 w-px bg-rose-400/30" />
-              <span className="hidden sm:inline-block font-mono text-[10px] tracking-wider text-rose-300/80">
+              <span className="h-3 w-px bg-white/20" />
+              <span className="font-mono text-[10px] font-extrabold tracking-[0.22em] text-orange-400 uppercase leading-none">
                 ESPORTS
               </span>
             </div>

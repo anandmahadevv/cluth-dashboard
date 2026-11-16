@@ -46,12 +46,23 @@ export function Navbar() {
               className="h-7 sm:h-8 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
             />
           </div>
-          <span className="font-mono text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+          <span className="font-mono text-[11px] font-bold text-slate-400 uppercase tracking-[0.22em]">
             by
           </span>
-          <div className="flex items-center gap-1.5 rounded-md bg-[#7a1c22]/10 border border-[#7a1c22]/30 px-2 py-0.5">
-            <span className="font-mono text-[11px] font-extrabold tracking-wider text-[#7a1c22]">
+          <div className="flex items-center gap-2 rounded-lg bg-[#7a1c22]/10 border border-[#7a1c22]/30 px-2.5 py-1">
+            <div className="h-4 w-4 rounded-full overflow-hidden border border-[#7a1c22]/40 shrink-0">
+              <img
+                src="/images/niat-logo.jpg"
+                alt="NIAT Crest"
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <span className="font-rajdhani text-[15px] font-bold tracking-[0.22em] text-[#7a1c22] uppercase leading-none">
               NIAT
+            </span>
+            <span className="h-2.5 w-px bg-[#7a1c22]/30" />
+            <span className="font-mono text-[9.5px] font-bold tracking-[0.2em] text-orange-600 uppercase leading-none">
+              ESPORTS
             </span>
           </div>
         </Link>
