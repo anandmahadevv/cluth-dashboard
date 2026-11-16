@@ -334,11 +334,13 @@ function LeaderboardsContent() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#7a1c22] border border-zinc-700/80 shadow-sm overflow-hidden flex items-center justify-center p-1.5 shrink-0" title="NIAT">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 max-w-[44px] max-h-[44px] rounded-xl bg-[#7a1c22] border border-zinc-700/80 shadow-sm overflow-hidden flex items-center justify-center p-1 shrink-0" title="NIAT">
             <img
               src="/images/niat-logo.jpg"
               alt="NIAT Crest"
-              className="w-full h-full object-contain"
+              width={44}
+              height={44}
+              className="w-full h-full max-w-full max-h-full object-contain"
             />
           </div>
           <LiveIndicator

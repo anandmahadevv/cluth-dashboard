@@ -77,11 +77,13 @@ export function SinglePageCollegeForm() {
 
             {/* NIAT Premium Crest & Badge Lockup */}
             <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#7a1c22]/35 via-[#5a1419]/25 to-zinc-950/40 border border-[#c1272d]/45 px-2.5 py-1 backdrop-blur-md shadow-[0_0_12px_rgba(193,39,45,0.2)] transition-all duration-300 group-hover:border-[#c1272d]/80 group-hover:shadow-[0_0_20px_rgba(193,39,45,0.4)]">
-              <div className="h-4.5 w-4.5 rounded-full overflow-hidden border border-rose-300/40 shrink-0 ring-1 ring-white/10 shadow-inner">
+              <div className="h-5 w-5 max-h-5 max-w-5 rounded-full overflow-hidden border border-rose-300/40 shrink-0 ring-1 ring-white/10 shadow-inner flex items-center justify-center">
                 <img
                   src="/images/niat-logo.jpg"
                   alt="NIAT Crest"
-                  className="h-full w-full object-cover"
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 max-h-5 max-w-5 object-cover shrink-0"
                 />
               </div>
               <span className="font-rajdhani text-[16px] sm:text-[17px] font-bold tracking-[0.22em] text-white uppercase leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">

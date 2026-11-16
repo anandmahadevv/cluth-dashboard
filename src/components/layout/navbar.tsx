@@ -50,11 +50,13 @@ export function Navbar() {
             by
           </span>
           <div className="flex items-center gap-2 rounded-lg bg-[#7a1c22]/10 border border-[#7a1c22]/30 px-2.5 py-1">
-            <div className="h-4 w-4 rounded-full overflow-hidden border border-[#7a1c22]/40 shrink-0">
+            <div className="h-4 w-4 max-h-4 max-w-4 rounded-full overflow-hidden border border-[#7a1c22]/40 shrink-0 flex items-center justify-center">
               <img
                 src="/images/niat-logo.jpg"
                 alt="NIAT Crest"
-                className="h-full w-full object-cover"
+                width={16}
+                height={16}
+                className="h-4 w-4 max-h-4 max-w-4 object-cover shrink-0"
               />
             </div>
             <span className="font-rajdhani text-[15px] font-bold tracking-[0.22em] text-[#7a1c22] uppercase leading-none">
