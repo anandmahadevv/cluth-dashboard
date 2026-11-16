@@ -11,6 +11,8 @@ import {
   Gamepad2,
   Brain,
   Maximize2,
+  MapPin,
+  Trophy,
 } from "lucide-react";
 import { EVENT_DETAILS } from "@/lib/constants";
 import { ShareModal } from "../shared/share-modal";
@@ -26,14 +28,15 @@ export function Navbar() {
   };
 
   const navLinks = [
-    { name: "Leaderboard", href: "/" },
+    { name: "Colleges Hub", href: "/" },
+    { name: "Live Leaderboard", href: "/leaderboards" },
     { name: "Match Results", href: "/results" },
     { name: "Winners", href: "/winners" },
   ];
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md transition-all shadow-2xs">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-lg bg-black border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0">
@@ -70,8 +73,18 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* Right CTA */}
+        {/* Right CTA / Campus Indicator */}
         <div className="hidden sm:flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-mono font-semibold text-orange-700 hover:bg-orange-100 transition"
+            title="Switch College Campus"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-orange-500 clutch-blink" />
+            <MapPin className="h-3 w-3 text-orange-600" />
+            <span>Mangalore (Yenepoya)</span>
+          </Link>
+
           <div className="h-8 w-8 rounded-lg bg-[#7a1c22] border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0" title="NIAT">
             <img
               src="/images/niat-logo.jpg"
@@ -84,6 +97,14 @@ export function Navbar() {
 
         {/* Mobile menu trigger */}
         <div className="sm:hidden flex items-center gap-2">
+          <Link
+            href="/"
+            className="flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-mono font-bold text-orange-700"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-orange-500 clutch-blink" />
+            <span>Mangalore</span>
+          </Link>
+
           <div className="h-7 w-7 rounded-md bg-[#7a1c22] border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0">
             <img
               src="/images/niat-logo.jpg"
