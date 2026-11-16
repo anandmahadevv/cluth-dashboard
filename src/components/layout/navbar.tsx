@@ -6,11 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   Menu,
   X,
-  Flame,
-  Crosshair,
-  Gamepad2,
-  Brain,
-  Maximize2,
   MapPin,
   Trophy,
 } from "lucide-react";
@@ -21,6 +16,11 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Hide default navbar on the dedicated single-screen college selector home page
+  if (pathname === "/") {
+    return null;
+  }
+
   const isActive = (path: string) => {
     if (path === "/" && pathname === "/") return true;
     if (path !== "/" && pathname.startsWith(path)) return true;
@@ -28,7 +28,7 @@ export function Navbar() {
   };
 
   const navLinks = [
-    { name: "Colleges Hub", href: "/" },
+    { name: "Choose College", href: "/" },
     { name: "Live Leaderboard", href: "/leaderboards" },
     { name: "Match Results", href: "/results" },
     { name: "Winners", href: "/winners" },

@@ -1,6 +1,16 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { EVENT_DETAILS } from "@/lib/constants";
 
 export function Footer() {
+  const pathname = usePathname();
+
+  // Hide footer on the single-screen home landing page
+  if (pathname === "/") {
+    return null;
+  }
+
   return (
     <footer className="w-full border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-400">
       <div className="mx-auto max-w-5xl px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
