@@ -128,7 +128,7 @@ export function SinglePageCollegeForm() {
 
             {/* STYLISH TEKO ESPORTS TITLE */}
             <h1 className="clutch-glitch font-teko text-[50px] sm:text-[62px] font-bold tracking-[0.05em] uppercase leading-[0.92] text-white">
-              CHOOSE YOUR <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500 drop-shadow-[0_0_24px_rgba(255,85,0,0.5)]">COLLEGE</span>
+              CHOOSE YOUR <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500 drop-shadow-[0_0_24px_rgba(255,85,0,0.5)]">CAMPUS</span>
             </h1>
 
             <p className="text-[13px] text-zinc-400 mt-1 max-w-md mx-auto leading-relaxed font-sans">
