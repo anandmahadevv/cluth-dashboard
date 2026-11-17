@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Flame, ShieldCheck, ArrowLeft, Trophy, Calendar, MapPin } from "lucide-react";
-import { GAMES_CONFIG, EVENT_DETAILS } from "@/lib/constants";
+import { Flame, ArrowLeft, MapPin } from "lucide-react";
+import { GAMES_CONFIG } from "@/lib/constants";
+import { CAMPUSES_REGISTRY } from "@/lib/tournament-constants";
 import { useGameLeaderboard, useGameMatches, useGameAwards } from "@/hooks/use-tournament-data";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { Podium } from "@/components/leaderboards/podium";
@@ -13,10 +15,44 @@ import { ShareModal } from "@/components/shared/share-modal";
 
 export default function FreeFirePage() {
   const gameConfig = GAMES_CONFIG.FREE_FIRE;
+  const [currentCampusId, setCurrentCampusId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlCampus = params.get("campus") || params.get("college");
+      const stored = localStorage.getItem("clutch_selected_campus");
+      return urlCampus || stored || "mangalore";
+    }
+    return "mangalore";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlCampus = params.get("campus") || params.get("college");
+      if (urlCampus) {
+        localStorage.setItem("clutch_selected_campus", urlCampus);
+        setCurrentCampusId(urlCampus);
+      } else {
+        const stored = localStorage.getItem("clutch_selected_campus");
+        if (stored) setCurrentCampusId(stored);
+      }
+      const handler = (e: any) => {
+        if (e.detail) {
+          setCurrentCampusId(e.detail);
+          localStorage.setItem("clutch_selected_campus", e.detail);
+        }
+      };
+      window.addEventListener("clutch_campus_change", handler);
+      return () => window.removeEventListener("clutch_campus_change", handler);
+    }
+  }, []);
+
+  const activeCampusMeta = CAMPUSES_REGISTRY[currentCampusId] || CAMPUSES_REGISTRY["mangalore"];
+
   const { data: leaderboard, lastUpdated, isRefreshing, refresh, isTabActive } =
-    useGameLeaderboard("FREE_FIRE");
-  const { data: matches } = useGameMatches("FREE_FIRE");
-  const { data: awards } = useGameAwards("FREE_FIRE");
+    useGameLeaderboard("FREE_FIRE", currentCampusId);
+  const { data: matches } = useGameMatches("FREE_FIRE", currentCampusId);
+  const { data: awards } = useGameAwards("FREE_FIRE", currentCampusId);
 
   const activeLeaderboard = leaderboard?.filter((t) => !t.hidden) || [];
 
@@ -50,7 +86,7 @@ export default function FreeFirePage() {
         stat2Label: "rank",
       };
     }
-  } else if (activeLeaderboard[0]) {
+  } else if (hasMatchesPlayed && activeLeaderboard[0]) {
     first = {
       rank: 1 as const,
       name: activeLeaderboard[0].teamName,
@@ -84,50 +120,55 @@ export default function FreeFirePage() {
     }
   }
 
+  const backLink = currentCampusId && currentCampusId !== "mangalore"
+    ? `/?campus=${currentCampusId}`
+    : "/";
+
   return (
-    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 bg-white text-slate-900">
       {/* Back button */}
       <div>
         <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-white transition"
+          href={backLink}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Tournament Overview</span>
+          <span>Back to Tournament Overview ({activeCampusMeta.name})</span>
         </Link>
       </div>
 
       {/* Header Banner */}
-      <div className="rounded-2xl border border-zinc-800 bg-gradient-to-r from-amber-950/30 via-zinc-900/60 to-zinc-950 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xl">
+      <div className="rounded-2xl border border-slate-200 bg-[#17211e] text-white p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xl">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
               <Flame className="w-5 h-5" />
             </div>
             <span className="text-xs font-extrabold uppercase tracking-widest text-amber-400 font-display">
               {gameConfig.badge}
             </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-500/30 font-semibold uppercase">
-              Super Admin Approved
+            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 font-semibold uppercase">
+              {currentCampusId === "mangalore" ? "Concluded · Ratified" : "Live Arena"}
             </span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white font-display">
-            {gameConfig.name}
+            {gameConfig.name} · {activeCampusMeta.name}
           </h1>
 
-          <p className="text-xs sm:text-sm text-zinc-300 max-w-xl">
+          <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
             {gameConfig.tagline}. Scoring based on official placement points matrix + 1 point per confirmed elimination.
           </p>
 
-          <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-400 pt-1 font-mono">
-            <div>Format: <span className="text-white font-sans">2 Groups (9 + 8 Teams) • B2B 2 Matches</span></div>
-            <div>Rooms: <span className="text-blue-400 font-sans font-semibold">Group A (LH18)</span> • <span className="text-purple-400 font-sans font-semibold">Group B (LH19)</span></div>
-            <div>Scoring: <span className="text-amber-400 font-sans">{gameConfig.scoringFormat}</span></div>
+          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 pt-1">
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-amber-400" />
+              {activeCampusMeta.university}, {activeCampusMeta.location}
+            </span>
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-3 shrink-0">
+        <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto">
           <LiveIndicator
             lastUpdated={lastUpdated}
             isRefreshing={isRefreshing}
@@ -138,19 +179,24 @@ export default function FreeFirePage() {
         </div>
       </div>
 
-      {/* Podium (Pre-Match Banner Removed) */}
-      {first && (
-        <div className="py-2">
-          <div className="text-center mb-4">
-            <span className="text-xs font-black uppercase tracking-widest text-amber-400 font-display">
-              CHAMPIONSHIP PODIUM
-            </span>
-            <h2 className="text-2xl font-black text-white font-display">
-              Free Fire Champions
+      {/* Podium or Arena Ready Showcase */}
+      {first ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+            <h2 className="text-lg font-black uppercase text-slate-800 font-display tracking-wide">
+              Podium Standings
             </h2>
           </div>
           <Podium first={first} second={second} third={third} />
         </div>
+      ) : (
+        <PreMatchShowcase
+          gameName={gameConfig.name}
+          teamCount={activeLeaderboard.length}
+          format={gameConfig.format}
+          campusName={activeCampusMeta.name}
+          university={activeCampusMeta.university}
+        />
       )}
 
       {/* Special Accolades (MVP & Top Fragger) */}
@@ -159,48 +205,47 @@ export default function FreeFirePage() {
       {/* Leaderboard Table */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-white font-display uppercase tracking-wide">
+          <h3 className="text-lg font-bold text-slate-900 font-display uppercase tracking-wide">
             Official Squad Standings
           </h3>
-          <span className="text-xs text-zinc-400">4 Matches Concluded</span>
+          <span className="text-xs text-slate-500 font-mono">
+            {currentCampusId === "mangalore" ? "4 Matches Concluded" : `${activeLeaderboard.length} Contenders`}
+          </span>
         </div>
         <LeaderboardTable
-          entries={leaderboard || []}
+          entries={activeLeaderboard}
           gameName="Free Fire"
           gameColor="#f59e0b"
         />
       </div>
 
       {/* Match History Cards */}
-      <div className="pt-8 border-t border-zinc-800 space-y-4">
-        <h3 className="text-lg font-bold text-white font-display uppercase tracking-wide">
-          Verified Match Highlights
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {matches?.map((m: any) => (
-            <div
-              key={m.result_id}
-              className="rounded-xl border border-zinc-800 bg-[#0d1117]/80 p-5 flex flex-col justify-between hover:border-amber-500/40 transition"
-            >
-              <div>
-                <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
-                  <span className="font-mono font-bold text-white">Match #{m.match_number}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-500/30">
-                    Approved
-                  </span>
+      {matches && matches.length > 0 && (
+        <div className="pt-8 border-t border-slate-200 space-y-4">
+          <h3 className="text-lg font-bold text-slate-900 font-display uppercase tracking-wide">
+            Verified Match Highlights
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {matches.map((m: any) => (
+              <div
+                key={m.id || m.result_id}
+                className="rounded-xl border border-slate-200 bg-white p-5 flex flex-col justify-between hover:border-amber-500/40 shadow-sm transition"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+                    <span className="font-mono font-bold text-slate-900">Match #{m.matchNumber || m.match_number}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold">
+                      Approved
+                    </span>
+                  </div>
+                  <div className="font-bold text-amber-700 text-sm">{m.teamName || m.team_name}</div>
+                  <p className="text-xs text-slate-600 mt-1">{m.result_text || `Rank #${m.teamResults?.[0]?.placement || 1}`}</p>
                 </div>
-                <div className="font-bold text-amber-400 text-sm">{m.team_name}</div>
-                <p className="text-xs text-zinc-300 mt-1">{m.result_text}</p>
               </div>
-              <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between text-xs font-mono text-zinc-400">
-                <span>Placement: {m.score_data?.placement_points} Pts</span>
-                <span>Kills: {m.score_data?.kill_points} Pts</span>
-                <span className="text-white font-bold">Total: {m.score_data?.total_points} Pts</span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

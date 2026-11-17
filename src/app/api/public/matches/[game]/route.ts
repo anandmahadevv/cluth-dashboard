@@ -9,11 +9,14 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { game: string } }
 ) {
+  const { searchParams } = new URL(req.url);
+  const campusId = searchParams.get("campusId") || undefined;
   const rawGame = params.game?.toUpperCase().replace(/-/g, "_") as GameId;
-  const matches = await getGameMatchesAsync(rawGame);
+  const matches = await getGameMatchesAsync(rawGame, true, campusId);
 
   return NextResponse.json({
     success: true,
+    campusId,
     data: matches,
     meta: {
       source: "INTERNAL_STORE",

@@ -1,17 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getGameLeaderboardAsync, getAwardsAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const campusId = searchParams.get("campusId") || "mangalore";
+
   const games: GameId[] = ["FREE_FIRE", "BGMI", "VALORANT", "EFOOTBALL", "MATIKS"];
   const winners: any[] = [];
 
   for (const g of games) {
-    const list = await getGameLeaderboardAsync(g);
-    const awards = await getAwardsAsync(g);
+    const list = await getGameLeaderboardAsync(g, false, campusId);
+    const awards = await getAwardsAsync(g, campusId);
 
     // If Admin/POC manually entered official winners, use them authoritatively
     if (awards?.winnerTeam && awards.winnerTeam.trim()) {
@@ -85,6 +88,7 @@ export async function GET() {
 
   return NextResponse.json({
     success: true,
+    campusId,
     data: winners,
     meta: { source: "INTERNAL_STORE", approvedOnly: true, timestamp: new Date().toISOString() },
   });

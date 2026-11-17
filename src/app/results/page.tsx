@@ -12,18 +12,32 @@ import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 export default function MatchResultsPage() {
   const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentCampusId, setCurrentCampusId] = useState<string>("mangalore");
+  const [currentCampusId, setCurrentCampusId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlCampus = params.get("campus") || params.get("college");
+      const stored = localStorage.getItem("clutch_selected_campus");
+      return urlCampus || stored || "mangalore";
+    }
+    return "mangalore";
+  });
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const urlCampus = params.get("campus") || params.get("college");
-      const stored = localStorage.getItem("clutch_selected_campus");
-      if (urlCampus || stored) {
-        setCurrentCampusId(urlCampus || stored || "mangalore");
+      if (urlCampus) {
+        localStorage.setItem("clutch_selected_campus", urlCampus);
+        setCurrentCampusId(urlCampus);
+      } else {
+        const stored = localStorage.getItem("clutch_selected_campus");
+        if (stored) setCurrentCampusId(stored);
       }
       const handler = (e: any) => {
-        if (e.detail) setCurrentCampusId(e.detail);
+        if (e.detail) {
+          setCurrentCampusId(e.detail);
+          localStorage.setItem("clutch_selected_campus", e.detail);
+        }
       };
       window.addEventListener("clutch_campus_change", handler);
       return () => window.removeEventListener("clutch_campus_change", handler);

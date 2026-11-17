@@ -75,9 +75,11 @@ async function safePublicFetch<T>(
   };
 }
 
-export async function getTournamentStatus(): Promise<PublicApiResponse<TournamentStatusResponse>> {
+export async function getTournamentStatus(campusId?: string): Promise<PublicApiResponse<TournamentStatusResponse>> {
+  const base = API_ENDPOINTS.tournamentStatus;
+  const url = campusId ? `${base}?campusId=${encodeURIComponent(campusId)}` : base;
   return safePublicFetch<TournamentStatusResponse>(
-    API_ENDPOINTS.tournamentStatus,
+    url,
     MOCK_TOURNAMENT_STATUS
   );
 }
@@ -110,9 +112,11 @@ export async function getMatches(
   return safePublicFetch<any[]>(url, []);
 }
 
-export async function getWinners(): Promise<PublicApiResponse<GameWinner[]>> {
+export async function getWinners(campusId?: string): Promise<PublicApiResponse<GameWinner[]>> {
+  const base = API_ENDPOINTS.winners;
+  const url = campusId ? `${base}?campusId=${encodeURIComponent(campusId)}` : base;
   return safePublicFetch<GameWinner[]>(
-    API_ENDPOINTS.winners,
+    url,
     MOCK_GAME_WINNERS
   );
 }

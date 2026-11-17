@@ -31,7 +31,7 @@ import {
 import { MatchReviewDialog } from "@/components/operations/match-review-dialog";
 import { buildMatchDraftResults } from "@/lib/match-draft";
 import { EvidenceUpload } from "@/components/operations/evidence-upload";
-import { AccessShell, WorkspaceIntro } from "@/components/operations/access-shell";
+import { AccessShell } from "@/components/operations/access-shell";
 import { GameId } from "@/types";
 import { GAMES_CONFIG } from "@/lib/constants";
 import { PLACEMENT_POINTS, getFreeFireGroupInfo } from "@/lib/tournament-constants";
@@ -89,6 +89,7 @@ export default function PocPortalPage() {
   const [submitError, setSubmitError] = useState("");
   const [searchFilter, setSearchFilter] = useState("");
   const [togglingQualifiedId, setTogglingQualifiedId] = useState<string | null>(null);
+  const [qualifiedError, setQualifiedError] = useState("");
   const [qualifiedNotice, setQualifiedNotice] = useState<string>("");
   const [ffGroupFilter, setFfGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -254,6 +255,7 @@ export default function PocPortalPage() {
   const handleToggleQualified = async (teamId: string) => {
     setTogglingQualifiedId(teamId);
     setQualifiedNotice("");
+    setQualifiedError("");
 
     const currentTeam = teams.find((t) => t.id === teamId);
     const targetQualified = currentTeam ? !currentTeam.qualified : true;
@@ -294,7 +296,7 @@ export default function PocPortalPage() {
       }
       setTimeout(() => setQualifiedNotice(""), 3500);
     } catch (err: any) {
-      alert(err.message || "Error updating qualified status.");
+      setQualifiedError(err.message || "Error updating qualified status.");
     } finally {
       setTogglingQualifiedId(null);
     }
@@ -718,16 +720,22 @@ export default function PocPortalPage() {
           /* STEP 2: FAST DRAG-AND-DROP SCORING & PROOF UPLOAD    */
           /* ==================================================== */
           <div className="space-y-5 animate-in fade-in duration-300">
-            <WorkspaceIntro role="Referee workspace" title={`${GAMES_CONFIG[selectedGame].name} score desk`} description="Prepare match results, attach evidence, and send them for admin verification."
-              metrics={[{ label: "Assigned arena", value: campusName }, { label: "Participating teams", value: teams.length }, { label: "Current match", value: `#${matchNumber}` }]} />
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#dfe4db] bg-white px-4 py-3.5 sm:px-5">
-              <ol className="flex flex-wrap items-center gap-x-5 gap-y-2" aria-label="Submission workflow">
-                {[{ label: "Score", ready: true }, { label: "Evidence", ready: Boolean(proofUrl) }, { label: "Submit", ready: submitSuccess }].map((step, index) => <li key={step.label} className="flex items-center gap-2 text-xs font-semibold text-[#69776d]">
-                  <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] ${step.ready ? "bg-[#17211e] text-white" : "bg-[#f0f2ec] text-[#87938a]"}`}>{step.ready && index > 0 ? <CheckCircle2 className="h-3 w-3" /> : `0${index + 1}`}</span>{step.label}
-                </li>)}
-              </ol>
-              <button type="button" onClick={() => setIsUnlocked(false)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#69776d] transition hover:text-[#17211e]"><RefreshCw className="h-3 w-3" />Switch game</button>
+            <div className="poc-desk-heading flex flex-wrap items-center justify-between gap-3">
+              <div><p className="text-[10px] font-bold uppercase tracking-wider text-[#69776d]">Referee workspace · {campusName}</p>
+                <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#17211e]">{GAMES_CONFIG[selectedGame].name} score desk</h1>
+                <p className="mt-1 text-xs text-[#69776d]">{teams.length} teams · Score, attach evidence, then review.</p></div>
+              <button type="button" onClick={() => setIsUnlocked(false)} className="rounded-lg border border-[#dfe4db] bg-white px-3 py-2 text-xs font-semibold text-[#48564d]">Switch game</button>
             </div>
+            {!submitSuccess && <div className="poc-match-toolbar" role="region" aria-label="Current match controls">
+              <div className="flex items-center gap-2">
+                <label htmlFor="poc-match-number" className="text-xs font-bold text-[#48564d]">Match</label>
+                <button type="button" aria-label="Previous match number" disabled={matchNumber <= 1} onClick={() => setMatchNumber(n => Math.max(1,n - 1))} className="poc-toolbar-step">−</button>
+                <input id="poc-match-number" aria-label="Match number" type="number" min="1" value={matchNumber} onChange={e => setMatchNumber(Math.max(1,parseInt(e.target.value) || 1))} className="w-14 rounded-lg border border-[#d1d9ce] bg-[#f7f8f4] text-center text-sm font-bold" />
+                <button type="button" aria-label="Next match number" onClick={() => setMatchNumber(n => n + 1)} className="poc-toolbar-step">+</button>
+              </div>
+              <span role="status" className="poc-toolbar-status text-xs text-[#69776d]">{draftStorageError ? "Draft not saved" : "Draft saved"} · {isUploading ? "Preparing evidence…" : proofUrl ? "Evidence ready" : "Evidence needed"}</span>
+              <button type="button" onClick={() => { setSubmitError(""); setIsReviewOpen(true); }} disabled={isSubmitting || isUploading || !proofUrl || !draftResults.length} className="ops-primary flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-50"><ShieldCheck className="h-4 w-4" />Review match</button>
+            </div>}
 
             {!submitSuccess && <div role="status" className={`rounded-xl border px-4 py-3 text-xs leading-relaxed ${draftStorageError ? "border-amber-200 bg-amber-50 text-amber-800" : "border-[#dfe4db] bg-white text-[#69776d]"}`}>
               {draftStorageError ? "Draft could not be saved on this browser. Keep this page open to avoid losing your work." : draftNotice || "Draft saved automatically on this browser for 7 days. Scores, order, match number and notes are recovered after sign-in; reattach evidence after a refresh."}
@@ -898,6 +906,7 @@ export default function PocPortalPage() {
                     </div>
                   )}
 
+                  {qualifiedError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">{qualifiedError}</p>}
                   {qualifiedNotice && (
                     <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 text-xs flex items-center gap-2 animate-in fade-in">
                       <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -1094,9 +1103,7 @@ export default function PocPortalPage() {
                               </div>
                               <div className="text-[10px] text-[#69776d] flex items-center gap-2 mt-0.5">
                                 {activeScoringTeam === teamId && <span className="font-semibold text-[#ad522b]">Editing</span>}
-                                <span className="font-mono text-[#87938a]">
-                                  Tournament: {t.totalPoints} pts
-                                </span>
+                                <span className="font-mono text-[#69776d]">{t.totalPoints} overall pts</span>
                               </div>
                             </div>
                           </div>
@@ -1205,41 +1212,10 @@ export default function PocPortalPage() {
                 </div>
 
                 {/* Right Col: Match Number & Fast Screenshot Upload */}
-                <div role="region" aria-label="Match evidence and submission" tabIndex={0} className="poc-evidence-panel bg-white border border-[#dfe4db] rounded-2xl p-4 sm:p-5 shadow-xl space-y-4 lg:sticky lg:top-20">
+                <div role="region" aria-label="Match evidence and submission" tabIndex={0} className="poc-evidence-panel bg-white border border-[#dfe4db] rounded-2xl p-4 sm:p-5 shadow-xl space-y-4 lg:sticky lg:top-40">
                   <h3 className="text-xs font-bold text-[#48564d] uppercase tracking-wider border-b border-[#dfe4db] pb-2">
                     Match evidence
                   </h3>
-
-                  {/* Match Number */}
-                  <div>
-                    <label className="block text-xs font-bold text-[#48564d] mb-1">
-                      Match / Round Number
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setMatchNumber((prev) => Math.max(1, prev - 1))}
-                        className="w-9 h-9 rounded-xl bg-[#edf0e9] hover:bg-[#dfe6db] text-[#17211e] font-bold text-sm flex items-center justify-center border border-[#d1d9ce]"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        min="1"
-                        aria-label="Match number"
-                    value={matchNumber}
-                        onChange={(e) => setMatchNumber(parseInt(e.target.value) || 1)}
-                        className="flex-1 px-3 py-2 rounded-xl bg-[#f7f8f4] border border-[#d1d9ce] text-[#17211e] text-center font-bold text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setMatchNumber((prev) => prev + 1)}
-                        className="w-9 h-9 rounded-xl bg-[#edf0e9] hover:bg-[#dfe6db] text-[#17211e] font-bold text-sm flex items-center justify-center border border-[#d1d9ce]"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
 
                   {/* Mandatory Screenshot / Photo Proof Area */}
                   <EvidenceUpload value={proofUrl} onChange={setProofUrl} onProcessingChange={setIsUploading} disabled={isSubmitting || isReviewOpen} />

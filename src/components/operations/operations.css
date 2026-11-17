@@ -72,3 +72,27 @@
 .match-review-dialog::backdrop { background:rgba(17,29,22,.55); backdrop-filter:blur(3px); }
 .match-review-dialog footer button { touch-action:manipulation; }
 @media (max-width:480px) { .match-review-dialog footer button { width:100%; justify-content:center; } }
+
+/* Scoring stays reachable while long rosters scroll. */
+.poc-match-toolbar { position:sticky; top:64px; z-index:30; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border:1px solid #d1d9ce; border-radius:14px; background:#fffffff5; backdrop-filter:blur(12px); box-shadow:0 6px 18px #17211e0a; }
+.poc-toolbar-step { display:grid; place-items:center; min-width:36px; min-height:42px; border:1px solid #dfe4db; border-radius:8px; background:#f7f8f4; font-weight:700; }
+.poc-toolbar-step:disabled { opacity:.4; }
+.ops-panel .poc-score-row[data-active="true"] { border-color:#34735b; background:#f1f8f2; box-shadow:inset 4px 0 #34735b; }
+.ops-panel .poc-score-row { min-height:90px; }
+.ops-panel .poc-score-values button { min-width:40px; min-height:44px; }
+.ops-panel .poc-score-values input { font-size:18px; font-weight:700; min-height:44px; }
+.ops-review-actions { width:100%; padding-top:4px; }
+.ops-review-actions button { min-height:44px; }
+.ops-review-actions .ops-approve-button { order:-1; margin-right:auto; }
+.ops-review-actions button[title*="Delete"] { border-color:#e4d6d3; margin-left:12px; }
+.ops-review-card td:last-child { color:#205c43; }
+@media (max-width:639px) {
+  .poc-match-toolbar { top:60px; padding:10px; gap:8px; }
+  .poc-toolbar-status { order:3; width:100%; font-size:10px; }
+  .poc-match-toolbar .ops-primary { padding:10px 12px; }
+  .ops-review-content table { min-width:420px; }
+  .ops-review-actions .ops-approve-button { width:100%; margin-bottom:8px; }
+  .poc-desk-heading h1 { font-size:22px; }
+}
+
+@media (min-width:768px) { .poc-score-row, .poc-score-columns { grid-template-columns:minmax(0,1fr) 96px 224px; } }

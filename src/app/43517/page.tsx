@@ -106,6 +106,7 @@ export default function SuperAdminPortalPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [operationError, setOperationError] = useState("");
   const [authError, setAuthError] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
@@ -262,6 +263,7 @@ export default function SuperAdminPortalPage() {
   const handleToggleLock = async (campusId: string) => {
     const current = !!campusLocks[campusId];
     const newLock = !current;
+    setOperationError("");
     setIsTogglingLock(true);
     try {
       const res = await fetch("/api/poc/campus-lock", {
@@ -278,10 +280,10 @@ export default function SuperAdminPortalPage() {
       if (res.ok && data.success) {
         setCampusLocks((prev) => ({ ...prev, [campusId]: newLock }));
       } else {
-        alert(data.error || "Failed to update lock");
+        setOperationError(data.error || "Failed to update lock");
       }
     } catch {
-      alert("Network error updating campus lock");
+      setOperationError("Network error updating campus lock. Please retry.");
     } finally {
       setIsTogglingLock(false);
     }
@@ -1454,6 +1456,7 @@ ${editingCampusAdminKey}
 
   // Reset Game Data
   const handleResetScores = async () => {
+    setOperationError("");
     setIsResetting(true);
     try {
       const res = await fetch("/api/poc/reset", {
@@ -1469,7 +1472,7 @@ ${editingCampusAdminKey}
       await fetchTeamsForDirectGame(directGame);
       await fetchSubmissions();
     } catch (err: any) {
-      alert("Reset error: " + err.message);
+      setOperationError("Score reset failed: " + err.message);
     } finally {
       setIsResetting(false);
     }
@@ -1611,6 +1614,7 @@ ${editingCampusAdminKey}
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
         <WorkspaceIntro role="Tournament operations" title="Your arena, under control." description="Review match evidence, manage your teams, and publish results with confidence."
           metrics={[{ label: "Awaiting review", value: pendingCount }, { label: "Approved results", value: submissions.filter(s => s.status === "APPROVED").length }, { label: "Campus arenas", value: Object.keys(CAMPUSES_REGISTRY).length }]} />
+        {operationError && <div role="alert" className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><p>{operationError}</p><button type="button" aria-label="Dismiss operation error" onClick={() => setOperationError("")}><X className="h-4 w-4" /></button></div>}
         {/* Current campus stays visible; management controls expand on demand. */}
         <details className="group bg-white border border-[#dfe4db] rounded-2xl">
           <summary className="list-none cursor-pointer rounded-2xl p-4 sm:px-5 flex items-center justify-between gap-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700 [&::-webkit-details-marker]:hidden">
@@ -1872,29 +1876,19 @@ ${editingCampusAdminKey}
                   return (
                     <div
                       key={sub.id}
-                      className={`border rounded-2xl p-5 space-y-4 transition ${
+                      className={`ops-review-card border rounded-2xl p-4 sm:p-5 space-y-4 transition ${
                         isPending
-                          ? "bg-white border-amber-500/40 shadow-xl shadow-amber-500/5 ring-1 ring-amber-500/20"
+                          ? "bg-white border-[#dfe4db]"
                           : isApproved
                           ? "bg-white border-emerald-500/30"
-                          : "bg-white/60 border-red-500/30 opacity-75"
+                          : "bg-white border-red-200"
                       }`}
                     >
                       {/* Card Header */}
                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dfe4db] pb-3">
                         <div className="flex flex-wrap items-center gap-3">
                           <span
-                            className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
-                              sub.gameId === "FREE_FIRE"
-                                ? "bg-orange-500/10 text-orange-700 border border-orange-500/20"
-                                : sub.gameId === "BGMI"
-                                ? "bg-amber-500/10 text-amber-700 border border-amber-500/20"
-                                : sub.gameId === "VALORANT"
-                                ? "bg-rose-500/10 text-rose-700 border border-rose-500/20"
-                                : sub.gameId === "EFOOTBALL"
-                                ? "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20"
-                                : "bg-purple-500/10 text-purple-700 border border-purple-500/20"
-                            }`}
+                            className="rounded-lg bg-[#edf0e9] px-3 py-1 text-xs font-bold text-[#48564d]"
                           >
                             {sub.gameId.replace("_", " ")}
                           </span>
@@ -1915,7 +1909,7 @@ ${editingCampusAdminKey}
                         {/* Status Badge */}
                         <div>
                           {isPending && (
-                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-700 border border-amber-500/30 flex items-center gap-1.5 animate-pulse">
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-700 border border-amber-500/30 flex items-center gap-1.5">
                               <Clock className="w-3.5 h-3.5" />
                               <span>PENDING APPROVAL</span>
                             </span>
@@ -1936,18 +1930,18 @@ ${editingCampusAdminKey}
                       </div>
 
                       {/* Content: Proof & Team Scores Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                      <div className="ops-review-content grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
                         {/* Proof Screenshot Column */}
-                        <div className="md:col-span-1 space-y-2">
+                        <div className="space-y-2">
                           <label className="text-[11px] font-bold text-[#69776d] uppercase tracking-wider block">
-                            Photographic Proof:
+                            Match evidence
                           </label>
                           {sub.proofUrl ? (
                             <div className="relative group rounded-xl overflow-hidden border border-[#d1d9ce] bg-[#f7f8f4]">
                               <img
                                 src={sub.proofUrl}
                                 alt="Proof Screenshot"
-                                className="w-full h-36 object-cover cursor-pointer hover:scale-105 transition duration-200"
+                                className="w-full h-56 object-contain cursor-pointer transition duration-200"
                                 onClick={() => setActiveProofModal(sub.proofUrl)}
                               />
                               <button
@@ -1981,15 +1975,15 @@ ${editingCampusAdminKey}
                         </div>
 
                         {/* Reported Scores Table */}
-                        <div className="md:col-span-3 space-y-2">
+                        <div className="space-y-2">
                           <label className="text-[11px] font-bold text-[#69776d] uppercase tracking-wider flex items-center justify-between">
-                            <span>Reported Team Placements & Points:</span>
+                            <span>Reported scores</span>
                             <span className="text-[10px] font-normal text-[#87938a]">
                               ({sub.teamResults.length} participating squads)
                             </span>
                           </label>
 
-                          <div className="max-h-56 overflow-y-auto rounded-xl border border-[#dfe4db] bg-[#f7f8f4]">
+                          <div className="max-h-80 overflow-auto rounded-xl border border-[#dfe4db] bg-[#f7f8f4]">
                             <table className="w-full text-left text-xs">
                               <thead className="bg-white/80 sticky top-0 border-b border-[#dfe4db] text-[#69776d]">
                                 <tr>
@@ -2049,7 +2043,7 @@ ${editingCampusAdminKey}
                       </div>
 
                       {/* Approval Actions Toolbar */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#dfe4db]">
+                      <div className="ops-review-footer flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#dfe4db]">
                         <div className="text-[11px] text-[#69776d]">
                           {isPending
                             ? "Review the reported proof and points above. Approving will update team standings live on the dashboard."
@@ -2063,13 +2057,14 @@ ${editingCampusAdminKey}
                           )}
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="ops-review-actions flex flex-wrap items-center gap-3">
                           {isPending && (
                             <>
                               <button
                                 onClick={() => handleDeleteSubmission(sub.id)}
                                 disabled={isProcessing}
                                 className="p-2 rounded-xl bg-[#edf0e9]/80 hover:bg-red-500/20 text-[#69776d] hover:text-red-700 border border-[#d1d9ce]/60 transition disabled:opacity-50"
+                                aria-label="Delete submission"
                                 title="Delete Submission"
                               >
                                 {isProcessing && reviewAction === "DELETE" ? (
@@ -2091,7 +2086,7 @@ ${editingCampusAdminKey}
                               <button
                                 onClick={() => handleApproveSubmission(sub.id)}
                                 disabled={isProcessing}
-                                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-[#17211e] text-xs font-extrabold shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                                className="ops-approve-button ops-primary px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 disabled:opacity-50"
                               >
                                 {isProcessing && reviewAction === "APPROVE" ? (
                                   <>
@@ -2101,7 +2096,7 @@ ${editingCampusAdminKey}
                                 ) : (
                                   <>
                                     <Check className="w-4 h-4" />
-                                    <span>Approve & Publish to Dashboard</span>
+                                    <span>Approve & publish</span>
                                   </>
                                 )}
                               </button>

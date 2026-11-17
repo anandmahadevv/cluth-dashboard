@@ -10,18 +10,32 @@ import { ShareModal } from "@/components/shared/share-modal";
 import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 
 export default function WinnersPage() {
-  const [currentCampusId, setCurrentCampusId] = useState<string>("mangalore");
+  const [currentCampusId, setCurrentCampusId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlCampus = params.get("campus") || params.get("college");
+      const stored = localStorage.getItem("clutch_selected_campus");
+      return urlCampus || stored || "mangalore";
+    }
+    return "mangalore";
+  });
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const urlCampus = params.get("campus") || params.get("college");
-      const stored = localStorage.getItem("clutch_selected_campus");
-      if (urlCampus || stored) {
-        setCurrentCampusId(urlCampus || stored || "mangalore");
+      if (urlCampus) {
+        localStorage.setItem("clutch_selected_campus", urlCampus);
+        setCurrentCampusId(urlCampus);
+      } else {
+        const stored = localStorage.getItem("clutch_selected_campus");
+        if (stored) setCurrentCampusId(stored);
       }
       const handler = (e: any) => {
-        if (e.detail) setCurrentCampusId(e.detail);
+        if (e.detail) {
+          setCurrentCampusId(e.detail);
+          localStorage.setItem("clutch_selected_campus", e.detail);
+        }
       };
       window.addEventListener("clutch_campus_change", handler);
       return () => window.removeEventListener("clutch_campus_change", handler);
@@ -31,11 +45,12 @@ export default function WinnersPage() {
   const activeCampusMeta = CAMPUSES_REGISTRY[currentCampusId] || CAMPUSES_REGISTRY["mangalore"];
 
   const { data: winners, lastUpdated, isRefreshing, refresh, isTabActive } =
-    useTournamentWinners();
+    useTournamentWinners(currentCampusId);
   const { data: ffAwards } = useGameAwards("FREE_FIRE", currentCampusId);
 
   const isMangalore = currentCampusId === "mangalore";
   const hasAwards = Boolean(ffAwards?.winnerTeam || ffAwards?.mvp?.playerName);
+  const hasWinners = Boolean(winners && winners.length > 0);
 
   return (
     <div className="min-h-screen px-4 py-8 sm:px-6 max-w-5xl mx-auto space-y-10 bg-white text-slate-900">
@@ -64,7 +79,7 @@ export default function WinnersPage() {
       {/* Winners Section */}
       <div className="space-y-12">
         {/* If no concluded winners yet for this campus */}
-        {!isMangalore && !hasAwards && (
+        {!isMangalore && !hasAwards && !hasWinners && (
           <div className="py-14 px-6 rounded-3xl bg-[#f7f8f4] border border-[#dfe4db] text-center max-w-xl mx-auto space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-800 text-xs font-black uppercase tracking-wider">
               <Trophy className="w-4 h-4 text-amber-600" />
@@ -94,7 +109,7 @@ export default function WinnersPage() {
           </div>
         )}
 
-        {isMangalore && winners?.map((gameWinner) => {
+        {(isMangalore || hasWinners) && winners?.map((gameWinner) => {
           const first = gameWinner.firstPlace
             ? {
                 rank: 1 as const,

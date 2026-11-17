@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Menu,
   X,
@@ -61,8 +61,18 @@ const CAMPUSES: CampusItem[] = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedCampus, setSelectedCampus] = useState<CampusItem>(CAMPUSES[0]);
+  const [selectedCampus, setSelectedCampus] = useState<CampusItem>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlCampus = params.get("campus") || params.get("college");
+      const stored = localStorage.getItem("clutch_selected_campus");
+      const targetId = urlCampus || stored || "mangalore";
+      return CAMPUSES.find((c) => c.id === targetId) || CAMPUSES[0];
+    }
+    return CAMPUSES[0];
+  });
   const [campusDropdownOpen, setCampusDropdownOpen] = useState(false);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -88,7 +98,7 @@ export function Navbar() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const urlCampus = params.get("campus");
+      const urlCampus = params.get("campus") || params.get("college");
       const stored = localStorage.getItem("clutch_selected_campus");
       const targetId = urlCampus || stored || "mangalore";
       const match = CAMPUSES.find((c) => c.id === targetId);
@@ -102,10 +112,15 @@ export function Navbar() {
     if (typeof window !== "undefined") {
       localStorage.setItem("clutch_selected_campus", campus.id);
       window.dispatchEvent(new CustomEvent("clutch_campus_change", { detail: campus.id }));
-      const url = new URL(window.location.href);
-      url.searchParams.set("campus", campus.id);
-      window.history.pushState({}, "", url.toString());
+      router.push(`${pathname}?campus=${campus.id}`);
     }
+  };
+
+  const getHrefWithCampus = (path: string) => {
+    if (selectedCampus && selectedCampus.id && selectedCampus.id !== "mangalore") {
+      return `${path}${path.includes("?") ? "&" : "?"}campus=${selectedCampus.id}`;
+    }
+    return path;
   };
 
   const isActive = (path: string) => {
@@ -127,7 +142,7 @@ export function Navbar() {
       <header className="sticky top-0 z-40 w-full border-b border-[#e1e4dd] bg-[#f5f4f0]/95 backdrop-blur-md transition-all">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           {/* Brand */}
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href={getHrefWithCampus("/")} className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-lg bg-black border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0">
               <img
                 src="/images/clutch-logo.jpg"
@@ -150,7 +165,7 @@ export function Navbar() {
             {navLinks.map((link) => (
               <Link
                 key={link.href}
-                href={link.href}
+                href={getHrefWithCampus(link.href)}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
                   isActive(link.href)
                     ? "bg-[#e8eae2] text-[#17211e] font-black"
@@ -317,7 +332,7 @@ export function Navbar() {
             {navLinks.map((link) => (
               <Link
                 key={link.href}
-                href={link.href}
+                href={getHrefWithCampus(link.href)}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`block px-3 py-2 text-xs font-bold rounded-lg ${
                   isActive(link.href)

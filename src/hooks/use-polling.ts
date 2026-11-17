@@ -7,6 +7,7 @@ import { PublicApiResponse } from "@/types";
 interface UsePollingOptions {
   interval?: number;
   enabled?: boolean;
+  key?: string;
 }
 
 export function usePolling<T>(
@@ -14,7 +15,7 @@ export function usePolling<T>(
   initialData?: T,
   options: UsePollingOptions = {}
 ) {
-  const { interval = POLLING_INTERVAL_MS, enabled = true } = options;
+  const { interval = POLLING_INTERVAL_MS, enabled = true, key } = options;
 
   const [data, setData] = useState<T | undefined>(initialData);
   const [meta, setMeta] = useState<PublicApiResponse<T>["meta"] | undefined>(undefined);
@@ -26,7 +27,7 @@ export function usePolling<T>(
 
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
-  const initialFetchDone = useRef(false);
+  const prevKeyRef = useRef<string | undefined>(key);
 
   const executeFetch = useCallback(async (isManual = false) => {
     if (isManual) {
@@ -35,39 +36,7 @@ export function usePolling<T>(
     try {
       const response = await fetcherRef.current();
       if (response.success && response.data !== undefined) {
-        setData((prev) => {
-          // Anti-flicker guard: if previous data had real content, do not overwrite with empty object/array on background poll
-          if (!isManual && prev !== undefined && response.data !== undefined) {
-            const hasPrev = Array.isArray(prev)
-              ? prev.length > 0
-              : typeof prev === "object" && prev !== null
-              ? Object.values(prev).some(
-                  (v) =>
-                    v !== undefined &&
-                    v !== null &&
-                    v !== "" &&
-                    (typeof v !== "object" || Object.keys(v).length > 0)
-                )
-              : Boolean(prev);
-
-            const hasNew = Array.isArray(response.data)
-              ? response.data.length > 0
-              : typeof response.data === "object" && response.data !== null
-              ? Object.values(response.data).some(
-                  (v) =>
-                    v !== undefined &&
-                    v !== null &&
-                    v !== "" &&
-                    (typeof v !== "object" || Object.keys(v).length > 0)
-                )
-              : Boolean(response.data);
-
-            if (hasPrev && !hasNew) {
-              return prev;
-            }
-          }
-          return response.data;
-        });
+        setData(response.data);
         setMeta(response.meta);
         setError(null);
         setLastUpdated(new Date());
@@ -82,6 +51,16 @@ export function usePolling<T>(
       setIsRefreshing(false);
     }
   }, []);
+
+  // When polling key changes (e.g. campus or game switched), immediately clear stale data & refetch
+  useEffect(() => {
+    if (key !== undefined && key !== prevKeyRef.current) {
+      prevKeyRef.current = key;
+      setData(initialData);
+      setIsLoading(true);
+      executeFetch(false);
+    }
+  }, [key, initialData, executeFetch]);
 
   // Track tab visibility
   useEffect(() => {
@@ -104,13 +83,8 @@ export function usePolling<T>(
   useEffect(() => {
     if (!enabled) return;
 
-    // Initial fetch if needed
-    if (!initialFetchDone.current) {
-      initialFetchDone.current = true;
-      if (!initialData) {
-        executeFetch(false);
-      }
-    }
+    // Initial fetch on mount
+    executeFetch(false);
 
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") {
@@ -119,7 +93,7 @@ export function usePolling<T>(
     }, interval);
 
     return () => clearInterval(timer);
-  }, [enabled, interval, executeFetch, initialData]);
+  }, [enabled, interval, executeFetch, key]);
 
   const manualRefresh = useCallback(() => {
     return executeFetch(true);

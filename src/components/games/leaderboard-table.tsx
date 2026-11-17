@@ -404,8 +404,17 @@ export function LeaderboardTable({
 
             {filteredEntries.length === 0 && (
               <tr>
-                <td colSpan={isValorant ? 4 : 6} className="py-10 text-center text-sm text-slate-400">
-                  No matching teams found.
+                <td colSpan={isValorant ? 4 : 6} className="py-12 px-4 text-center">
+                  <div className="max-w-md mx-auto space-y-2">
+                    <p className="text-xs font-black uppercase tracking-wider text-amber-700">
+                      Arena Ready • The Crown Has To Be Earned
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {searchQuery
+                        ? `No contenders found matching "${searchQuery}".`
+                        : "Opening battles are underway. Standings will populate automatically upon referee verification of Match 1."}
+                    </p>
+                  </div>
                 </td>
               </tr>
             )}

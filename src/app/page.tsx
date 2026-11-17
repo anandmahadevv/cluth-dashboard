@@ -34,19 +34,34 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [selectedGame, setSelectedGame] = useState<GameId>("FREE_FIRE");
   const [isProjectorMode, setIsProjectorMode] = useState<boolean>(false);
-  const [currentCampusId, setCurrentCampusId] = useState<string>("mangalore");
-
-  useEffect(() => {
+  const [currentCampusId, setCurrentCampusId] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const urlCampus = params.get("campus") || params.get("college");
       const stored = localStorage.getItem("clutch_selected_campus");
-      if (urlCampus || stored) {
-        setCurrentCampusId(urlCampus || stored || "mangalore");
+      return urlCampus || stored || "mangalore";
+    }
+    return "mangalore";
+  });
+
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlCampus = params.get("campus") || params.get("college");
+      if (urlCampus) {
+        localStorage.setItem("clutch_selected_campus", urlCampus);
+        setCurrentCampusId(urlCampus);
+      } else {
+        const stored = localStorage.getItem("clutch_selected_campus");
+        if (stored) setCurrentCampusId(stored);
       }
 
       const handler = (e: any) => {
-        if (e.detail) setCurrentCampusId(e.detail);
+        if (e.detail) {
+          setCurrentCampusId(e.detail);
+          localStorage.setItem("clutch_selected_campus", e.detail);
+        }
       };
       window.addEventListener("clutch_campus_change", handler);
       return () => window.removeEventListener("clutch_campus_change", handler);
@@ -59,7 +74,7 @@ export default function HomePage() {
     isRefreshing: ffRefreshing,
     refresh: ffRefresh,
     isTabActive: ffActive,
-  } = useTournamentStatus();
+  } = useTournamentStatus(currentCampusId);
 
   const { data: ffLeaderboard } = useGameLeaderboard("FREE_FIRE", currentCampusId);
   const { data: bgmiLeaderboard } = useGameLeaderboard("BGMI", currentCampusId);
