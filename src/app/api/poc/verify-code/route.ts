@@ -25,15 +25,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const access = resolveAdminAccess(code);
+    const store = await getStoreAsync();
+    const access = resolveAdminAccess(code, store.campusPasskeys);
     if (!access.isValid) {
       return NextResponse.json(
         { success: false, error: access.error || "Invalid verification code." },
         { status: 401 }
       );
     }
-
-    const store = await getStoreAsync();
     const effectiveCampusId = access.isSuperAdmin
       ? campusId || "mangalore"
       : access.campusId || "mangalore";

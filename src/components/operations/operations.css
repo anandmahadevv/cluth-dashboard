@@ -1,0 +1,35 @@
+.ops-panel { color: #17211e; background: #f5f4f0; color-scheme: light; }
+.ops-panel * { min-width: 0; }
+.ops-panel :is(input:not([type="checkbox"]):not([type="file"]), select, textarea) { min-height: 42px; box-shadow: none; }
+.ops-panel :is(button,a,input,select,textarea):focus-visible { outline: 2px solid #b45a32; outline-offset: 3px; }
+.ops-panel input::placeholder, .ops-panel textarea::placeholder { color: #929c93; }
+.ops-panel button { touch-action: manipulation; }
+.ops-panel :is(.shadow-xl,.shadow-2xl) { box-shadow: 0 4px 24px -16px rgba(23,33,30,.2); }
+.ops-panel :is(.shadow-lg,.shadow-md) { box-shadow: 0 2px 10px -8px rgba(23,33,30,.16); }
+.ops-panel table { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+.ops-panel th { font-size: 10px; font-weight: 600; letter-spacing: .06em; }
+.ops-panel td { padding-top: 13px; padding-bottom: 13px; }
+.ops-panel .ops-primary { background: #17211e; color: #fff; box-shadow: none; min-height: 46px; }
+.ops-panel .ops-primary:hover { background: #293d31; }
+.ops-panel button:is([class*="bg-emerald-600"],[class*="bg-blue-600"],[class*="bg-purple-600"],[class*="bg-red-600"],[class*="bg-rose-600"]) { color: #fff; }
+.ops-panel button:is([class*="bg-emerald-600"],[class*="bg-blue-600"],[class*="bg-purple-600"],[class*="bg-red-600"],[class*="bg-rose-600"]) :is(span,svg) { color: inherit; }
+.ops-panel .ops-section-nav { display:flex; gap:6px; overflow-x:auto; border-bottom:1px solid #dfe4db; padding:0 0 16px; }
+.ops-panel .ops-section-nav button { flex-shrink:0; display:inline-flex; align-items:center; gap:8px; white-space:nowrap; padding:12px 16px; border-radius:12px; color:#69766d; font-size:12px; font-weight:600; }
+.ops-panel .ops-section-nav button[aria-pressed="true"] { background:#17211e; color:white; }
+.ops-panel .ops-section-nav button[aria-pressed="true"] svg { color:#ffad83; }
+.ops-panel .ops-section-nav button:not([aria-pressed="true"]):hover { background:white; color:#17211e; }
+.ops-panel .ops-access-story::before { content:""; position:absolute; inset:0; opacity:.05; background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px); background-size:42px 42px; }
+.ops-panel .ops-step { display:flex; gap:12px; align-items:center; padding:14px 16px; border:1px solid #dfe4db; border-radius:14px; background:white; }
+.ops-panel .ops-step-number { flex-shrink:0; display:grid; place-items:center; width:30px; height:30px; border-radius:9px; background:#fff0e6; color:#ad522b; font-size:11px; font-weight:700; }
+@media (min-width:1024px) { .ops-intro { display:grid; grid-template-columns:1fr 340px; gap:32px; align-items:center; } .ops-intro>div:last-child { border-top:0; border-left:1px solid #ffffff26; margin:0; padding:8px 0 8px 28px; } }
+@media (max-width:639px) { .ops-panel header>div { gap:10px; flex-wrap:wrap; } .ops-panel :is(input,select,textarea) { font-size:16px; } .ops-panel .ops-section-nav button { padding:10px 12px; } }
+@media (prefers-reduced-motion:reduce) { .ops-panel * { animation:none!important; transition:none!important; } }
+
+.ops-panel button:is([aria-label^="Increase score"],[aria-label^="Decrease score"]) { min-height:36px; min-width:32px; }
+@media (max-width:639px) { .ops-panel button:is([aria-label^="Increase score"],[aria-label^="Decrease score"]) { min-height:44px; min-width:38px; } }
+
+/* A compact referee desk keeps scores and evidence within easy reach. */
+.poc-workspace .ops-intro { padding:24px 28px; }
+.poc-workspace .ops-intro h1 { font-size:30px; }
+.poc-workspace .ops-intro>div:first-child>p:first-child { margin-bottom:8px; }
+@media (max-width:639px) { .poc-workspace .ops-intro { padding:22px; } .poc-workspace .ops-intro h1 { font-size:28px; } }

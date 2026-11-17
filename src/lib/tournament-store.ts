@@ -7,6 +7,11 @@ import {
   PLACEMENT_POINTS,
   INITIAL_TEAMS,
   ADMIN_PASSWORD_HASH,
+  CampusPasskeys,
+  DEFAULT_CAMPUS_PASSKEYS,
+  generateDefaultCampusPasskeys,
+  resolveAdminAccess,
+  CAMPUSES_REGISTRY,
 } from "./tournament-constants";
 import {
   fetchStoreFromSupabase,
@@ -57,6 +62,7 @@ export interface MatchSubmission {
 export interface TournamentStoreData {
   lastUpdated: string;
   campusLocks?: Record<string, boolean>;
+  campusPasskeys?: Record<string, CampusPasskeys>;
   teams: Record<GameId, TeamScoreEntry[]>;
   campusTeams?: Record<string, Record<GameId, TeamScoreEntry[]>>;
   matches: MatchSubmission[];
@@ -239,25 +245,142 @@ export async function saveStoreAsync(data: TournamentStoreData): Promise<void> {
 }
 
 /**
- * Verify Game POC Code
+ * Verify Game POC Code or Campus Passkey / Game UID
  */
-export function verifyGameCode(code: string, targetGame?: GameId): { valid: boolean; gameId?: GameId; isSuperAdmin?: boolean; error?: string } {
-  const trimmed = (code || "").trim();
-  const assigned = VALID_GAME_CODES[trimmed];
-
-  if (!assigned) {
-    return { valid: false, error: "Invalid verification code. Please check with Tournament Super Admin." };
+export function verifyGameCode(
+  code: string,
+  targetGame?: GameId,
+  storeData?: TournamentStoreData
+): { valid: boolean; gameId?: GameId; campusId?: string; isSuperAdmin?: boolean; error?: string } {
+  const store = storeData || inMemoryStore || getStore();
+  const access = resolveAdminAccess(code, store.campusPasskeys);
+  if (!access.isValid) {
+    return { valid: false, error: access.error || "Invalid verification code. Please check with Tournament Super Admin." };
   }
 
-  if (assigned === "ALL") {
+  if (access.isSuperAdmin) {
     return { valid: true, gameId: targetGame || "FREE_FIRE", isSuperAdmin: true };
   }
 
-  if (targetGame && assigned !== targetGame) {
-    return { valid: false, error: `This code is assigned to ${assigned}, not ${targetGame}.` };
+  if (access.gameId === "ALL") {
+    return { valid: true, gameId: targetGame || "FREE_FIRE", campusId: access.campusId, isSuperAdmin: false };
   }
 
-  return { valid: true, gameId: assigned, isSuperAdmin: false };
+  if (targetGame && access.gameId !== targetGame) {
+    return { valid: false, error: `This UID is assigned to ${access.gameId}, not ${targetGame}.` };
+  }
+
+  return { valid: true, gameId: access.gameId, campusId: access.campusId, isSuperAdmin: false };
+}
+
+/**
+ * Get passkeys for a campus (reads from store, falls back to defaults)
+ */
+export async function getCampusPasskeysAsync(campusId: string = "mangalore"): Promise<CampusPasskeys> {
+  const store = await getStoreAsync();
+  if (store.campusPasskeys && store.campusPasskeys[campusId]) {
+    return store.campusPasskeys[campusId];
+  }
+  return DEFAULT_CAMPUS_PASSKEYS[campusId] || generateDefaultCampusPasskeys(campusId);
+}
+
+/**
+ * Get all passkeys across all campuses
+ */
+export async function getAllCampusPasskeysAsync(): Promise<Record<string, CampusPasskeys>> {
+  const store = await getStoreAsync();
+  const result: Record<string, CampusPasskeys> = {};
+  for (const campusId of Object.keys(CAMPUSES_REGISTRY)) {
+    if (store.campusPasskeys && store.campusPasskeys[campusId]) {
+      result[campusId] = store.campusPasskeys[campusId];
+    } else {
+      result[campusId] = DEFAULT_CAMPUS_PASSKEYS[campusId] || generateDefaultCampusPasskeys(campusId);
+    }
+  }
+  return result;
+}
+
+/**
+ * Save or customize passkeys for a campus (Super Admin only)
+ */
+export async function saveCampusPasskeysAsync(params: {
+  campusId: string;
+  passkeys: CampusPasskeys;
+  adminPassword?: string;
+  pocCode?: string;
+}): Promise<{ success: boolean; passkeys?: CampusPasskeys; error?: string }> {
+  const isSuper =
+    (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
+    params.pocCode === "CLUTCH-SUPER-2026";
+
+  if (!isSuper) {
+    return { success: false, error: "Unauthorized: Super Admin authorization is required to change campus passkeys." };
+  }
+
+  const { campusId, passkeys } = params;
+  if (!passkeys.campusAdminKey?.trim()) {
+    return { success: false, error: "Campus admin key cannot be empty." };
+  }
+
+  const gameKeys = passkeys.gameKeys;
+  const games: GameId[] = ["FREE_FIRE", "BGMI", "VALORANT", "EFOOTBALL", "MATIKS"];
+  const uids = new Set<string>();
+
+  for (const g of games) {
+    const val = (gameKeys[g] || "").trim().toUpperCase();
+    if (!val) {
+      return { success: false, error: `Game UID for ${g} cannot be empty.` };
+    }
+    if (uids.has(val)) {
+      return { success: false, error: `Each game must have a different unique UID. Duplicate found: ${val}` };
+    }
+    uids.add(val);
+  }
+
+  const store = await getStoreAsync(true);
+  if (!store.campusPasskeys) {
+    store.campusPasskeys = {};
+  }
+
+  store.campusPasskeys[campusId] = {
+    campusAdminKey: passkeys.campusAdminKey.trim().toUpperCase(),
+    gameKeys: {
+      FREE_FIRE: gameKeys.FREE_FIRE.trim().toUpperCase(),
+      BGMI: gameKeys.BGMI.trim().toUpperCase(),
+      VALORANT: gameKeys.VALORANT.trim().toUpperCase(),
+      EFOOTBALL: gameKeys.EFOOTBALL.trim().toUpperCase(),
+      MATIKS: gameKeys.MATIKS.trim().toUpperCase(),
+    },
+  };
+
+  await saveStoreAsync(store);
+
+  return { success: true, passkeys: store.campusPasskeys[campusId] };
+}
+
+/**
+ * Regenerate fresh distinct random UIDs for a campus (Super Admin only)
+ */
+export async function regenerateCampusPasskeysAsync(params: {
+  campusId: string;
+  adminPassword?: string;
+  pocCode?: string;
+}): Promise<{ success: boolean; passkeys?: CampusPasskeys; error?: string }> {
+  const isSuper =
+    (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
+    params.pocCode === "CLUTCH-SUPER-2026";
+
+  if (!isSuper) {
+    return { success: false, error: "Unauthorized: Super Admin authorization is required to regenerate UIDs." };
+  }
+
+  const newPasskeys = generateDefaultCampusPasskeys(params.campusId);
+  return saveCampusPasskeysAsync({
+    campusId: params.campusId,
+    passkeys: newPasskeys,
+    adminPassword: params.adminPassword,
+    pocCode: params.pocCode,
+  });
 }
 
 /**

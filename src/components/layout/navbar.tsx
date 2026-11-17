@@ -121,6 +121,8 @@ export function Navbar() {
     { name: "Winners", href: "/winners" },
   ];
 
+  if (pathname === "/43517" || pathname === "/poc") return null;
+
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b border-[#e1e4dd] bg-[#f5f4f0]/95 backdrop-blur-md transition-all">

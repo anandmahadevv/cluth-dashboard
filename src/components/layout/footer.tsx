@@ -7,7 +7,7 @@ export function Footer() {
   const pathname = usePathname();
 
   // Hide footer on the single-screen home landing page
-  if (pathname === "/") {
+  if (pathname === "/" || pathname === "/43517" || pathname === "/poc") {
     return null;
   }
 
