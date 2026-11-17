@@ -19,14 +19,21 @@ export async function GET(
 
   const leaderboard = await getGameLeaderboardAsync(game, false, campusId);
 
-  return NextResponse.json({
-    success: true,
-    campusId,
-    data: leaderboard,
-    meta: {
-      source: "INTERNAL_STORE",
-      approvedOnly: true,
-      timestamp: new Date().toISOString(),
+  return NextResponse.json(
+    {
+      success: true,
+      campusId,
+      data: leaderboard,
+      meta: {
+        source: "INTERNAL_STORE",
+        approvedOnly: true,
+        timestamp: new Date().toISOString(),
+      },
     },
-  });
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=2, stale-while-revalidate=4",
+      },
+    }
+  );
 }

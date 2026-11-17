@@ -20,7 +20,6 @@ import { GameId } from "@/types";
 import { GAMES_CONFIG } from "@/lib/constants";
 import { CAMPUSES_REGISTRY } from "@/lib/tournament-constants";
 import {
-  useTournamentStatus,
   useGameLeaderboard,
   useGameAwards,
 } from "@/hooks/use-tournament-data";
@@ -69,36 +68,17 @@ export default function HomePage() {
   }, []);
 
   const {
-    data: tournament,
+    data: rawLeaderboard,
     lastUpdated: ffUpdated,
     isRefreshing: ffRefreshing,
     refresh: ffRefresh,
     isTabActive: ffActive,
-  } = useTournamentStatus(currentCampusId);
-
-  const { data: ffLeaderboard } = useGameLeaderboard("FREE_FIRE", currentCampusId);
-  const { data: bgmiLeaderboard } = useGameLeaderboard("BGMI", currentCampusId);
-  const { data: valLeaderboard } = useGameLeaderboard("VALORANT", currentCampusId);
-  const { data: efLeaderboard } = useGameLeaderboard("EFOOTBALL", currentCampusId);
-  const { data: matiksLeaderboard } = useGameLeaderboard("MATIKS", currentCampusId);
+  } = useGameLeaderboard(selectedGame, currentCampusId);
   const { data: awards } = useGameAwards(selectedGame, currentCampusId);
 
   const activeCampusMeta = CAMPUSES_REGISTRY[currentCampusId] || CAMPUSES_REGISTRY["mangalore"];
 
   // Determine current active leaderboard
-  let first, second, third;
-
-  const rawLeaderboard =
-    selectedGame === "FREE_FIRE"
-      ? ffLeaderboard
-      : selectedGame === "BGMI"
-      ? bgmiLeaderboard
-      : selectedGame === "VALORANT"
-      ? valLeaderboard
-      : selectedGame === "EFOOTBALL"
-      ? (efLeaderboard as any[])
-      : (matiksLeaderboard as any[]);
-
   const currentLeaderboard = (rawLeaderboard || []).filter((t: any) => !t.hidden);
 
   const hasMatchesPlayed = Boolean(
@@ -110,199 +90,73 @@ export default function HomePage() {
 
   const currentGameConfig = GAMES_CONFIG[selectedGame];
 
-  if (selectedGame === "FREE_FIRE") {
-    if (awards?.winnerTeam && awards.winnerTeam.trim()) {
-      first = {
-        rank: 1 as const,
-        name: awards.winnerTeam,
-        subtext: "Free Fire Champion (Winner Cup)",
-        stat1Value: awards.winnerScore || "53",
+  let first, second, third;
+
+  if (awards?.winnerTeam && awards.winnerTeam.trim()) {
+    first = {
+      rank: 1 as const,
+      name: awards.winnerTeam,
+      subtext: `${currentGameConfig.name} Champion (Winner Cup)`,
+      stat1Value: awards.winnerScore || "1st",
+      stat1Label: "final\nscore",
+      stat2Value: "1st",
+      stat2Label: "rank",
+    };
+    if (awards.runnerUpTeam && awards.runnerUpTeam.trim()) {
+      second = {
+        rank: 2 as const,
+        name: awards.runnerUpTeam,
+        subtext: "1st Runner-Up (Runner-Up Cup)",
+        stat1Value: awards.runnerUpScore || "2nd",
         stat1Label: "final\nscore",
-        stat2Value: "1st",
+        stat2Value: "2nd",
         stat2Label: "rank",
       };
-      if (awards.runnerUpTeam && awards.runnerUpTeam.trim()) {
-        second = {
-          rank: 2 as const,
-          name: awards.runnerUpTeam,
-          subtext: "1st Runner-Up (Runner-Up Cup)",
-          stat1Value: awards.runnerUpScore || "52",
-          stat1Label: "final\nscore",
-          stat2Value: "2nd",
-          stat2Label: "rank",
-        };
-      }
-    } else if (hasMatchesPlayed && ffLeaderboard && ffLeaderboard.length >= 1) {
-      first = ffLeaderboard[0]
-        ? {
-            rank: 1 as const,
-            name: ffLeaderboard[0].teamName,
-            subtext: "Free Fire 1st Place",
-            stat1Value: ffLeaderboard[0].killPoints,
-            stat1Label: "kill\npoints",
-            stat2Value: ffLeaderboard[0].totalPoints,
-            stat2Label: "total\npoints",
-          }
-        : undefined;
-      second = ffLeaderboard[1]
-        ? {
-            rank: 2 as const,
-            name: ffLeaderboard[1].teamName,
-            subtext: "1st Runner-Up",
-            stat1Value: ffLeaderboard[1].killPoints,
-            stat1Label: "kill\npoints",
-            stat2Value: ffLeaderboard[1].totalPoints,
-            stat2Label: "total\npoints",
-          }
-        : undefined;
-      third = ffLeaderboard[2]
-        ? {
-            rank: 3 as const,
-            name: ffLeaderboard[2].teamName,
-            subtext: "2nd Runner-Up",
-            stat1Value: ffLeaderboard[2].killPoints,
-            stat1Label: "kill\npoints",
-            stat2Value: ffLeaderboard[2].totalPoints,
-            stat2Label: "total\npoints",
-          }
-        : undefined;
     }
-  } else if (selectedGame === "BGMI" && bgmiLeaderboard && bgmiLeaderboard.length >= 1) {
-    first = bgmiLeaderboard[0]
-      ? {
-          rank: 1 as const,
-          name: bgmiLeaderboard[0].teamName,
-          subtext: "BGMI 1st Place",
-          stat1Value: bgmiLeaderboard[0].killPoints,
-          stat1Label: "kill\npoints",
-          stat2Value: bgmiLeaderboard[0].totalPoints,
-          stat2Label: "total\npoints",
-        }
-      : undefined;
-    second = bgmiLeaderboard[1]
-      ? {
-          rank: 2 as const,
-          name: bgmiLeaderboard[1].teamName,
-          subtext: "1st Runner-Up",
-          stat1Value: bgmiLeaderboard[1].killPoints,
-          stat1Label: "kill\npoints",
-          stat2Value: bgmiLeaderboard[1].totalPoints,
-          stat2Label: "total\npoints",
-        }
-      : undefined;
-    third = bgmiLeaderboard[2]
-      ? {
-          rank: 3 as const,
-          name: bgmiLeaderboard[2].teamName,
-          subtext: "2nd Runner-Up",
-          stat1Value: bgmiLeaderboard[2].killPoints,
-          stat1Label: "kill\npoints",
-          stat2Value: bgmiLeaderboard[2].totalPoints,
-          stat2Label: "total\npoints",
-        }
-      : undefined;
-  } else if (selectedGame === "VALORANT" && hasMatchesPlayed && valLeaderboard && valLeaderboard.length >= 1) {
-    first = valLeaderboard[0]
-      ? {
-          rank: 1 as const,
-          name: valLeaderboard[0].teamName,
-          subtext: "Valorant Champion",
-          stat1Value: valLeaderboard[0].matchesPlayed,
-          stat1Label: "matches\nplayed",
-          stat2Value: valLeaderboard[0].totalPoints,
-          stat2Label: "placement\npoints",
-        }
-      : undefined;
-    second = valLeaderboard[1]
-      ? {
-          rank: 2 as const,
-          name: valLeaderboard[1].teamName,
-          subtext: "1st Runner-Up",
-          stat1Value: valLeaderboard[1].matchesPlayed,
-          stat1Label: "matches\nplayed",
-          stat2Value: valLeaderboard[1].totalPoints,
-          stat2Label: "placement\npoints",
-        }
-      : undefined;
-    third = valLeaderboard[2]
-      ? {
-          rank: 3 as const,
-          name: valLeaderboard[2].teamName,
-          subtext: "2nd Runner-Up",
-          stat1Value: valLeaderboard[2].matchesPlayed,
-          stat1Label: "matches\nplayed",
-          stat2Value: valLeaderboard[2].totalPoints,
-          stat2Label: "placement\npoints",
-        }
-      : undefined;
-  } else if (selectedGame === "EFOOTBALL" && efLeaderboard && efLeaderboard.length >= 1) {
-    first = efLeaderboard[0]
-      ? {
-          rank: 1 as const,
-          name: efLeaderboard[0].teamName,
-          subtext: "eFootball Champion",
-          stat1Value: efLeaderboard[0].killPoints,
-          stat1Label: "goals\nscored",
-          stat2Value: efLeaderboard[0].totalPoints,
-          stat2Label: "total\npoints",
-        }
-      : undefined;
-    second = efLeaderboard[1]
-      ? {
-          rank: 2 as const,
-          name: efLeaderboard[1].teamName,
-          subtext: "1st Runner-Up",
-          stat1Value: efLeaderboard[1].killPoints,
-          stat1Label: "goals\nscored",
-          stat2Value: efLeaderboard[1].totalPoints,
-          stat2Label: "total\npoints",
-        }
-      : undefined;
-    third = efLeaderboard[2]
-      ? {
-          rank: 3 as const,
-          name: efLeaderboard[2].teamName,
-          subtext: "2nd Runner-Up",
-          stat1Value: efLeaderboard[2].killPoints,
-          stat1Label: "goals\nscored",
-          stat2Value: efLeaderboard[2].totalPoints,
-          stat2Label: "total\npoints",
-        }
-      : undefined;
-  } else if (selectedGame === "MATIKS" && matiksLeaderboard && matiksLeaderboard.length >= 1) {
-    first = matiksLeaderboard[0]
-      ? {
-          rank: 1 as const,
-          name: matiksLeaderboard[0].teamName,
-          subtext: "MATIKS 1st Place",
-          stat1Value: matiksLeaderboard[0].matchesPlayed,
-          stat1Label: "rounds\nplayed",
-          stat2Value: matiksLeaderboard[0].totalPoints,
-          stat2Label: "matrix\nscore",
-        }
-      : undefined;
-    second = matiksLeaderboard[1]
-      ? {
-          rank: 2 as const,
-          name: matiksLeaderboard[1].teamName,
-          subtext: "1st Runner-Up",
-          stat1Value: matiksLeaderboard[1].matchesPlayed,
-          stat1Label: "rounds\nplayed",
-          stat2Value: matiksLeaderboard[1].totalPoints,
-          stat2Label: "matrix\nscore",
-        }
-      : undefined;
-    third = matiksLeaderboard[2]
-      ? {
-          rank: 3 as const,
-          name: matiksLeaderboard[2].teamName,
-          subtext: "2nd Runner-Up",
-          stat1Value: matiksLeaderboard[2].matchesPlayed,
-          stat1Label: "rounds\nplayed",
-          stat2Value: matiksLeaderboard[2].totalPoints,
-          stat2Label: "matrix\nscore",
-        }
-      : undefined;
+  } else if (hasMatchesPlayed && currentLeaderboard.length >= 1) {
+    const isValorant = selectedGame === "VALORANT";
+    const isEfootball = selectedGame === "EFOOTBALL";
+    const isMatiks = selectedGame === "MATIKS";
+
+    const getStat1 = (entry: any) =>
+      isValorant || isMatiks ? entry.matchesPlayed : entry.killPoints;
+    const getStat1Label = () =>
+      isValorant ? "matches\nplayed" : isEfootball ? "goals\nscored" : isMatiks ? "rounds\nplayed" : "kill\npoints";
+    const getStat2 = (entry: any) => entry.totalPoints;
+    const getStat2Label = () =>
+      isValorant ? "placement\npoints" : isMatiks ? "matrix\nscore" : "total\npoints";
+
+    first = {
+      rank: 1 as const,
+      name: currentLeaderboard[0].teamName,
+      subtext: `${currentGameConfig.name} 1st Place`,
+      stat1Value: getStat1(currentLeaderboard[0]),
+      stat1Label: getStat1Label(),
+      stat2Value: getStat2(currentLeaderboard[0]),
+      stat2Label: getStat2Label(),
+    };
+    if (currentLeaderboard[1]) {
+      second = {
+        rank: 2 as const,
+        name: currentLeaderboard[1].teamName,
+        subtext: "1st Runner-Up",
+        stat1Value: getStat1(currentLeaderboard[1]),
+        stat1Label: getStat1Label(),
+        stat2Value: getStat2(currentLeaderboard[1]),
+        stat2Label: getStat2Label(),
+      };
+    }
+    if (currentLeaderboard[2]) {
+      third = {
+        rank: 3 as const,
+        name: currentLeaderboard[2].teamName,
+        subtext: "2nd Runner-Up",
+        stat1Value: getStat1(currentLeaderboard[2]),
+        stat1Label: getStat1Label(),
+        stat2Value: getStat2(currentLeaderboard[2]),
+        stat2Label: getStat2Label(),
+      };
+    }
   }
 
   const toggleProjector = async () => {
@@ -335,7 +189,6 @@ export default function HomePage() {
     { id: "EFOOTBALL" as const, label: "eFootball", icon: Gamepad2 },
     { id: "MATIKS" as const, label: "MATIKS", icon: Brain },
   ];
-  const isLive = tournament?.status?.toLowerCase() === "live";
 
   return (
     <div className={isProjectorMode

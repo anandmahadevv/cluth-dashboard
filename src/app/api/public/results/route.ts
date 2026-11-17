@@ -34,9 +34,16 @@ export async function GET(req: NextRequest) {
     });
   });
 
-  return NextResponse.json({
-    success: true,
-    data: flattened,
-    meta: { source: "INTERNAL_STORE", approvedOnly: true, timestamp: new Date().toISOString() },
-  });
+  return NextResponse.json(
+    {
+      success: true,
+      data: flattened,
+      meta: { source: "INTERNAL_STORE", approvedOnly: true, timestamp: new Date().toISOString() },
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=2, stale-while-revalidate=4",
+      },
+    }
+  );
 }

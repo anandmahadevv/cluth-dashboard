@@ -60,5 +60,9 @@ export async function GET(req: NextRequest) {
       supabaseConnected: isSupabaseConfigured(),
       timestamp: new Date().toISOString(),
     },
+  }, {
+    headers: {
+      "Cache-Control": "public, s-maxage=2, stale-while-revalidate=4",
+    },
   });
 }

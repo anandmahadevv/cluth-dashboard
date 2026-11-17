@@ -162,22 +162,68 @@ export function getStore(): TournamentStoreData {
 export async function getStoreAsync(forceRefresh = false): Promise<TournamentStoreData> {
   if (isSupabaseConfigured()) {
     const now = Date.now();
-    // 1. Fast path: return in-memory cache if fresh, has teams, and not forced
-    if (
-      !forceRefresh &&
-      inMemoryStore &&
-      inMemoryStore.teams &&
-      now - lastSupabaseFetchTime < SUPABASE_CACHE_TTL_MS
-    ) {
+
+    // SWR Fast Path: If inMemoryStore is already populated, return it IMMEDIATELY (<1ms!)
+    if (!forceRefresh && inMemoryStore && inMemoryStore.teams) {
+      // If stale, trigger background revalidation without blocking the response
+      if (now - lastSupabaseFetchTime >= SUPABASE_CACHE_TTL_MS && !pendingSupabaseFetch) {
+        pendingSupabaseFetch = (async () => {
+          try {
+            const remote = await fetchStoreFromSupabase();
+            if (remote && remote.teams) {
+              inMemoryStore = remote;
+              lastSupabaseFetchTime = Date.now();
+              try {
+                const dir = path.dirname(DATA_FILE_PATH);
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(remote, null, 2), "utf-8");
+              } catch {}
+            }
+          } catch (err) {
+            console.warn("Background Supabase revalidation error:", err);
+          } finally {
+            pendingSupabaseFetch = null;
+          }
+          return inMemoryStore;
+        })();
+      }
       return inMemoryStore;
     }
 
-    // 2. Promise deduplication: join in-flight request if one exists
+    // Cold start fallback: Load from local disk immediately (<2ms) while kicking off background fetch
+    if (!inMemoryStore) {
+      try {
+        const diskStore = getStore();
+        if (diskStore && diskStore.teams) {
+          inMemoryStore = diskStore;
+          lastSupabaseFetchTime = 0; // mark stale so background fetch updates it
+          // Trigger non-blocking remote sync
+          if (!pendingSupabaseFetch) {
+            pendingSupabaseFetch = (async () => {
+              try {
+                const remote = await fetchStoreFromSupabase();
+                if (remote && remote.teams) {
+                  inMemoryStore = remote;
+                  lastSupabaseFetchTime = Date.now();
+                }
+              } catch {} finally {
+                pendingSupabaseFetch = null;
+              }
+              return inMemoryStore;
+            })();
+          }
+          if (!forceRefresh) {
+            return inMemoryStore;
+          }
+        }
+      } catch {}
+    }
+
+    // Forced refresh path: await remote fetch
     if (!pendingSupabaseFetch) {
       pendingSupabaseFetch = (async () => {
         try {
           let remote = await fetchStoreFromSupabase();
-          // Single retry on transient network blip
           if (!remote) {
             await new Promise((r) => setTimeout(r, 100));
             remote = await fetchStoreFromSupabase();
@@ -206,7 +252,6 @@ export async function getStoreAsync(forceRefresh = false): Promise<TournamentSto
       console.warn("Supabase fetch fallback to disk:", err);
     }
 
-    // If inMemoryStore is already populated, NEVER discard it for an empty disk fallback
     if (inMemoryStore && inMemoryStore.teams) {
       return inMemoryStore;
     }
