@@ -33,3 +33,35 @@
 .poc-workspace .ops-intro h1 { font-size:30px; }
 .poc-workspace .ops-intro>div:first-child>p:first-child { margin-bottom:8px; }
 @media (max-width:639px) { .poc-workspace .ops-intro { padding:22px; } .poc-workspace .ops-intro h1 { font-size:28px; } }
+
+/* Referee scoring rows: stable columns and an unmistakable editing state. */
+.poc-score-columns { display:grid; grid-template-columns:minmax(0,1fr) 96px 200px; gap:12px; padding:0 14px; color:#87938a; font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; }
+.poc-score-row { display:grid; grid-template-columns:minmax(0,1fr) 96px 200px; align-items:center; gap:12px; min-height:100px; padding:14px; border:1px solid #e1e6dd; border-radius:14px; background:#fff; transition:border-color .15s, background .15s; }
+.poc-score-row:hover { border-color:#b8c4b4; }
+.poc-score-row[data-active="true"] { border-color:#d59b7d; background:#fffaf5; box-shadow:inset 3px 0 #c3764e; }
+.poc-score-drop-target { border-color:#c3764e; background:#fff0e6; }
+.poc-order-controls { display:grid; grid-template-columns:repeat(3,28px); gap:4px; align-items:center; }
+.poc-order-controls button { min-height:32px; padding:4px; }
+.poc-order-controls button svg { display:none; }
+.poc-score-values { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.poc-match-total { width:64px; flex-shrink:0; text-align:right; }
+.poc-score-stat-label { display:none; }
+@media (max-width:767px) {
+  .poc-score-columns { display:none; }
+  .poc-score-row { grid-template-columns:96px minmax(0,1fr); gap:12px; }
+  .poc-score-row>div:first-child { grid-column:1/-1; }
+  .poc-order-controls button { min-height:40px; }
+  .poc-score-values { justify-content:flex-end; }
+  .poc-score-values>div:first-child { gap:3px; }
+  .poc-score-values input { width:40px; }
+  .poc-score-stat-label { display:none; }
+}
+@media (max-width:420px) {
+  .poc-score-row { grid-template-columns:1fr; }
+  .poc-order-controls { grid-column:1; grid-row:3; }
+  .poc-score-values { grid-column:1; justify-content:space-between; border-top:1px solid #e8ece4; padding-top:10px; }
+  .poc-score-stat-label { display:inline; }
+  .poc-match-total::before { content:"Match pts"; display:block; color:#87938a; font-size:9px; font-weight:500; }
+}
+
+.poc-match-total:only-child { margin-left:auto; }

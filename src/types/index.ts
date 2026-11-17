@@ -242,6 +242,19 @@ export interface IndividualAwards {
   };
 }
 
+export interface AwardsSubmission {
+  id: string;
+  campusId: string;
+  gameId: GameId;
+  awards: IndividualAwards;
+  pocCode: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  timestamp: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+  reviewedBy?: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

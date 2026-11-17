@@ -56,6 +56,7 @@ interface TeamScoreInput {
 }
 
 export default function PocPortalPage() {
+  const [activeScoringTeam, setActiveScoringTeam] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<GameId>("FREE_FIRE");
   const [pocCode, setPocCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
@@ -102,25 +103,56 @@ export default function PocPortalPage() {
   const [isSavingAwards, setIsSavingAwards] = useState(false);
   const [awardsMessage, setAwardsMessage] = useState("");
   const [awardsError, setAwardsError] = useState("");
+  const [awardsSubmission, setAwardsSubmission] = useState<{
+    id: string;
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    timestamp: string;
+    rejectionReason?: string;
+    approvedAt?: string;
+  } | null>(null);
 
   const fetchAwards = async () => {
     try {
-      const res = await fetch(`/api/public/awards?gameId=${selectedGame}&campusId=${campusId}&t=${Date.now()}`);
+      const res = await fetch(`/api/poc/awards?gameId=${selectedGame}&campusId=${campusId}&t=${Date.now()}`);
       const data = await res.json();
-      if (data.success && data.awards) {
-        if (data.awards.winnerTeam) setWinnerTeam(data.awards.winnerTeam);
-        if (data.awards.winnerScore) setWinnerScore(data.awards.winnerScore);
-        if (data.awards.runnerUpTeam) setRunnerUpTeam(data.awards.runnerUpTeam);
-        if (data.awards.runnerUpScore) setRunnerUpScore(data.awards.runnerUpScore);
-        if (data.awards.mvp) {
-          setMvpName(data.awards.mvp.playerName || "");
-          setMvpTeam(data.awards.mvp.teamName || "");
-          setMvpStats(data.awards.mvp.stats || "");
+      if (data.success) {
+        if (data.latestSubmission) {
+          setAwardsSubmission(data.latestSubmission);
+          const subAwards = data.latestSubmission.awards;
+          if (subAwards && (data.latestSubmission.status === "PENDING" || !data.awards?.winnerTeam)) {
+            if (subAwards.winnerTeam) setWinnerTeam(subAwards.winnerTeam);
+            if (subAwards.winnerScore) setWinnerScore(subAwards.winnerScore);
+            if (subAwards.runnerUpTeam) setRunnerUpTeam(subAwards.runnerUpTeam);
+            if (subAwards.runnerUpScore) setRunnerUpScore(subAwards.runnerUpScore);
+            if (subAwards.mvp) {
+              setMvpName(subAwards.mvp.playerName || "");
+              setMvpTeam(subAwards.mvp.teamName || "");
+              setMvpStats(subAwards.mvp.stats || "");
+            }
+            if (subAwards.topFragger) {
+              setTopFraggerName(subAwards.topFragger.playerName || "");
+              setTopFraggerTeam(subAwards.topFragger.teamName || "");
+              setTopFraggerKills(subAwards.topFragger.kills ?? "");
+            }
+          }
         }
-        if (data.awards.topFragger) {
-          setTopFraggerName(data.awards.topFragger.playerName || "");
-          setTopFraggerTeam(data.awards.topFragger.teamName || "");
-          setTopFraggerKills(data.awards.topFragger.kills ?? "");
+        if (data.awards) {
+          if (data.awards.winnerTeam && (!data.latestSubmission || data.latestSubmission.status === "APPROVED")) {
+            setWinnerTeam(data.awards.winnerTeam);
+            if (data.awards.winnerScore) setWinnerScore(data.awards.winnerScore);
+            if (data.awards.runnerUpTeam) setRunnerUpTeam(data.awards.runnerUpTeam);
+            if (data.awards.runnerUpScore) setRunnerUpScore(data.awards.runnerUpScore);
+            if (data.awards.mvp) {
+              setMvpName(data.awards.mvp.playerName || "");
+              setMvpTeam(data.awards.mvp.teamName || "");
+              setMvpStats(data.awards.mvp.stats || "");
+            }
+            if (data.awards.topFragger) {
+              setTopFraggerName(data.awards.topFragger.playerName || "");
+              setTopFraggerTeam(data.awards.topFragger.teamName || "");
+              setTopFraggerKills(data.awards.topFragger.kills ?? "");
+            }
+          }
         }
       }
     } catch {}
@@ -161,13 +193,16 @@ export default function PocPortalPage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to update awards.");
+        throw new Error(data.error || "Failed to submit awards request.");
       }
 
-      setAwardsMessage("Official Grand Finals Champions & Awards saved & broadcast live!");
-      setTimeout(() => setAwardsMessage(""), 4000);
+      if (data.submission) {
+        setAwardsSubmission(data.submission);
+      }
+      setAwardsMessage(data.message || "Awards request submitted! Awaiting Super Admin approval before broadcasting live.");
+      setTimeout(() => setAwardsMessage(""), 5000);
     } catch (err: any) {
-      setAwardsError(err.message || "Failed to save awards.");
+      setAwardsError(err.message || "Failed to submit awards request.");
     } finally {
       setIsSavingAwards(false);
     }
@@ -957,6 +992,10 @@ export default function PocPortalPage() {
                     </div>
                   </div>
 
+                  <div className="poc-score-columns" aria-hidden="true">
+                    <span>Rank / team</span><span className="text-center">Reorder</span>
+                    <div className="flex justify-between"><span>{selectedGame === "VALORANT" ? "" : selectedGame === "EFOOTBALL" ? "Goals" : selectedGame === "MATIKS" ? "Bonus" : "Kills"}</span><span>Match total</span></div>
+                  </div>
                   {/* Drag-and-Drop Contenders List */}
                   <div className="space-y-2">
                     {filteredTeamIds.map((teamId) => {
@@ -980,6 +1019,11 @@ export default function PocPortalPage() {
                       return (
                         <div
                           key={teamId}
+                          role="group"
+                          aria-label={`${t.teamName}, match rank ${rank}`}
+                          data-active={activeScoringTeam === teamId}
+                          onFocusCapture={() => setActiveScoringTeam(teamId)}
+                          onClick={() => setActiveScoringTeam(teamId)}
                           draggable
                           onDragStart={(e) => {
                             setDraggedIndex(actualIndex);
@@ -1008,19 +1052,7 @@ export default function PocPortalPage() {
                             setDraggedIndex(null);
                             setDragOverIndex(null);
                           }}
-                          className={`flex flex-col items-stretch justify-between gap-3 p-2.5 sm:flex-row sm:items-center sm:p-3 rounded-xl border transition-all select-none ${
-                            isDragging
-                              ? "opacity-40 border-blue-500 scale-[0.98] bg-blue-50/20"
-                              : isDragOver
-                              ? "border-blue-400 bg-blue-500/10 shadow-md"
-                              : isFirst
-                              ? "bg-amber-500/10 border-amber-500/40 hover:border-amber-400"
-                              : isSecond
-                              ? "bg-[#edf0e9]/50 border-[#d1d9ce] hover:border-[#b8c4b4]"
-                              : isThird
-                              ? "bg-amber-900/10 border-amber-800/40 hover:border-amber-700"
-                              : "bg-[#f7f8f4]/60 border-[#dfe4db]/80 hover:border-[#d1d9ce]"
-                          }`}
+                          className={`poc-score-row ${isDragging ? "opacity-40" : ""} ${isDragOver ? "poc-score-drop-target" : ""}`}
                         >
                           {/* Left: Drag Handle, Rank Badge, Team Name */}
                           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
@@ -1044,13 +1076,13 @@ export default function PocPortalPage() {
                                   : "bg-[#edf0e9] text-[#69776d] border-[#d1d9ce]"
                               }`}
                             >
-                              {isFirst ? "🥇" : isSecond ? "🥈" : isThird ? "🥉" : `#${rank}`}
+                              <span className="tabular-nums">{String(rank).padStart(2, "0")}</span>
                             </span>
 
                             {/* Team Name & Overall stats + Group & Q Mark */}
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-bold text-[#17211e] text-xs sm:text-sm truncate">
+                                <span className="w-full break-words font-bold text-[#17211e] text-sm leading-snug">
                                   {t.teamName}
                                 </span>
                                 {selectedGame === "FREE_FIRE" && (() => {
@@ -1104,22 +1136,23 @@ export default function PocPortalPage() {
                                 )}
                               </div>
                               <div className="text-[10px] text-[#69776d] flex items-center gap-2 mt-0.5">
-                                <span>Seed #{actualIndex + 1}</span>
-                                <span>•</span>
+                                {activeScoringTeam === teamId && <span className="font-semibold text-[#ad522b]">Editing</span>}
                                 <span className="font-mono text-[#87938a]">
-                                  Overall: {t.totalPoints} pts
+                                  Tournament: {t.totalPoints} pts
                                 </span>
                               </div>
                             </div>
                           </div>
 
-                          {/* Center: Mobile Move Nudges (Top / Up / Down) */}
-                          <div className="flex items-center gap-1 shrink-0">
+                          {/* Rank controls remain keyboard and touch accessible. */}
+                          <div className="poc-order-controls">
+                            {isFirst && <span aria-hidden="true" />}
                             {!isFirst && (
                               <button
                                 type="button"
+                                aria-label={`Move ${t.teamName} to first place`}
                                 onClick={() => pinToFirst(teamId)}
-                                className="px-1.5 py-1 rounded bg-[#edf0e9] hover:bg-[#dfe6db] text-amber-700 hover:text-amber-700 text-[10px] font-bold border border-[#d1d9ce] hidden sm:inline-flex items-center gap-1"
+                                className="px-1.5 py-1 rounded bg-[#edf0e9] hover:bg-[#dfe6db] text-amber-700 hover:text-amber-700 text-[10px] font-bold border border-[#d1d9ce] inline-flex items-center justify-center gap-1"
                                 title="Move this squad directly to 1st place"
                               >
                                 <Crown className="w-3 h-3" />
@@ -1127,9 +1160,10 @@ export default function PocPortalPage() {
                               </button>
                             )}
 
-                            <div className="flex flex-col gap-0.5 sm:hidden">
+                            <div className="contents">
                               <button
                                 type="button"
+                                aria-label={`Move ${t.teamName} up`}
                                 onClick={() => moveOneSlot(teamId, "UP")}
                                 disabled={actualIndex === 0}
                                 className="p-1 rounded bg-[#edf0e9] disabled:opacity-20 text-[9px] text-[#48564d]"
@@ -1138,6 +1172,7 @@ export default function PocPortalPage() {
                               </button>
                               <button
                                 type="button"
+                                aria-label={`Move ${t.teamName} down`}
                                 onClick={() => moveOneSlot(teamId, "DOWN")}
                                 disabled={actualIndex === orderedTeamIds.length - 1}
                                 className="p-1 rounded bg-[#edf0e9] disabled:opacity-20 text-[9px] text-[#48564d]"
@@ -1148,10 +1183,10 @@ export default function PocPortalPage() {
                           </div>
 
                           {/* Right: Kills Stepper & Match Total */}
-                          <div className="flex w-full shrink-0 items-center justify-between gap-2 border-t border-[#dfe4db]/70 pt-2 sm:w-auto sm:justify-start sm:gap-4 sm:border-0 sm:pt-0">
+                          <div className="poc-score-values">
                             {selectedGame !== "VALORANT" && (
                               <div className="flex items-center gap-1">
-                                <span className="text-[10px] text-[#69776d] mr-1 font-semibold">
+                                <span className="poc-score-stat-label text-[10px] text-[#69776d] mr-1 font-semibold">
                                   {selectedGame === "EFOOTBALL"
                                     ? "Goals:"
                                     : selectedGame === "MATIKS"
@@ -1189,9 +1224,9 @@ export default function PocPortalPage() {
                             )}
 
                             {/* Match Points Earned Pill */}
-                            <div className="text-right w-14 sm:w-16">
-                              <div className="font-extrabold text-blue-700 font-mono text-xs sm:text-sm">
-                                +{sc.matchTotal}
+                            <div className="poc-match-total">
+                              <div className="text-lg font-extrabold tabular-nums text-[#17211e]">
+                                {sc.matchTotal}
                               </div>
                               <div className="text-[9px] text-[#69776d] font-mono">
                                 {selectedGame === "VALORANT"
@@ -1449,14 +1484,76 @@ export default function PocPortalPage() {
                       Tournament Special Awards (MVP & Top Fragger)
                     </h3>
                     <p className="text-xs text-[#69776d]">
-                      Submit official player awards for the live broadcast & winners podium.
+                      Submit official player awards nomination. Requires Super Admin verification before broadcasting live.
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 font-bold border border-amber-500/30">
-                  GRAND FINALS ACCOLADES
-                </span>
+                <div className="flex items-center gap-2">
+                  {awardsSubmission?.status === "PENDING" && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 font-bold border border-amber-500/30 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> AWAITING ADMIN APPROVAL
+                    </span>
+                  )}
+                  {awardsSubmission?.status === "APPROVED" && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 font-bold border border-emerald-500/30 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> RATIFIED & LIVE
+                    </span>
+                  )}
+                  {awardsSubmission?.status === "REJECTED" && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-red-500/20 text-red-700 font-bold border border-red-500/30 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> REVISION REQUESTED
+                    </span>
+                  )}
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 font-bold border border-amber-500/30">
+                    GRAND FINALS ACCOLADES
+                  </span>
+                </div>
               </div>
+
+              {/* Approval Status Banners */}
+              {awardsSubmission?.status === "PENDING" && (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs flex items-start gap-3">
+                  <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
+                  <div>
+                    <div className="font-bold flex items-center gap-2">
+                      <span>AWARDS NOMINATION PENDING SUPER ADMIN APPROVAL</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-200 text-amber-900 font-mono">
+                        {awardsSubmission.id}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-700 mt-0.5">
+                      Your nominated champions and accolades have been submitted to the Super Admin. Once approved, they will immediately appear on the public dashboard and podium. You may adjust and resubmit the details below anytime.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {awardsSubmission?.status === "APPROVED" && (
+                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-xs flex items-start gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold">AWARDS RATIFIED & LIVE ON PUBLIC DASHBOARD</div>
+                    <p className="text-[11px] text-emerald-700 mt-0.5">
+                      Super Admin has officially ratified these tournament accolades. They are live on the leaderboard, game results, and winners podium.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {awardsSubmission?.status === "REJECTED" && (
+                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-800 text-xs flex items-start gap-3">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold">REVISION REQUESTED BY SUPER ADMIN</div>
+                    <p className="text-[11px] text-red-700 mt-0.5">
+                      <strong>Reason:</strong> {awardsSubmission.rejectionReason || "Please adjust scores or player details."}
+                    </p>
+                    <p className="text-[10px] text-red-600 mt-0.5">
+                      Please review the feedback, update the fields below, and resubmit for approval.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {awardsMessage && (
                 <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 text-xs flex items-center gap-2">
@@ -1646,12 +1743,18 @@ export default function PocPortalPage() {
                   {isSavingAwards ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Saving Awards...</span>
+                      <span>Submitting Awards Request...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Save & Broadcast Awards Live</span>
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>
+                        {awardsSubmission?.status === "PENDING"
+                          ? "Update & Resubmit Awards Request"
+                          : awardsSubmission?.status === "REJECTED"
+                          ? "Resubmit Awards for Admin Approval"
+                          : "Submit Awards Request for Super Admin Approval"}
+                      </span>
                     </>
                   )}
                 </button>

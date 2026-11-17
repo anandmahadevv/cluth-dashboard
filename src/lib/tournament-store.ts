@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { GameId, IndividualAwards } from "@/types";
+import { GameId, IndividualAwards, AwardsSubmission } from "@/types";
 import {
   VALID_GAME_CODES,
   PLACEMENT_POINTS,
@@ -68,6 +68,7 @@ export interface TournamentStoreData {
   matches: MatchSubmission[];
   awards?: Partial<Record<GameId, IndividualAwards>>;
   campusAwards?: Record<string, Partial<Record<GameId, IndividualAwards>>>;
+  awardsSubmissions?: AwardsSubmission[];
 }
 
 // On Vercel serverless functions, root (/var/task) is read-only. /tmp is the writable scratch space.
@@ -1154,7 +1155,9 @@ export async function getAwardsAsync(
 }
 
 /**
- * Save or update individual accolades & special awards (MVP, Top Fragger)
+ * Save or request individual accolades & special awards (MVP, Top Fragger).
+ * If submitted by POC, creates a PENDING AwardsSubmission requiring Super Admin approval.
+ * If submitted by Super Admin, updates live awards immediately and ratifies any pending request.
  */
 export async function saveAwardsAsync(params: {
   gameId: GameId;
@@ -1162,7 +1165,14 @@ export async function saveAwardsAsync(params: {
   campusId?: string;
   pocCode?: string;
   adminPassword?: string;
-}): Promise<{ success: boolean; awards?: IndividualAwards; error?: string; message?: string }> {
+}): Promise<{
+  success: boolean;
+  awards?: IndividualAwards;
+  submission?: AwardsSubmission;
+  isPendingApproval?: boolean;
+  error?: string;
+  message?: string;
+}> {
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
     params.pocCode === "CLUTCH-SUPER-2026";
@@ -1186,6 +1196,41 @@ export async function saveAwardsAsync(params: {
     return { success: false, error: "Unauthorized: Super Admin or valid POC passkey required." };
   }
 
+  // 1. POC OR CAMPUS ADMIN: Submits for Super Admin approval
+  if (!isSuper) {
+    if (!store.awardsSubmissions) store.awardsSubmissions = [];
+
+    const existingPending = store.awardsSubmissions.find(
+      (s) => s.campusId === campusId && s.gameId === params.gameId && s.status === "PENDING"
+    );
+
+    const submission: AwardsSubmission = {
+      id: existingPending?.id || `AWD-${campusId.slice(0, 3).toUpperCase()}-${params.gameId.slice(0, 2)}-${Date.now()}`,
+      campusId,
+      gameId: params.gameId,
+      awards: params.awards,
+      pocCode: params.pocCode || "",
+      status: "PENDING",
+      timestamp: new Date().toISOString(),
+    };
+
+    if (existingPending) {
+      Object.assign(existingPending, submission);
+    } else {
+      store.awardsSubmissions.unshift(submission);
+    }
+
+    await saveStoreAsync(store);
+
+    return {
+      success: true,
+      submission,
+      isPendingApproval: true,
+      message: "Tournament Special Awards request submitted! Awaiting Super Admin approval before live broadcast.",
+    };
+  }
+
+  // 2. SUPER ADMIN: Direct ratification & live broadcast
   if (campusId === "mangalore") {
     if (!store.awards) store.awards = {};
     store.awards[params.gameId] = {
@@ -1201,6 +1246,18 @@ export async function saveAwardsAsync(params: {
     ...params.awards,
   };
 
+  // If there was a pending submission, mark it approved
+  if (store.awardsSubmissions) {
+    const pending = store.awardsSubmissions.find(
+      (s) => s.campusId === campusId && s.gameId === params.gameId && s.status === "PENDING"
+    );
+    if (pending) {
+      pending.status = "APPROVED";
+      pending.approvedAt = new Date().toISOString();
+      pending.reviewedBy = "Super Admin";
+    }
+  }
+
   await saveStoreAsync(store);
 
   const finalAwards =
@@ -1211,7 +1268,113 @@ export async function saveAwardsAsync(params: {
   return {
     success: true,
     awards: finalAwards,
-    message: "Special Awards (MVP & Top Fragger) updated successfully!",
+    message: "Special Awards (MVP & Top Fragger) updated and broadcast live by Super Admin!",
   };
+}
+
+/**
+ * Fetch all or filtered awards submissions
+ */
+export async function getAwardsSubmissionsAsync(options?: {
+  campusId?: string;
+  gameId?: GameId;
+  status?: "PENDING" | "APPROVED" | "REJECTED" | "ALL";
+}): Promise<AwardsSubmission[]> {
+  const store = await getStoreAsync();
+  if (!store.awardsSubmissions) return [];
+  return store.awardsSubmissions.filter((s) => {
+    if (options?.campusId && s.campusId !== options.campusId) return false;
+    if (options?.gameId && s.gameId !== options.gameId) return false;
+    if (options?.status && options.status !== "ALL" && s.status !== options.status) return false;
+    return true;
+  });
+}
+
+/**
+ * Get latest awards submission for a specific campus and game
+ */
+export async function getLatestAwardsSubmissionAsync(
+  campusId: string,
+  gameId: GameId
+): Promise<AwardsSubmission | null> {
+  const store = await getStoreAsync();
+  if (!store.awardsSubmissions || store.awardsSubmissions.length === 0) return null;
+  const found = store.awardsSubmissions.find(
+    (s) => s.campusId === campusId && s.gameId === gameId
+  );
+  return found || null;
+}
+
+/**
+ * Review awards submission: APPROVE or REJECT (Super Admin only)
+ */
+export async function reviewAwardsSubmissionAsync(params: {
+  submissionId: string;
+  action: "APPROVE" | "REJECT";
+  adminPassword: string;
+  rejectionReason?: string;
+}): Promise<{
+  success: boolean;
+  submission?: AwardsSubmission;
+  awards?: IndividualAwards;
+  error?: string;
+  message?: string;
+}> {
+  if (!verifyAdminPassword(params.adminPassword)) {
+    return { success: false, error: "Invalid Super Admin password. Access denied." };
+  }
+
+  const store = await getStoreAsync(true);
+  if (!store.awardsSubmissions) {
+    return { success: false, error: "No awards submissions found." };
+  }
+
+  const sub = store.awardsSubmissions.find((s) => s.id === params.submissionId);
+  if (!sub) {
+    return { success: false, error: "Awards submission not found." };
+  }
+
+  if (params.action === "APPROVE") {
+    sub.status = "APPROVED";
+    sub.approvedAt = new Date().toISOString();
+    sub.reviewedBy = "Super Admin";
+
+    // Broadcast to campusAwards
+    if (!store.campusAwards) store.campusAwards = {};
+    if (!store.campusAwards[sub.campusId]) store.campusAwards[sub.campusId] = {};
+    store.campusAwards[sub.campusId][sub.gameId] = {
+      ...store.campusAwards[sub.campusId][sub.gameId],
+      ...sub.awards,
+    };
+
+    if (sub.campusId === "mangalore") {
+      if (!store.awards) store.awards = {};
+      store.awards[sub.gameId] = {
+        ...store.awards[sub.gameId],
+        ...sub.awards,
+      };
+    }
+
+    await saveStoreAsync(store);
+
+    return {
+      success: true,
+      submission: sub,
+      awards: sub.awards,
+      message: `Awards for ${sub.gameId} (${sub.campusId}) approved and broadcast live to public dashboard!`,
+    };
+  } else if (params.action === "REJECT") {
+    sub.status = "REJECTED";
+    sub.rejectionReason = params.rejectionReason || "Awards nomination rejected by Super Admin.";
+    await saveStoreAsync(store);
+
+    return {
+      success: true,
+      submission: sub,
+      message: `Awards submission rejected: ${sub.rejectionReason}`,
+    };
+  }
+
+  return { success: false, error: "Invalid review action." };
 }
 

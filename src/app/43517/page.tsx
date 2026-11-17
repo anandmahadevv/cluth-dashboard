@@ -47,7 +47,7 @@ import {
   Copy,
 } from "lucide-react";
 import { AccessShell, WorkspaceIntro } from "@/components/operations/access-shell";
-import { GameId } from "@/types";
+import { GameId, AwardsSubmission } from "@/types";
 import {
   PLACEMENT_POINTS,
   getFreeFireGroupInfo,
@@ -158,6 +158,13 @@ export default function SuperAdminPortalPage() {
   const [isSavingAwards, setIsSavingAwards] = useState(false);
   const [awardsSuccessMsg, setAwardsSuccessMsg] = useState("");
   const [awardsErrorMsg, setAwardsErrorMsg] = useState("");
+
+  // Awards Submissions Review Queue
+  const [awardsSubmissions, setAwardsSubmissions] = useState<AwardsSubmission[]>([]);
+  const [isLoadingAwardsSubmissions, setIsLoadingAwardsSubmissions] = useState(false);
+  const [awardsRejectionModalSub, setAwardsRejectionModalSub] = useState<AwardsSubmission | null>(null);
+  const [awardsRejectionReason, setAwardsRejectionReason] = useState("");
+  const [isReviewingAward, setIsReviewingAward] = useState(false);
 
   // Teams Management State
   const [rosterGame, setRosterGame] = useState<GameId>("FREE_FIRE");
@@ -623,9 +630,64 @@ ${editingCampusAdminKey}
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated && mainTab === "awards") {
+  const fetchAwardsSubmissions = async () => {
+    setIsLoadingAwardsSubmissions(true);
+    try {
+      const res = await fetch(`/api/poc/awards/submissions?t=${Date.now()}`);
+      const data = await res.json();
+      if (data.success && data.submissions) {
+        setAwardsSubmissions(data.submissions);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsLoadingAwardsSubmissions(false);
+    }
+  };
+
+  const handleReviewAwards = async (submissionId: string, action: "APPROVE" | "REJECT", reason?: string) => {
+    setIsReviewingAward(true);
+    setAwardsSuccessMsg("");
+    setAwardsErrorMsg("");
+    try {
+      const savedPass = typeof window !== "undefined" ? sessionStorage.getItem("clutch_admin_auth") || "" : "";
+      const pass = adminPassword || savedPass || "43517-AM";
+
+      const res = await fetch("/api/poc/awards/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionId,
+          action,
+          adminPassword: pass,
+          rejectionReason: reason,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to review awards submission.");
+      }
+
+      setAwardsSuccessMsg(data.message || (action === "APPROVE" ? "Awards ratified and published live to public dashboard!" : "Awards request rejected."));
+      setAwardsRejectionModalSub(null);
+      setAwardsRejectionReason("");
+      fetchAwardsSubmissions();
       fetchAdminAwards(awardsGame, selectedCampus);
+      setTimeout(() => setAwardsSuccessMsg(""), 5000);
+    } catch (err: any) {
+      setAwardsErrorMsg(err.message || "Failed to review awards submission.");
+    } finally {
+      setIsReviewingAward(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAwardsSubmissions();
+      if (mainTab === "awards") {
+        fetchAdminAwards(awardsGame, selectedCampus);
+      }
     }
   }, [isAuthenticated, mainTab, awardsGame, selectedCampus]);
 
@@ -671,6 +733,7 @@ ${editingCampusAdminKey}
       }
 
       setAwardsSuccessMsg("Tournament accolades (MVP & Top Fragger) saved & broadcast live!");
+      fetchAwardsSubmissions();
       setTimeout(() => setAwardsSuccessMsg(""), 4000);
     } catch (err: any) {
       setAwardsErrorMsg(err.message || "Failed to save awards.");
@@ -1690,6 +1753,31 @@ ${editingCampusAdminKey}
         {/* ---------------------------------------------------- */}
         {mainTab === "inbox" && (
           <div className="space-y-4">
+            {/* Pending Awards Requests Alert Banner */}
+            {awardsSubmissions.filter((s) => s.status === "PENDING").length > 0 && (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 animate-in fade-in">
+                <div className="flex items-center gap-2.5">
+                  <Crown className="w-5 h-5 text-amber-600 shrink-0" />
+                  <div>
+                    <div className="text-xs font-bold text-[#17211e]">
+                      {awardsSubmissions.filter((s) => s.status === "PENDING").length} Pending Tournament Awards Request{awardsSubmissions.filter((s) => s.status === "PENDING").length > 1 ? "s" : ""}
+                    </div>
+                    <div className="text-[11px] text-[#69776d]">
+                      Game POCs have submitted player awards nominations awaiting your approval before live broadcast.
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMainTab("awards")}
+                  className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shrink-0 flex items-center gap-1 shadow-sm"
+                >
+                  <Crown className="w-3.5 h-3.5" />
+                  <span>Review Awards Queue</span>
+                </button>
+              </div>
+            )}
+
             {/* Filter Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-[#dfe4db] rounded-xl p-3">
               <div className="flex items-center gap-2">
@@ -3186,6 +3274,128 @@ ${editingCampusAdminKey}
               </div>
             )}
 
+            {/* Incoming POC Awards Requests Requiring Super Admin Approval */}
+            {awardsSubmissions.filter((s) => s.status === "PENDING").length > 0 && (
+              <div className="bg-amber-500/5 border border-amber-500/30 rounded-2xl p-5 space-y-4 shadow-sm animate-in fade-in">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/20 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-amber-600 animate-pulse" />
+                    <div>
+                      <h3 className="text-sm font-bold text-[#17211e]">
+                        Pending POC Awards Approval Requests ({awardsSubmissions.filter((s) => s.status === "PENDING").length})
+                      </h3>
+                      <p className="text-xs text-[#69776d]">
+                        Game POCs have submitted player awards nominations. Approve them to broadcast live to public leaderboards.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-800 font-bold border border-amber-500/30">
+                    ACTION REQUIRED
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {awardsSubmissions
+                    .filter((s) => s.status === "PENDING")
+                    .map((sub) => {
+                      const camp = CAMPUSES_REGISTRY[sub.campusId];
+                      return (
+                        <div
+                          key={sub.id}
+                          className="bg-white border border-[#dfe4db] rounded-xl p-4 shadow-sm space-y-3"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dfe4db] pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-[#17211e] uppercase">
+                                {camp?.name || sub.campusId} • {sub.gameId}
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold">
+                                {sub.id}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-[#69776d]">
+                              Submitted by POC: <code className="font-mono font-bold text-[#17211e]">{sub.pocCode}</code> • {new Date(sub.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            <div className="p-2.5 rounded-lg bg-[#f7f8f4] border border-[#dfe4db]">
+                              <div className="text-[10px] font-bold text-amber-700">🏆 1st Place Champion</div>
+                              <div className="font-bold text-[#17211e] mt-0.5">{sub.awards.winnerTeam || "—"}</div>
+                              <div className="text-[11px] text-[#69776d]">{sub.awards.winnerScore || "—"}</div>
+                            </div>
+
+                            <div className="p-2.5 rounded-lg bg-[#f7f8f4] border border-[#dfe4db]">
+                              <div className="text-[10px] font-bold text-[#48564d]">🥈 2nd Place Runner-Up</div>
+                              <div className="font-bold text-[#17211e] mt-0.5">{sub.awards.runnerUpTeam || "—"}</div>
+                              <div className="text-[11px] text-[#69776d]">{sub.awards.runnerUpScore || "—"}</div>
+                            </div>
+
+                            <div className="p-2.5 rounded-lg bg-[#f7f8f4] border border-[#dfe4db]">
+                              <div className="text-[10px] font-bold text-amber-700">⭐ Tournament MVP</div>
+                              <div className="font-bold text-[#17211e] mt-0.5">{sub.awards.mvp?.playerName || "—"}</div>
+                              <div className="text-[11px] text-[#69776d]">
+                                {sub.awards.mvp?.teamName} {sub.awards.mvp?.stats ? `• ${sub.awards.mvp.stats}` : ""}
+                              </div>
+                            </div>
+
+                            <div className="p-2.5 rounded-lg bg-[#f7f8f4] border border-[#dfe4db]">
+                              <div className="text-[10px] font-bold text-red-700">🎯 Top Fragger</div>
+                              <div className="font-bold text-[#17211e] mt-0.5">{sub.awards.topFragger?.playerName || "—"}</div>
+                              <div className="text-[11px] text-[#69776d]">
+                                {sub.awards.topFragger?.teamName} {sub.awards.topFragger?.kills !== undefined ? `• ${sub.awards.topFragger.kills} Kills` : ""}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-[#dfe4db]">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAwardsGame(sub.gameId);
+                                setSelectedCampus(sub.campusId);
+                                setAdminWinnerTeam(sub.awards.winnerTeam || "");
+                                setAdminWinnerScore(sub.awards.winnerScore || "");
+                                setAdminRunnerUpTeam(sub.awards.runnerUpTeam || "");
+                                setAdminRunnerUpScore(sub.awards.runnerUpScore || "");
+                                setAdminMvpName(sub.awards.mvp?.playerName || "");
+                                setAdminMvpTeam(sub.awards.mvp?.teamName || "");
+                                setAdminMvpStats(sub.awards.mvp?.stats || "");
+                                setAdminTopFraggerName(sub.awards.topFragger?.playerName || "");
+                                setAdminTopFraggerTeam(sub.awards.topFragger?.teamName || "");
+                                setAdminTopFraggerKills(sub.awards.topFragger?.kills ?? "");
+                              }}
+                              className="px-3 py-1.5 rounded-lg border border-[#dfe4db] bg-[#edf0e9] hover:bg-[#dfe6db] text-xs font-semibold text-[#48564d] transition"
+                            >
+                              Load into Editor Below
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setAwardsRejectionModalSub(sub)}
+                              disabled={isReviewingAward}
+                              className="px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition"
+                            >
+                              Reject / Request Revision
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleReviewAwards(sub.id, "APPROVE")}
+                              disabled={isReviewingAward}
+                              className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                            >
+                              {isReviewingAward ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                              <span>Approve & Broadcast Live</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
             {/* Awards Edit Form */}
             <form onSubmit={handleSaveAdminAwards} className="bg-white border border-[#dfe4db] rounded-2xl p-6 space-y-6 shadow-xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3779,6 +3989,65 @@ ${editingCampusAdminKey}
                 className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-bold text-[#17211e] flex items-center gap-1.5"
               >
                 <Ban className="w-3.5 h-3.5" />
+                <span>Confirm Rejection</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* MODAL 3: AWARDS REJECTION REASON PROMPT              */}
+      {/* ---------------------------------------------------- */}
+      {awardsRejectionModalSub && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+          <div className="bg-white border border-[#dfe4db] rounded-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3 text-red-700">
+              <Ban className="w-6 h-6" />
+              <h3 className="font-bold text-base text-[#17211e]">
+                Reject Awards Request
+              </h3>
+            </div>
+
+            <p className="text-xs text-[#69776d]">
+              Provide a clear reason why this awards request for{" "}
+              <strong>
+                {awardsRejectionModalSub.campusId} • {awardsRejectionModalSub.gameId}
+              </strong>{" "}
+              is being returned to the POC.
+            </p>
+
+            <textarea
+              value={awardsRejectionReason}
+              onChange={(e) => setAwardsRejectionReason(e.target.value)}
+              placeholder="e.g. Please verify top fragger kills count with Match 4 screenshot proof..."
+              className="w-full h-24 p-3 rounded-xl bg-[#f7f8f4] border border-[#dfe4db] text-xs text-[#17211e] placeholder-[#69776d] focus:border-red-400 outline-none"
+            />
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAwardsRejectionModalSub(null);
+                  setAwardsRejectionReason("");
+                }}
+                className="px-4 py-2 rounded-xl bg-[#edf0e9] hover:bg-[#dfe6db] text-xs font-semibold text-[#48564d]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isReviewingAward || !awardsRejectionReason.trim()}
+                onClick={() =>
+                  handleReviewAwards(
+                    awardsRejectionModalSub.id,
+                    "REJECT",
+                    awardsRejectionReason.trim()
+                  )
+                }
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isReviewingAward ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
                 <span>Confirm Rejection</span>
               </button>
             </div>

@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { saveAwardsAsync, getAwardsAsync } from "@/lib/tournament-store";
+import {
+  saveAwardsAsync,
+  getAwardsAsync,
+  getLatestAwardsSubmissionAsync,
+} from "@/lib/tournament-store";
 import { GameId, IndividualAwards } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +22,15 @@ export async function GET(req: NextRequest) {
     }
 
     const awards = await getAwardsAsync(gameId, campusId);
-    return NextResponse.json({ success: true, gameId, campusId, awards });
+    const latestSubmission = await getLatestAwardsSubmissionAsync(campusId, gameId);
+
+    return NextResponse.json({
+      success: true,
+      gameId,
+      campusId,
+      awards,
+      latestSubmission,
+    });
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: err.message || "Failed to fetch awards." },
@@ -54,13 +66,15 @@ export async function POST(req: NextRequest) {
     });
 
     if (!result.success) {
-      return NextResponse.json({ success: false, error: result.error }, { status: 401 });
+      return NextResponse.json({ success: false, error: result.error }, { status: 400 });
     }
 
     return NextResponse.json({
       success: true,
       message: result.message,
       awards: result.awards,
+      submission: result.submission,
+      isPendingApproval: result.isPendingApproval || false,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message || "Failed to save awards." }, { status: 500 });
