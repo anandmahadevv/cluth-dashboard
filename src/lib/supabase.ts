@@ -89,3 +89,22 @@ export async function persistStoreToSupabase(storeData: TournamentStoreData): Pr
     return false;
   }
 }
+
+/** Fresh snapshot for compare-and-swap match writes; never fall back to stale data. */
+export async function fetchMatchWriteSnapshot() {
+  if (!supabase) throw new Error("Database is not configured.");
+  const { data, error } = await supabase.from("tournament_state")
+    .select("data, updated_at").eq("id", STATE_ROW_ID).single();
+  if (error || !data?.data || !data.updated_at) throw new Error("Could not read tournament state. Please retry.");
+  return { store: data.data as TournamentStoreData, revision: data.updated_at as string };
+}
+
+/** Only commit if no writer changed the row since the fresh read. */
+export async function commitMatchWrite(store: TournamentStoreData, revision: string): Promise<boolean> {
+  if (!supabase) throw new Error("Database is not configured.");
+  const { data, error } = await supabase.from("tournament_state")
+    .update({ data: store, updated_at: new Date(Math.max(Date.now(), Date.parse(revision) + 1)).toISOString() })
+    .eq("id", STATE_ROW_ID).eq("updated_at", revision).select("id");
+  if (error) throw new Error("Could not save match. Please retry the same submission.");
+  return Boolean(data?.length);
+}

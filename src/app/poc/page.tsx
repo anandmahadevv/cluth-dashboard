@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { PocMatchStatus } from "@/components/operations/poc-match-status";
+import { parsePocDraft, pocDraftKey, type PocDraft } from "@/lib/poc-draft-storage";
 import {
   ShieldCheck,
   Lock,
@@ -77,7 +79,10 @@ export default function PocPortalPage() {
   const [proofUrl, setProofUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [notes, setNotes] = useState("");
+  const [draftNotice, setDraftNotice] = useState("");
+  const [draftStorageError, setDraftStorageError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionInFlight = useRef(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -87,6 +92,20 @@ export default function PocPortalPage() {
   const [qualifiedNotice, setQualifiedNotice] = useState<string>("");
   const [ffGroupFilter, setFfGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!isUnlocked || submitSuccess || !orderedTeamIds.length) return;
+    const draft: PocDraft = {
+      version: 1, savedAt: Date.now(), matchNumber, notes, orderedTeamIds,
+      scores: Object.fromEntries(orderedTeamIds.map(id => [id, {
+        placementPoints: scores[id]?.placementPoints ?? 0, kills: scores[id]?.kills ?? 0,
+      }])),
+    };
+    try {
+      localStorage.setItem(pocDraftKey(campusId, selectedGame), JSON.stringify(draft));
+      setDraftStorageError(false);
+    } catch { setDraftStorageError(true); }
+  }, [isUnlocked, submitSuccess, campusId, selectedGame, matchNumber, notes, orderedTeamIds, scores]);
 
   // Special Awards State (Winner, Runner-up, MVP & Top Fragger)
   const [winnerTeam, setWinnerTeam] = useState("");
@@ -397,6 +416,33 @@ export default function PocPortalPage() {
         };
       });
 
+      setMatchNumber(1);
+      setNotes("");
+      setProofUrl("");
+      setSubmitSuccess(false);
+      setSubmitError("");
+      setIsReviewOpen(false);
+      setDraftNotice("");
+      setDraftStorageError(false);
+      try {
+        const key = pocDraftKey(data.campusId || "mangalore", selectedGame);
+        const raw = localStorage.getItem(key);
+        const draft = parsePocDraft(raw, teamIdList);
+        if (draft) {
+          setOrderedTeamIds(draft.orderedTeamIds);
+          draft.orderedTeamIds.forEach((id, index) => {
+            const saved = draft.scores[id];
+            initialScores[id] = { teamId: id, placement: index + 1, kills: saved.kills,
+              placementPoints: saved.placementPoints, matchTotal: saved.placementPoints + saved.kills };
+          });
+          setMatchNumber(draft.matchNumber);
+          setNotes(draft.notes);
+          setDraftNotice("Draft restored. Check the scores and reattach screenshot evidence before submitting.");
+        } else if (raw) {
+          localStorage.removeItem(key);
+          setDraftNotice("The previous draft expired or its roster changed. A fresh draft is ready.");
+        }
+      } catch { setDraftStorageError(true); }
       setScores(initialScores);
       setIsUnlocked(true);
       fetchAwards();
@@ -455,7 +501,7 @@ export default function PocPortalPage() {
 
   // Submit Match Results
   const handleSubmitMatch = async () => {
-    if (isSubmitting) return;
+    if (submissionInFlight.current || submitSuccess) return;
     if (isLocked && !isSuperAdmin) { setSubmitError("This campus is locked. Submissions are disabled."); return; }
     if (!draftResults.length || draftResults.some(result => !teams.some(team => team.id === result.teamId))) {
       setSubmitError("The roster changed. Refresh the roster before submitting."); return;
@@ -468,6 +514,7 @@ export default function PocPortalPage() {
       return;
     }
 
+    submissionInFlight.current = true;
     setIsSubmitting(true);
     setSubmitError("");
 
@@ -493,6 +540,8 @@ export default function PocPortalPage() {
         throw new Error(data.error || "Submission failed");
       }
 
+      try { localStorage.removeItem(pocDraftKey(campusId, selectedGame)); } catch {}
+      setDraftNotice("");
       setIsReviewOpen(false);
       setSubmitSuccess(true);
       setSuccessMessage(
@@ -503,11 +552,13 @@ export default function PocPortalPage() {
     } catch (err: any) {
       setSubmitError(err.message || "Error submitting match results.");
     } finally {
+      submissionInFlight.current = false;
       setIsSubmitting(false);
     }
   };
 
   const handleNextMatch = () => {
+    setDraftNotice("");
     setIsReviewOpen(false);
     setMatchNumber((prev) => prev + 1);
     setProofUrl("");
@@ -677,6 +728,12 @@ export default function PocPortalPage() {
               </ol>
               <button type="button" onClick={() => setIsUnlocked(false)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#69776d] transition hover:text-[#17211e]"><RefreshCw className="h-3 w-3" />Switch game</button>
             </div>
+
+            {!submitSuccess && <div role="status" className={`rounded-xl border px-4 py-3 text-xs leading-relaxed ${draftStorageError ? "border-amber-200 bg-amber-50 text-amber-800" : "border-[#dfe4db] bg-white text-[#69776d]"}`}>
+              {draftStorageError ? "Draft could not be saved on this browser. Keep this page open to avoid losing your work." : draftNotice || "Draft saved automatically on this browser for 7 days. Scores, order, match number and notes are recovered after sign-in; reattach evidence after a refresh."}
+            </div>}
+
+            <PocMatchStatus code={pocCode} gameId={selectedGame} campusId={campusId} submitted={submitSuccess} />
 
             {/* Campus Locked Alert Notice if locked and not super admin */}
             {isLocked && !isSuperAdmin && (

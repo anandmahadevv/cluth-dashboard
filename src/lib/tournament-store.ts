@@ -1,4 +1,5 @@
 import fs from "fs";
+import { matchSubmissionIdentity } from "./match-submission-identity";
 import path from "path";
 import crypto from "crypto";
 import { GameId, IndividualAwards, AwardsSubmission } from "@/types";
@@ -15,6 +16,8 @@ import {
 } from "./tournament-constants";
 import {
   fetchStoreFromSupabase,
+  fetchMatchWriteSnapshot,
+  commitMatchWrite,
   persistStoreToSupabase,
   isSupabaseConfigured,
 } from "./supabase";
@@ -37,6 +40,7 @@ export interface TeamScoreEntry {
 }
 
 export interface MatchSubmission {
+  submissionFingerprint?: string;
   id: string;
   campusId?: string;
   gameId: GameId;
@@ -605,108 +609,121 @@ export async function recordMatchSubmissionAsync(params: {
     kills?: number;
   }[];
 }): Promise<{ success: boolean; pending?: boolean; submissionId?: string; leaderboard?: TeamScoreEntry[]; message?: string; error?: string }> {
-  const auth = verifyGameCode(params.pocCode, params.gameId);
-  if (!auth.valid) {
-    return { success: false, error: auth.error };
-  }
-
   const campusId = params.campusId || "mangalore";
-  const store = await getStoreAsync();
-
-  const isSuperAdminCode = !!auth.isSuperAdmin && params.pocCode === "CLUTCH-SUPER-2026";
-  if (isCampusLocked(store, campusId) && !isSuperAdminCode) {
-    return {
-      success: false,
-      error: `This campus (${campusId}) tournament is LOCKED by Super Admin. Read-only mode.`,
-    };
-  }
-
-  const teams = getCampusTeamsList(store, campusId, params.gameId);
-  if (!teams || teams.length === 0) {
-    return { success: false, error: `No teams configured for ${params.gameId} in ${campusId}.` };
-  }
-
-  const detailedResults: MatchSubmission["teamResults"] = [];
-
-  params.teamResults.forEach((res) => {
-    const team = teams.find((t) => t.id === res.teamId);
-    if (!team) return;
-
-    let placementPts = res.placementPoints || 0;
-    const kills = params.gameId === "VALORANT" ? 0 : (res.kills || 0);
-
-    const matrix = PLACEMENT_POINTS[params.gameId];
-    if (matrix && res.placement >= 1 && res.placement <= matrix.length) {
-      if (placementPts === 0) {
-        placementPts = matrix[res.placement - 1];
-      }
+  const identity = matchSubmissionIdentity(params);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const snapshot = isSupabaseConfigured() ? await fetchMatchWriteSnapshot() : null;
+    const store: TournamentStoreData = snapshot ? snapshot.store : await getStoreAsync();
+    const currentAuth = verifyGameCode(params.pocCode, params.gameId, store);
+    if (!currentAuth.valid) return { success: false, error: currentAuth.error };
+    const existing = store.matches.find(match => match.status !== "REJECTED" && matchSubmissionIdentity(match).roundKey === identity.roundKey);
+    if (existing) {
+      if (existing.submissionFingerprint === identity.fingerprint) return {
+        success: true, pending: existing.status === "PENDING", submissionId: existing.id,
+        message: "This match was already received. No duplicate was created.",
+      };
+      return { success: false, error: "This match number already has a submission for these teams. Check its status with the admin before sending different scores." };
     }
 
-    const matchPoints = placementPts + kills;
+    const isSuperAdminCode = !!currentAuth.isSuperAdmin && params.pocCode === "CLUTCH-SUPER-2026";
+    if (isCampusLocked(store, campusId) && !isSuperAdminCode) {
+      return {
+        success: false,
+        error: `This campus (${campusId}) tournament is LOCKED by Super Admin. Read-only mode.`,
+      };
+    }
 
-    detailedResults.push({
-      teamId: team.id,
-      teamName: team.teamName,
-      placement: res.placement,
-      placementPoints: placementPts,
-      kills: kills,
-      matchPoints: matchPoints,
-    });
-  });
+    const teams = getCampusTeamsList(store, campusId, params.gameId);
+    if (!teams || teams.length === 0) {
+      return { success: false, error: `No teams configured for ${params.gameId} in ${campusId}.` };
+    }
 
-  const shouldApprove = isSuperAdminCode && params.autoApprove === true;
-  const status: SubmissionStatus = shouldApprove ? "APPROVED" : "PENDING";
+    const detailedResults: MatchSubmission["teamResults"] = [];
 
-  if (shouldApprove) {
-    detailedResults.forEach((res) => {
+    params.teamResults.forEach((res) => {
       const team = teams.find((t) => t.id === res.teamId);
       if (!team) return;
 
-      team.matchesPlayed += 1;
-      team.placementPoints += res.placementPoints;
-      team.killPoints += res.kills;
-      team.totalPoints += res.matchPoints;
-      team.lastMatchRank = res.placement;
+      let placementPts = res.placementPoints || 0;
+      const kills = params.gameId === "VALORANT" ? 0 : (res.kills || 0);
+
+      const matrix = PLACEMENT_POINTS[params.gameId];
+      if (matrix && res.placement >= 1 && res.placement <= matrix.length) {
+        if (placementPts === 0) {
+          placementPts = matrix[res.placement - 1];
+        }
+      }
+
+      const matchPoints = placementPts + kills;
+
+      detailedResults.push({
+        teamId: team.id,
+        teamName: team.teamName,
+        placement: res.placement,
+        placementPoints: placementPts,
+        kills: kills,
+        matchPoints: matchPoints,
+      });
     });
 
-    setCampusTeamsList(store, campusId, params.gameId, sortAndRankTeams(teams));
-  }
+    const shouldApprove = isSuperAdminCode && params.autoApprove === true;
+    const status: SubmissionStatus = shouldApprove ? "APPROVED" : "PENDING";
 
-  const matchEntry: MatchSubmission = {
-    id: `SUB-${params.gameId.substring(0, 2)}-${Date.now()}`,
-    campusId: campusId,
-    gameId: params.gameId,
-    matchNumber: params.matchNumber,
-    timestamp: new Date().toISOString(),
-    pocCode: params.pocCode,
-    proofUrl: params.proofUrl,
-    notes: params.notes || "",
-    status: status,
-    reviewedAt: shouldApprove ? new Date().toISOString() : undefined,
-    reviewedBy: shouldApprove ? "SuperAdmin" : undefined,
-    teamResults: detailedResults,
-  };
+    if (shouldApprove) {
+      detailedResults.forEach((res) => {
+        const team = teams.find((t) => t.id === res.teamId);
+        if (!team) return;
 
-  store.matches.unshift(matchEntry);
-  await saveStoreAsync(store);
+        team.matchesPlayed += 1;
+        team.placementPoints += res.placementPoints;
+        team.killPoints += res.kills;
+        team.totalPoints += res.matchPoints;
+        team.lastMatchRank = res.placement;
+      });
 
-  const finalTeams = getCampusTeamsList(store, campusId, params.gameId);
-  if (shouldApprove) {
+      setCampusTeamsList(store, campusId, params.gameId, sortAndRankTeams(teams));
+    }
+
+    const matchEntry: MatchSubmission = {
+      id: `SUB-${crypto.randomUUID()}`,
+      submissionFingerprint: identity.fingerprint,
+      campusId: campusId,
+      gameId: params.gameId,
+      matchNumber: params.matchNumber,
+      timestamp: new Date().toISOString(),
+      pocCode: params.pocCode,
+      proofUrl: params.proofUrl,
+      notes: params.notes || "",
+      status: status,
+      reviewedAt: shouldApprove ? new Date().toISOString() : undefined,
+      reviewedBy: shouldApprove ? "SuperAdmin" : undefined,
+      teamResults: detailedResults,
+    };
+
+    store.matches.unshift(matchEntry);
+    store.lastUpdated = new Date().toISOString();
+    if (snapshot && !(await commitMatchWrite(store, snapshot.revision))) continue;
+    saveStore(store);
+
+    const finalTeams = getCampusTeamsList(store, campusId, params.gameId);
+    if (shouldApprove) {
+      return {
+        success: true,
+        pending: false,
+        submissionId: matchEntry.id,
+        leaderboard: finalTeams,
+        message: `Match ${params.matchNumber} results approved and broadcast live to leaderboard!`,
+      };
+    }
+
     return {
       success: true,
-      pending: false,
+      pending: true,
       submissionId: matchEntry.id,
-      leaderboard: finalTeams,
-      message: `Match ${params.matchNumber} results approved and broadcast live to leaderboard!`,
+      message: `Match ${params.matchNumber} results submitted! Awaiting Super Admin review and publishing.`,
     };
   }
-
-  return {
-    success: true,
-    pending: true,
-    submissionId: matchEntry.id,
-    message: `Match ${params.matchNumber} results submitted! Awaiting Super Admin review and publishing.`,
-  };
+  return { success: false, error: "Tournament data changed while saving. Please retry the same submission." };
 }
 
 /**
