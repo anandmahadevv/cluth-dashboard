@@ -1,15 +1,41 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { Trophy } from "lucide-react";
 import { useTournamentWinners, useGameAwards } from "@/hooks/use-tournament-data";
+import { CAMPUSES_REGISTRY } from "@/lib/tournament-constants";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { Podium } from "@/components/leaderboards/podium";
 import { ShareModal } from "@/components/shared/share-modal";
 import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 
 export default function WinnersPage() {
+  const [currentCampusId, setCurrentCampusId] = useState<string>("mangalore");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlCampus = params.get("campus") || params.get("college");
+      const stored = localStorage.getItem("clutch_selected_campus");
+      if (urlCampus || stored) {
+        setCurrentCampusId(urlCampus || stored || "mangalore");
+      }
+      const handler = (e: any) => {
+        if (e.detail) setCurrentCampusId(e.detail);
+      };
+      window.addEventListener("clutch_campus_change", handler);
+      return () => window.removeEventListener("clutch_campus_change", handler);
+    }
+  }, []);
+
+  const activeCampusMeta = CAMPUSES_REGISTRY[currentCampusId] || CAMPUSES_REGISTRY["mangalore"];
+
   const { data: winners, lastUpdated, isRefreshing, refresh, isTabActive } =
     useTournamentWinners();
-  const { data: ffAwards } = useGameAwards("FREE_FIRE");
+  const { data: ffAwards } = useGameAwards("FREE_FIRE", currentCampusId);
+
+  const isMangalore = currentCampusId === "mangalore";
+  const hasAwards = Boolean(ffAwards?.winnerTeam || ffAwards?.mvp?.playerName);
 
   return (
     <div className="min-h-screen px-4 py-8 sm:px-6 max-w-5xl mx-auto space-y-10 bg-white text-slate-900">
@@ -20,7 +46,7 @@ export default function WinnersPage() {
             TOURNAMENT WINNERS
           </h1>
           <p className="text-xs text-slate-500">
-            Official ratified champions across all 4 competitive arenas
+            Official ratified champions across all competitive arenas · {activeCampusMeta.name}
           </p>
         </div>
 
@@ -37,8 +63,24 @@ export default function WinnersPage() {
 
       {/* Winners Section */}
       <div className="space-y-12">
-        {/* Free Fire Grand Finals Showcase (always present) */}
-        {!winners?.some((w) => w.gameId === "FREE_FIRE") && (
+        {/* If no concluded winners yet for this campus */}
+        {!isMangalore && !hasAwards && (
+          <div className="py-14 px-6 rounded-3xl bg-[#f7f8f4] border border-[#dfe4db] text-center max-w-xl mx-auto space-y-4">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-800 text-xs font-black uppercase tracking-wider">
+              <Trophy className="w-4 h-4 text-amber-600" />
+              <span>ARENA READY • THE CROWN HAS TO BE EARNED</span>
+            </div>
+            <h2 className="text-xl font-black text-[#17211e] uppercase tracking-tight">
+              {activeCampusMeta.name} Championship In Progress
+            </h2>
+            <p className="text-xs text-[#69776d] leading-relaxed">
+              Teams and solo gladiators are currently battling on stage. Official champions, runner-up cups, MVP, and kill leader accolades will appear here live once Grand Finals conclude and are ratified by Super Admin.
+            </p>
+          </div>
+        )}
+
+        {/* Free Fire Grand Finals Showcase */}
+        {(isMangalore || hasAwards) && (
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h2 className="text-lg font-black uppercase text-slate-800 tracking-tight">
@@ -52,7 +94,7 @@ export default function WinnersPage() {
           </div>
         )}
 
-        {winners?.map((gameWinner) => {
+        {isMangalore && winners?.map((gameWinner) => {
           const first = gameWinner.firstPlace
             ? {
                 rank: 1 as const,

@@ -53,7 +53,7 @@ export const CAMPUSES_REGISTRY: Record<string, CampusMetadata> = {
     editionDate: "Dec 2026",
     isLocked: false,
     adminCode: "CBE-ADMIN-2026",
-    status: "UPCOMING",
+    status: "LIVE",
   },
   bangalore: {
     id: "bangalore",
@@ -61,10 +61,10 @@ export const CAMPUSES_REGISTRY: Record<string, CampusMetadata> = {
     shortName: "Bangalore",
     university: "NIAT Bangalore Tech Hub",
     location: "Bangalore, Karnataka",
-    editionDate: "Q1 2027",
+    editionDate: "Winter 2026-27",
     isLocked: false,
     adminCode: "BLR-ADMIN-2026",
-    status: "UPCOMING",
+    status: "LIVE",
   },
 };
 

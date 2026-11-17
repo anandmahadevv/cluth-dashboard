@@ -368,6 +368,20 @@
   ],
   "version": 2,
   "campusTeams": {
+    "bangalore": {
+      "BGMI": [],
+      "MATIKS": [],
+      "VALORANT": [],
+      "EFOOTBALL": [],
+      "FREE_FIRE": []
+    },
+    "coimbatore": {
+      "BGMI": [],
+      "MATIKS": [],
+      "VALORANT": [],
+      "EFOOTBALL": [],
+      "FREE_FIRE": []
+    },
     "kanyakumari": {
       "BGMI": [],
       "MATIKS": [],
@@ -376,26 +390,11 @@
       "FREE_FIRE": []
     }
   },
-  "lastUpdated": "2026-11-17T09:29:30.166Z",
+  "lastUpdated": "2026-11-17T11:55:55.339Z",
   "campusAwards": {
-    "kanyakumari": {
-      "FREE_FIRE": {
-        "mvp": {
-          "stats": "14 Kills . 2 Booyahs",
-          "teamName": "TOTAL DOMINANCE",
-          "playerName": "DEADSHOT_99"
-        },
-        "topFragger": {
-          "kills": 19,
-          "teamName": "DEADLY SINS",
-          "playerName": "Amit"
-        },
-        "winnerTeam": "TOTAL DOMINANCE",
-        "winnerScore": "54 Pts . 2 Booyahs",
-        "runnerUpTeam": "DEADLY SINS",
-        "runnerUpScore": "42 Pts . 1 Booyah"
-      }
-    }
+    "bangalore": {},
+    "coimbatore": {},
+    "kanyakumari": {}
   },
   "campusPasskeys": {
     "mangalore": {
@@ -409,52 +408,5 @@
       "campusAdminKey": "MAN-ADMIN-2026"
     }
   },
-  "awardsSubmissions": [
-    {
-      "id": "AWD-KAN-VA-1794907769151",
-      "awards": {
-        "mvp": {
-          "stats": "28 Kills . 4 First Bloods",
-          "teamName": "PHANTOM SQUAD",
-          "playerName": "JettMain"
-        },
-        "winnerTeam": "PHANTOM SQUAD",
-        "winnerScore": "13-11 Bind",
-        "runnerUpTeam": "VANDAL FORCE",
-        "runnerUpScore": "11-13"
-      },
-      "gameId": "VALORANT",
-      "status": "REJECTED",
-      "pocCode": "CLT-KY-VL-6304",
-      "campusId": "kanyakumari",
-      "timestamp": "2026-11-17T09:29:29.152Z",
-      "rejectionReason": "Please attach OT round score details"
-    },
-    {
-      "id": "AWD-KAN-FR-1794907674871",
-      "awards": {
-        "mvp": {
-          "stats": "14 Kills . 2 Booyahs",
-          "teamName": "TOTAL DOMINANCE",
-          "playerName": "DEADSHOT_99"
-        },
-        "topFragger": {
-          "kills": 19,
-          "teamName": "DEADLY SINS",
-          "playerName": "Amit"
-        },
-        "winnerTeam": "TOTAL DOMINANCE",
-        "winnerScore": "54 Pts . 2 Booyahs",
-        "runnerUpTeam": "DEADLY SINS",
-        "runnerUpScore": "42 Pts . 1 Booyah"
-      },
-      "gameId": "FREE_FIRE",
-      "status": "APPROVED",
-      "pocCode": "CLT-KY-FF-8219",
-      "campusId": "kanyakumari",
-      "timestamp": "2026-11-17T09:27:54.871Z",
-      "approvedAt": "2026-11-17T09:28:59.036Z",
-      "reviewedBy": "Super Admin"
-    }
-  ]
+  "awardsSubmissions": []
 }

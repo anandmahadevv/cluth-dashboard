@@ -70,7 +70,7 @@ export const COLLEGES_DATA: CollegeDetail[] = [
     totalTeams: 52,
     featured: true,
     hasActiveDashboard: true,
-    dashboardPath: "/leaderboards",
+    dashboardPath: "/?campus=mangalore",
   },
   {
     id: "kanyakumari-niat",
@@ -80,7 +80,7 @@ export const COLLEGES_DATA: CollegeDetail[] = [
     city: "Kanyakumari",
     state: "Tamil Nadu",
     status: "live",
-    statusLabel: "Registrations Open",
+    statusLabel: "Live Arena",
     editionName: "Kanyakumari Edition",
     venue: "NIAT Kanyakumari Campus Esports Arena",
     description:
@@ -106,7 +106,7 @@ export const COLLEGES_DATA: CollegeDetail[] = [
     totalTeams: 48,
     featured: true,
     hasActiveDashboard: true,
-    dashboardPath: "/leaderboards?college=kanyakumari",
+    dashboardPath: "/?campus=kanyakumari",
   },
   {
     id: "bengaluru-svyasa",
@@ -140,6 +140,8 @@ export const COLLEGES_DATA: CollegeDetail[] = [
     ],
     coordinates: { x: 51.2, y: 70.4 },
     totalTeams: 64,
+    hasActiveDashboard: true,
+    dashboardPath: "/?campus=bangalore",
   },
   {
     id: "pune-dypatil",
@@ -248,6 +250,8 @@ export const COLLEGES_DATA: CollegeDetail[] = [
       { slug: "matiks", name: "Matiks", format: "Solo", genre: "Mental Math" },
     ],
     coordinates: { x: 49.77, y: 82.57 },
+    hasActiveDashboard: true,
+    dashboardPath: "/?campus=coimbatore",
   },
   {
     id: "nashik-campus",

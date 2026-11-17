@@ -29,7 +29,7 @@ const CAMPUSES: CampusItem[] = [
     id: "mangalore",
     name: "Mangalore",
     university: "Yenepoya University",
-    status: "Active Edition",
+    status: "Concluded",
     statusBadge: "bg-emerald-500",
     isLive: true,
   },
@@ -37,22 +37,25 @@ const CAMPUSES: CampusItem[] = [
     id: "kanyakumari",
     name: "Kanyakumari",
     university: "NIAT Kanyakumari",
-    status: "Nov 2026",
-    statusBadge: "bg-blue-500",
+    status: "Live Arena",
+    statusBadge: "bg-amber-500",
+    isLive: true,
   },
   {
     id: "coimbatore",
     name: "Coimbatore",
     university: "NIAT Coimbatore",
-    status: "Dec 2026",
-    statusBadge: "bg-purple-500",
+    status: "Arena Ready",
+    statusBadge: "bg-blue-500",
+    isLive: true,
   },
   {
     id: "bangalore",
     name: "Bangalore",
     university: "NIAT Bangalore",
-    status: "Q1 2027",
-    statusBadge: "bg-amber-500",
+    status: "Arena Ready",
+    statusBadge: "bg-purple-500",
+    isLive: true,
   },
 ];
 
@@ -102,10 +105,6 @@ export function Navbar() {
       const url = new URL(window.location.href);
       url.searchParams.set("campus", campus.id);
       window.history.pushState({}, "", url.toString());
-    }
-    if (!campus.isLive) {
-      setNoticeMessage(`${campus.name} (${campus.university}) edition is scheduled for ${campus.status}. Mangalore edition is concluded & locked!`);
-      setTimeout(() => setNoticeMessage(null), 4000);
     }
   };
 

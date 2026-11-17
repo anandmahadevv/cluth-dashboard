@@ -851,6 +851,11 @@ export async function resetGameScoresAsync(
         MATIKS: [],
       };
       store.matches = store.matches.filter((m) => m.campusId !== campusId);
+      if (!store.campusAwards) store.campusAwards = {};
+      store.campusAwards[campusId] = {};
+      if (store.awardsSubmissions) {
+        store.awardsSubmissions = store.awardsSubmissions.filter((s) => s.campusId !== campusId);
+      }
     } else {
       if (!store.campusTeams[campusId]) {
         store.campusTeams[campusId] = {
@@ -863,6 +868,14 @@ export async function resetGameScoresAsync(
       }
       store.campusTeams[campusId][targetGame] = [];
       store.matches = store.matches.filter((m) => !(m.gameId === targetGame && m.campusId === campusId));
+      if (store.campusAwards && store.campusAwards[campusId]) {
+        delete store.campusAwards[campusId][targetGame];
+      }
+      if (store.awardsSubmissions) {
+        store.awardsSubmissions = store.awardsSubmissions.filter(
+          (s) => !(s.campusId === campusId && s.gameId === targetGame)
+        );
+      }
     }
   }
 

@@ -39,7 +39,7 @@ export default function HomePage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const urlCampus = params.get("campus");
+      const urlCampus = params.get("campus") || params.get("college");
       const stored = localStorage.getItem("clutch_selected_campus");
       if (urlCampus || stored) {
         setCurrentCampusId(urlCampus || stored || "mangalore");
@@ -332,19 +332,20 @@ export default function HomePage() {
           <div>
             <div className="mb-6 flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#c4cbc4]">
               <span className="inline-flex items-center gap-2 text-[#ff986b]"><span className="h-1.5 w-1.5 rounded-full bg-[#ff986b]" />NIAT Championship</span>
-              <span className="text-white/20" aria-hidden="true">/</span><span>Mangalore edition · 2026</span>
+              <span className="text-white/20" aria-hidden="true">/</span><span>{activeCampusMeta.name} · 2026</span>
             </div>
             <h1 id="dashboard-title" className="text-[clamp(2.6rem,6vw,5rem)] font-black leading-[0.98] tracking-[-0.055em]">Championship<br /><span className="text-[#ff986b]">standings.</span></h1>
-            <p className="mt-5 max-w-md text-sm leading-relaxed text-[#bac5bd]">Every match. Every point. Follow the teams making their mark at the CLUTCH esports championship.</p>
+            <p className="mt-5 max-w-md text-sm leading-relaxed text-[#bac5bd]">Every match. Every point. Follow the teams making their mark at the {activeCampusMeta.name} CLUTCH esports championship.</p>
             <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs text-[#d0d8d2]">
-              <span className="inline-flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-[#ff986b]" />Yenepoya University, Mangalore</span>
-              <span className="inline-flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5 text-[#ff986b]" />15 Nov 2026</span>
+              <span className="inline-flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-[#ff986b]" />{activeCampusMeta.university}, {activeCampusMeta.location}</span>
+              <span className="inline-flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5 text-[#ff986b]" />{activeCampusMeta.editionDate}</span>
             </div>
           </div>
           <div className="hidden flex-col justify-between border-l border-white/15 pl-8 lg:flex">
             <div className="flex items-center justify-between gap-4">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
-                <span className={`h-1.5 w-1.5 rounded-full ${isLive ? "bg-[#a9dabe]" : "bg-[#ff986b]"}`} />{isLive ? "Live standings" : tournament?.status || "Official standings"}
+                <span className={`h-1.5 w-1.5 rounded-full ${activeCampusMeta.status === "LIVE" ? "bg-[#a9dabe]" : "bg-[#ff986b]"}`} />
+                {activeCampusMeta.status === "CONCLUDED" ? "Concluded · Official Standings" : "Live Arena Standings"}
               </div>
               <img src="/images/niat-logo.jpg" alt="NIAT" width={36} height={36} className="h-9 w-9 rounded-lg object-contain" />
             </div>
@@ -376,13 +377,27 @@ export default function HomePage() {
           <RefreshCw className={`h-3.5 w-3.5 ${ffRefreshing ? "animate-spin" : ""}`} />{ffRefreshing ? "Refreshing…" : ffActive ? "Auto-updating" : "Updates paused"}<span className="hidden sm:inline">{mounted ? `· ${ffUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}</span>
         </button>
       </div>
-      {first ? <Podium first={first} second={second} third={third} isProjector={isProjectorMode} /> : <PreMatchShowcase gameName={currentGameConfig.name} teamCount={currentLeaderboard.length} format={currentGameConfig.format} isProjector={isProjectorMode} />}
+      {first ? (
+        <Podium first={first} second={second} third={third} isProjector={isProjectorMode} />
+      ) : (
+        <PreMatchShowcase
+          gameName={currentGameConfig.name}
+          teamCount={currentLeaderboard.length}
+          format={currentGameConfig.format}
+          isProjector={isProjectorMode}
+          campusName={activeCampusMeta.name}
+          university={activeCampusMeta.university}
+        />
+      )}
       <section className="mt-7 rounded-[22px] border border-[#e0e3dc] bg-white p-4 shadow-[0_4px_24px_-16px_rgba(23,33,30,0.18)] sm:p-6" aria-label={`${currentGameConfig.name} standings`}>
         <div className="mb-5 flex items-center justify-between gap-3"><h3 className="text-sm font-bold text-[#17211e]">Overall standings</h3><span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-[#7d867f]"><ShieldCheck className="h-3.5 w-3.5" />Verified results</span></div>
         <LeaderboardTable entries={currentLeaderboard} gameName={currentGameConfig.name} isProjector={isProjectorMode} />
       </section>
       {selectedGame === "FREE_FIRE" && <div className="dashboard-awards mt-7"><SpecialAwardsCard awards={awards} isProjector={isProjectorMode} /></div>}
-      <div className="mt-9 flex flex-col justify-between gap-2 border-t border-[#dddeda] pt-5 text-[10px] text-[#7d867f] sm:flex-row"><span>CLUTCH / NIAT Esports Championship 2026</span><span>Official standings · Mangalore edition</span></div>
+      <div className="mt-9 flex flex-col justify-between gap-2 border-t border-[#dddeda] pt-5 text-[10px] text-[#7d867f] sm:flex-row">
+        <span>CLUTCH / NIAT Esports Championship 2026</span>
+        <span>Official standings · {activeCampusMeta.name}</span>
+      </div>
     </div>
   );
 }

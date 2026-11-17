@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Flame, Crosshair, Gamepad2, Brain, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Flame, Crosshair, Gamepad2, Brain, CheckCircle2, Trophy } from "lucide-react";
 import { GameId } from "@/types";
 import { useGameMatches, useGameAwards } from "@/hooks/use-tournament-data";
+import { CAMPUSES_REGISTRY } from "@/lib/tournament-constants";
 import { LiveIndicator } from "@/components/layout/live-indicator";
 import { ShareModal } from "@/components/shared/share-modal";
 import { SpecialAwardsCard } from "@/components/games/special-awards-card";
@@ -11,10 +12,29 @@ import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 export default function MatchResultsPage() {
   const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentCampusId, setCurrentCampusId] = useState<string>("mangalore");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlCampus = params.get("campus") || params.get("college");
+      const stored = localStorage.getItem("clutch_selected_campus");
+      if (urlCampus || stored) {
+        setCurrentCampusId(urlCampus || stored || "mangalore");
+      }
+      const handler = (e: any) => {
+        if (e.detail) setCurrentCampusId(e.detail);
+      };
+      window.addEventListener("clutch_campus_change", handler);
+      return () => window.removeEventListener("clutch_campus_change", handler);
+    }
+  }, []);
+
+  const activeCampusMeta = CAMPUSES_REGISTRY[currentCampusId] || CAMPUSES_REGISTRY["mangalore"];
 
   const { data: allMatches, lastUpdated, isRefreshing, refresh, isTabActive } =
-    useGameMatches();
-  const { data: ffAwards } = useGameAwards("FREE_FIRE");
+    useGameMatches(undefined, currentCampusId);
+  const { data: ffAwards } = useGameAwards("FREE_FIRE", currentCampusId);
 
   const matchesList = (allMatches as any[]) || [];
 
@@ -41,7 +61,7 @@ export default function MatchResultsPage() {
             MATCH RESULTS
           </h1>
           <p className="text-xs text-slate-500">
-            Certified tournament match results ratified by Super Admin
+            Certified tournament match results ratified by Super Admin · {activeCampusMeta.name}
           </p>
         </div>
 
@@ -197,8 +217,19 @@ export default function MatchResultsPage() {
 
             {filteredMatches.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-sm text-slate-400">
-                  No match results found.
+                <td colSpan={6} className="py-12 text-center">
+                  <div className="max-w-md mx-auto space-y-2 p-6 rounded-2xl bg-[#f7f8f4] border border-[#dfe4db]">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 text-[11px] font-black uppercase tracking-wider">
+                      <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                      <span>ARENA READY • THE CROWN HAS TO BE EARNED</span>
+                    </div>
+                    <h3 className="text-sm font-bold text-[#17211e]">
+                      No match results verified for {activeCampusMeta.name} yet
+                    </h3>
+                    <p className="text-xs text-[#69776d] leading-relaxed">
+                      Matches will populate here live as rounds conclude and are ratified by referees.
+                    </p>
+                  </div>
                 </td>
               </tr>
             )}

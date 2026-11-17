@@ -9,6 +9,8 @@ interface PreMatchShowcaseProps {
   format?: string;
   isProjector?: boolean;
   className?: string;
+  campusName?: string;
+  university?: string;
 }
 
 export function PreMatchShowcase({
@@ -17,6 +19,8 @@ export function PreMatchShowcase({
   format = "Official Tournament Stage",
   isProjector = false,
   className,
+  campusName = "NIAT Arena",
+  university = "NIAT Campus",
 }: PreMatchShowcaseProps) {
   return (
     <div
@@ -31,13 +35,13 @@ export function PreMatchShowcase({
         <div className="absolute -top-12 -left-12 w-40 h-40 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-12 -right-12 w-40 h-40 bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Pulsing Live Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider mb-3">
+        {/* Pulsing Live Badge - Arena Ready & Crown Must Be Earned */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-400 text-xs font-black uppercase tracking-wider mb-3 shadow-sm">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
           </span>
-          <span>Arena Live • Opening Matches Underway</span>
+          <span>👑 ARENA READY • THE CROWN HAS TO BE EARNED</span>
         </div>
 
         {/* Headline */}
@@ -57,27 +61,19 @@ export function PreMatchShowcase({
             isProjector && "text-sm sm:text-base max-w-xl"
           )}
         >
-          Rounds are currently being contested on stage. Live standings, kill counts, and the official 3-tier podium will activate immediately upon verification of Match 1.
+          Opening battles are underway on the esports stage. Live standings, verified scores, and the official 3-tier podium will activate immediately upon referee verification of Match 1.
         </p>
 
         {/* Feature Badges */}
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-6 pt-5 border-t border-slate-800 text-xs">
-          {gameName?.toLowerCase().includes("free fire") && (
-            <>
-              <div className="px-3 py-1.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 font-bold flex items-center gap-1.5 shadow-xs">
-                <span className="w-2 h-2 rounded-full bg-blue-400" />
-                <span>Group A: Room LH18 (9 Teams)</span>
-              </div>
-              <div className="px-3 py-1.5 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold flex items-center gap-1.5 shadow-xs">
-                <span className="w-2 h-2 rounded-full bg-purple-400" />
-                <span>Group B: Room LH19 (8 Teams)</span>
-              </div>
-            </>
-          )}
+          <div className="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold flex items-center gap-1.5 shadow-xs">
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+            <span>The Crown Has To Be Earned</span>
+          </div>
 
           {teamCount > 0 && (
             <div className="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-200 font-semibold flex items-center gap-1.5 shadow-xs">
-              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+              <Target className="w-3.5 h-3.5 text-amber-400" />
               <span>{teamCount} Registered Contenders</span>
             </div>
           )}
@@ -94,7 +90,7 @@ export function PreMatchShowcase({
 
           <div className="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-300 font-semibold flex items-center gap-1.5 shadow-xs">
             <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Yenepoya University</span>
+            <span>{university || campusName}</span>
           </div>
         </div>
       </div>

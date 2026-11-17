@@ -45,7 +45,12 @@ export function SinglePageCollegeForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(`/leaderboards?college=${currentCollege.slug}`);
+    const targetCampus = currentCollege.slug === "bengaluru" ? "bangalore" : currentCollege.slug;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("clutch_selected_campus", targetCampus);
+      window.dispatchEvent(new CustomEvent("clutch_campus_change", { detail: targetCampus }));
+    }
+    router.push(`/?campus=${targetCampus}`);
   };
 
   return (
@@ -106,7 +111,7 @@ export function SinglePageCollegeForm() {
             </div>
 
             <Link
-              href="/leaderboards"
+              href="/"
               className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.05] px-3 py-1.5 text-[12px] font-semibold text-zinc-200 hover:text-white hover:bg-white/10 hover:border-white/25 transition shadow-sm"
             >
               <Trophy className="h-3 w-3 text-orange-400" />

@@ -7,13 +7,17 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { code, gameId } = body as { code: string; gameId?: GameId | "ALL" };
+    const { code, gameId, campusId } = body as {
+      code: string;
+      gameId?: GameId | "ALL";
+      campusId?: string;
+    };
 
     if (!code) {
       return NextResponse.json({ success: false, error: "Super Admin code is required." }, { status: 400 });
     }
 
-    const res = await resetGameScoresAsync(code, gameId);
+    const res = await resetGameScoresAsync(code, gameId, campusId || "mangalore");
     if (!res.success) {
       return NextResponse.json({ success: false, error: res.error }, { status: 403 });
     }
