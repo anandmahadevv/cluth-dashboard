@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
   Lock,
-  UploadCloud,
   CheckCircle2,
   AlertCircle,
   Flame,
@@ -20,15 +19,16 @@ import {
   GripVertical,
   Plus,
   Minus,
-  Camera,
   Search,
   Crown,
   X,
-  FileImage,
   Award,
   RefreshCw,
   Trophy,
 } from "lucide-react";
+import { MatchReviewDialog } from "@/components/operations/match-review-dialog";
+import { buildMatchDraftResults } from "@/lib/match-draft";
+import { EvidenceUpload } from "@/components/operations/evidence-upload";
 import { AccessShell, WorkspaceIntro } from "@/components/operations/access-shell";
 import { GameId } from "@/types";
 import { GAMES_CONFIG } from "@/lib/constants";
@@ -76,14 +76,13 @@ export default function PocPortalPage() {
   const [scores, setScores] = useState<Record<string, TeamScoreInput>>({});
   const [proofUrl, setProofUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [searchFilter, setSearchFilter] = useState("");
-  const [pasteNotice, setPasteNotice] = useState(false);
   const [togglingQualifiedId, setTogglingQualifiedId] = useState<string | null>(null);
   const [qualifiedNotice, setQualifiedNotice] = useState<string>("");
   const [ffGroupFilter, setFfGroupFilter] = useState<"ALL" | "A" | "B" | "QUALIFIED">("ALL");
@@ -231,8 +230,6 @@ export default function PocPortalPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Toggle Qualified Status for Finals (Q mark)
   const handleToggleQualified = async (teamId: string) => {
@@ -454,103 +451,16 @@ export default function PocPortalPage() {
     });
   };
 
-  // Unified In-Browser Canvas Image Compression (File, Camera & Clipboard Paste)
-  const processImageFile = (file: File) => {
-    setIsUploading(true);
-    setUploadError("");
-
-    try {
-      if (file.size > 15 * 1024 * 1024) {
-        throw new Error("File is too large (>15MB). Please choose a smaller screenshot.");
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const rawDataUrl = event.target?.result as string;
-
-        const img = new Image();
-        img.onload = () => {
-          try {
-            const canvas = document.createElement("canvas");
-            const maxDim = 1200;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > maxDim || height > maxDim) {
-              if (width > height) {
-                height = Math.round((height * maxDim) / width);
-                width = maxDim;
-              } else {
-                width = Math.round((width * maxDim) / height);
-                height = maxDim;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            if (ctx) {
-              ctx.drawImage(img, 0, 0, width, height);
-              const compressed = canvas.toDataURL("image/jpeg", 0.75);
-              setProofUrl(compressed);
-            } else {
-              setProofUrl(rawDataUrl);
-            }
-          } catch {
-            setProofUrl(rawDataUrl);
-          } finally {
-            setIsUploading(false);
-          }
-        };
-
-        img.onerror = () => {
-          setProofUrl(rawDataUrl);
-          setIsUploading(false);
-        };
-
-        img.src = rawDataUrl;
-      };
-
-      reader.onerror = () => {
-        setUploadError("Failed to read image file.");
-        setIsUploading(false);
-      };
-
-      reader.readAsDataURL(file);
-    } catch (err: any) {
-      setUploadError(err.message || "Failed to process image.");
-      setIsUploading(false);
-    }
-  };
-
-  // Global Clipboard Paste Listener (Ctrl + V anywhere)
-  useEffect(() => {
-    if (!isUnlocked) return;
-
-    const handlePaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.startsWith("image/")) {
-          const file = items[i].getAsFile();
-          if (file) {
-            e.preventDefault();
-            processImageFile(file);
-            setPasteNotice(true);
-            setTimeout(() => setPasteNotice(false), 3000);
-            break;
-          }
-        }
-      }
-    };
-
-    window.addEventListener("paste", handlePaste);
-    return () => window.removeEventListener("paste", handlePaste);
-  }, [isUnlocked]);
+  const draftResults = buildMatchDraftResults(orderedTeamIds, scores);
 
   // Submit Match Results
   const handleSubmitMatch = async () => {
+    if (isSubmitting) return;
+    if (isLocked && !isSuperAdmin) { setSubmitError("This campus is locked. Submissions are disabled."); return; }
+    if (!draftResults.length || draftResults.some(result => !teams.some(team => team.id === result.teamId))) {
+      setSubmitError("The roster changed. Refresh the roster before submitting."); return;
+    }
+    if (isUploading) { setSubmitError("Wait until the screenshot is ready before submitting."); return; }
     if (!proofUrl) {
       setSubmitError(
         "Mandatory Proof Required: Please upload, take a photo, or paste a match screenshot before submitting."
@@ -562,20 +472,7 @@ export default function PocPortalPage() {
     setSubmitError("");
 
     try {
-      const teamResults = orderedTeamIds.map((tId, idx) => {
-        const sc = scores[tId] || {
-          teamId: tId,
-          placement: idx + 1,
-          placementPoints: 0,
-          kills: 0,
-        };
-        return {
-          teamId: tId,
-          placement: sc.placement,
-          placementPoints: sc.placementPoints,
-          kills: sc.kills,
-        };
-      });
+      const teamResults = draftResults;
 
       const res = await fetch("/api/poc/submit-match", {
         method: "POST",
@@ -596,6 +493,7 @@ export default function PocPortalPage() {
         throw new Error(data.error || "Submission failed");
       }
 
+      setIsReviewOpen(false);
       setSubmitSuccess(true);
       setSuccessMessage(
         data.pending
@@ -610,6 +508,7 @@ export default function PocPortalPage() {
   };
 
   const handleNextMatch = () => {
+    setIsReviewOpen(false);
     setMatchNumber((prev) => prev + 1);
     setProofUrl("");
     setNotes("");
@@ -730,6 +629,7 @@ export default function PocPortalPage() {
 
   return (
     <div className="ops-panel poc-workspace min-h-screen bg-[#f7f8f4] text-[#17211e] flex flex-col font-sans">
+      <MatchReviewDialog open={isReviewOpen} campusName={campusName} gameName={GAMES_CONFIG[selectedGame].name} gameId={selectedGame} matchNumber={matchNumber} results={draftResults} teams={teams} proofUrl={proofUrl} notes={notes} locked={isLocked && !isSuperAdmin} busy={isSubmitting} error={submitError} onClose={() => setIsReviewOpen(false)} onConfirm={handleSubmitMatch} />
       {/* Top Header */}
       <header className="border-b border-[#dfe4db] bg-white/90 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -1248,7 +1148,7 @@ export default function PocPortalPage() {
                 </div>
 
                 {/* Right Col: Match Number & Fast Screenshot Upload */}
-                <div className="bg-white border border-[#dfe4db] rounded-2xl p-4 sm:p-5 shadow-xl space-y-4 lg:sticky lg:top-20">
+                <div role="region" aria-label="Match evidence and submission" tabIndex={0} className="poc-evidence-panel bg-white border border-[#dfe4db] rounded-2xl p-4 sm:p-5 shadow-xl space-y-4 lg:sticky lg:top-20">
                   <h3 className="text-xs font-bold text-[#48564d] uppercase tracking-wider border-b border-[#dfe4db] pb-2">
                     Match evidence
                   </h3>
@@ -1285,137 +1185,7 @@ export default function PocPortalPage() {
                   </div>
 
                   {/* Mandatory Screenshot / Photo Proof Area */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-bold text-[#48564d]">
-                        Match Screenshot / Scoreboard <span className="text-red-700">*</span>
-                      </label>
-                      <span className="text-[10px] text-[#87938a]">Auto-compressed</span>
-                    </div>
-
-                    {pasteNotice && (
-                      <div className="p-2 mb-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-700 text-xs flex items-center gap-1.5 animate-in fade-in">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Screenshot pasted from clipboard!</span>
-                      </div>
-                    )}
-
-                    {/* Hidden Native File Pickers */}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) processImageFile(file);
-                      }}
-                      className="hidden"
-                    />
-
-                    <input
-                      ref={cameraInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) processImageFile(file);
-                      }}
-                      className="hidden"
-                    />
-
-                    {/* Screenshot Dropzone */}
-                    <div
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const file = e.dataTransfer.files?.[0];
-                        if (file && file.type.startsWith("image/")) {
-                          processImageFile(file);
-                        }
-                      }}
-                      className={`border-2 border-dashed rounded-xl p-4 text-center transition flex flex-col items-center justify-center gap-2 ${
-                        proofUrl
-                          ? "border-emerald-500/50 bg-emerald-500/5"
-                          : "border-[#d1d9ce] hover:border-slate-500 bg-[#f7f8f4]/60"
-                      }`}
-                    >
-                      {isUploading ? (
-                        <div className="py-4 flex flex-col items-center gap-2 text-[#69776d]">
-                          <Loader2 className="w-6 h-6 animate-spin text-blue-700" />
-                          <span className="text-xs font-semibold">Compressing image...</span>
-                        </div>
-                      ) : proofUrl ? (
-                        <div className="py-2 flex flex-col items-center gap-2 w-full">
-                          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700">
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span>Proof Attached Successfully</span>
-                          </div>
-                          {proofUrl.startsWith("data:") && (
-                            <img
-                              src={proofUrl}
-                              alt="Proof Preview"
-                              className="max-h-32 w-auto rounded-lg border border-[#d1d9ce] object-contain mt-1"
-                            />
-                          )}
-                          <div className="flex items-center gap-2 pt-1">
-                            <button
-                              type="button"
-                              onClick={() => fileInputRef.current?.click()}
-                              className="text-[11px] text-[#69776d] hover:text-[#17211e] underline font-semibold"
-                            >
-                              Replace Image
-                            </button>
-                            <span className="text-slate-600">•</span>
-                            <button
-                              type="button"
-                              onClick={() => setProofUrl("")}
-                              className="text-[11px] text-red-700 hover:text-red-700 font-semibold"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="py-3 flex flex-col items-center gap-2.5 w-full">
-                          <UploadCloud className="w-8 h-8 text-[#69776d]" />
-                          <div className="space-y-0.5">
-                            <span className="text-xs font-bold text-[#3f4b43] block">
-                              Drag & Drop Screenshot Here
-                            </span>
-                            <span className="text-[11px] text-[#87938a] block">
-                              or press <kbd className="px-1 py-0.5 bg-[#edf0e9] rounded font-mono text-[10px] text-[#48564d]">Ctrl + V</kbd> to paste
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center justify-center gap-2 pt-1 w-full">
-                            {/* Snap Photo Camera Button */}
-                            <button
-                              type="button"
-                              onClick={() => cameraInputRef.current?.click()}
-                              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-[#17211e] font-bold text-xs flex items-center gap-1.5 shadow-sm transition"
-                            >
-                              <Camera className="w-3.5 h-3.5" />
-                              <span>Take Photo</span>
-                            </button>
-
-                            {/* File Upload Button */}
-                            <button
-                              type="button"
-                              onClick={() => fileInputRef.current?.click()}
-                              className="px-3 py-1.5 rounded-lg bg-[#edf0e9] hover:bg-[#dfe6db] text-[#48564d] font-semibold text-xs border border-[#d1d9ce] transition"
-                            >
-                              <span>Browse Files</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {uploadError && (
-                      <p className="text-xs text-red-700 mt-1">{uploadError}</p>
-                    )}
-                  </div>
+                  <EvidenceUpload value={proofUrl} onChange={setProofUrl} onProcessingChange={setIsUploading} disabled={isSubmitting || isReviewOpen} />
 
                   {/* Notes */}
                   <div>
@@ -1438,29 +1208,11 @@ export default function PocPortalPage() {
                     </div>
                   )}
 
-                  {/* Submit Button */}
-                  <button
-                    onClick={handleSubmitMatch}
-                    disabled={isSubmitting || !proofUrl || (isLocked && !isSuperAdmin)}
-                    className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-[#17211e] font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-98"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Submitting Match Results...</span>
-                      </>
-                    ) : isLocked && !isSuperAdmin ? (
-                      <>
-                        <Lock className="w-4 h-4 text-amber-700" />
-                        <span>Campus Locked (Read-Only Mode)</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Submit Match #{matchNumber} for Approval</span>
-                      </>
-                    )}
+                  <button type="button" onClick={() => { setSubmitError(""); setIsReviewOpen(true); }} disabled={isSubmitting || isUploading || !proofUrl || !draftResults.length}
+                    className="ops-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold transition disabled:opacity-50">
+                    <ShieldCheck className="h-4 w-4" />Review match #{matchNumber}
                   </button>
+                  {isLocked && !isSuperAdmin && <p className="text-[10px] leading-relaxed text-amber-700">Draft review is available. Submitting remains disabled while this campus is locked.</p>}
 
                   <div className="p-2.5 rounded-lg bg-[#f7f8f4] border border-[#dfe4db] text-[11px] text-[#69776d] flex items-center gap-2">
                     <Clock className="w-4 h-4 text-amber-700 shrink-0" />

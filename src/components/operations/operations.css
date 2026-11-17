@@ -65,3 +65,10 @@
 }
 
 .poc-match-total:only-child { margin-left:auto; }
+
+@media (min-width:1024px) { .poc-evidence-panel { max-height:calc(100dvh - 96px); overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; } }
+
+.match-review-dialog { width:calc(100% - 32px); max-width:880px; max-height:calc(100dvh - 32px); padding:0; border:1px solid #dfe4db; border-radius:22px; background:#fff; color:#17211e; box-shadow:0 28px 100px #17211e40; }
+.match-review-dialog::backdrop { background:rgba(17,29,22,.55); backdrop-filter:blur(3px); }
+.match-review-dialog footer button { touch-action:manipulation; }
+@media (max-width:480px) { .match-review-dialog footer button { width:100%; justify-content:center; } }

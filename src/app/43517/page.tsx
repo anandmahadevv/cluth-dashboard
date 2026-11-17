@@ -1478,6 +1478,8 @@ ${editingCampusAdminKey}
   // Filter Submissions
   const filteredSubmissions = submissions.filter((s) => {
     if (selectedGameFilter !== "ALL" && s.gameId !== selectedGameFilter) return false;
+    if (mainTab === "inbox") return s.status === "PENDING";
+    if (s.status === "PENDING") return false;
     if (statusFilter !== "ALL" && s.status !== statusFilter) return false;
     return true;
   });
@@ -1609,25 +1611,66 @@ ${editingCampusAdminKey}
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
         <WorkspaceIntro role="Tournament operations" title="Your arena, under control." description="Review match evidence, manage your teams, and publish results with confidence."
           metrics={[{ label: "Awaiting review", value: pendingCount }, { label: "Approved results", value: submissions.filter(s => s.status === "APPROVED").length }, { label: "Campus arenas", value: Object.keys(CAMPUSES_REGISTRY).length }]} />
-        {/* Multi-Campus Switcher & Security Command Bar */}
-        <div className="bg-white border border-[#dfe4db] rounded-3xl p-5 shadow-2xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-700">
-                  Campus management
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 font-bold border border-emerald-500/20">
-                  Admin access
-                </span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-black text-[#17211e] flex items-center gap-2 mt-0.5">
-                <span>Managing: {CAMPUSES_REGISTRY[selectedCampus]?.name || selectedCampus}</span>
-                <span className="text-xs font-semibold text-[#69776d]">({CAMPUSES_REGISTRY[selectedCampus]?.university})</span>
-              </h2>
+        {/* Current campus stays visible; management controls expand on demand. */}
+        <details className="group bg-white border border-[#dfe4db] rounded-2xl">
+          <summary className="list-none cursor-pointer rounded-2xl p-4 sm:px-5 flex items-center justify-between gap-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700 [&::-webkit-details-marker]:hidden">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#69776d]">Current campus</p>
+              <h2 className="text-base sm:text-lg font-bold text-[#17211e] mt-1">{CAMPUSES_REGISTRY[selectedCampus]?.name || selectedCampus}</h2>
+              <p className="text-xs text-[#69776d] mt-1">{CAMPUSES_REGISTRY[selectedCampus]?.university}</p>
             </div>
-
-            <div className="flex items-center gap-2.5">
+            <div className="flex shrink-0 flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-4">
+              <span className={`text-[10px] sm:text-xs font-bold rounded-full px-2.5 py-1 ${campusLocks[selectedCampus] ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-800"}`}>
+                {campusLocks[selectedCampus] ? "Locked" : "Accepting scores"}
+              </span>
+              <span className="text-xs font-bold text-emerald-800 flex items-center gap-2">
+                <span className="group-open:hidden">Manage</span><span className="hidden group-open:inline">Close</span>
+                <span aria-hidden="true" className="transition-transform group-open:rotate-180">⌄</span>
+              </span>
+            </div>
+          </summary>
+          <div className="border-t border-[#dfe4db] p-4 sm:p-5 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-[#17211e]">Switch campus</h3>
+              <p className="text-xs text-[#69776d] mt-1">Queues, teams and results follow the campus you select.</p>
+            </div>
+          {/* Campus Switcher Pills */}
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-2">
+            {Object.values(CAMPUSES_REGISTRY).map((c) => {
+              const isSelected = selectedCampus === c.id;
+              const isLocked = !!campusLocks[c.id];
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedCampus(c.id)}
+                  className={`p-3 rounded-2xl text-left transition-all border flex flex-col gap-1 ${
+                    isSelected
+                      ? "bg-emerald-50 border-emerald-500/60 shadow-lg shadow-none"
+                      : "bg-[#f7f8f4]/60 border-[#dfe4db]/80 hover:bg-[#edf0e9]/50 hover:border-[#d1d9ce]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-extrabold ${isSelected ? "text-emerald-700" : "text-[#17211e]"}`}>
+                      {c.shortName}
+                    </span>
+                    {isLocked ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center gap-0.5">
+                        <Lock className="w-2.5 h-2.5" /> Locked
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 flex items-center gap-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[#69776d] truncate">{c.university}</span>
+                </button>
+              );
+            })}
+          </div>
+            <div className="border-t border-[#dfe4db] pt-4 flex flex-wrap items-center gap-2.5">
               {/* Campus Passkeys Button */}
               <button
                 onClick={() => setShowKeysModal(true)}
@@ -1660,52 +1703,20 @@ ${editingCampusAdminKey}
                   <Unlock className="w-3.5 h-3.5 text-emerald-700" />
                 )}
                 <span>
-                  {campusLocks[selectedCampus] ? "Campus Locked (Read-Only)" : "Campus Open (Accepting Scores)"}
+                  {campusLocks[selectedCampus] ? "Unlock campus" : "Lock campus"}
                 </span>
-                <span className="text-[10px] opacity-75 underline ml-1">Toggle</span>
-              </button>
-            </div>
-          </div>
 
-          {/* Campus Switcher Pills */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-[#dfe4db]/80">
-            {Object.values(CAMPUSES_REGISTRY).map((c) => {
-              const isSelected = selectedCampus === c.id;
-              const isLocked = !!campusLocks[c.id];
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedCampus(c.id)}
-                  className={`p-3 rounded-2xl text-left transition-all border flex flex-col gap-1 ${
-                    isSelected
-                      ? "bg-emerald-50 border-emerald-500/60 shadow-lg shadow-none"
-                      : "bg-[#f7f8f4]/60 border-[#dfe4db]/80 hover:bg-[#edf0e9]/50 hover:border-[#d1d9ce]"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs font-extrabold ${isSelected ? "text-emerald-700" : "text-[#17211e]"}`}>
-                      {c.shortName}
-                    </span>
-                    {isLocked ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center gap-0.5">
-                        <Lock className="w-2.5 h-2.5" /> Locked
-                      </span>
-                    ) : (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 flex items-center gap-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-[#69776d] truncate">{c.university}</span>
-                </button>
-              );
-            })}
+              </button>
+
+            </div>
+            <p className="text-xs text-[#69776d]">Locking a campus pauses POC score submissions. Super admin access remains available.</p>
           </div>
-        </div>
+        </details>
 
         <nav className="ops-section-nav" aria-label="Admin sections">
           {([
             { id: "inbox", label: "Review queue", icon: Inbox },
+            { id: "history", label: "Match history", icon: History },
             { id: "direct", label: "Score entry", icon: Award },
             { id: "teams", label: "Teams & rosters", icon: Users },
             { id: "awards", label: "Awards", icon: Crown },
@@ -1751,10 +1762,10 @@ ${editingCampusAdminKey}
         {/* ---------------------------------------------------- */}
         {/* TAB 1: POC SUBMISSIONS QUEUE & APPROVAL PIPELINE     */}
         {/* ---------------------------------------------------- */}
-        {mainTab === "inbox" && (
+        {(mainTab === "inbox" || mainTab === "history") && (
           <div className="space-y-4">
             {/* Pending Awards Requests Alert Banner */}
-            {awardsSubmissions.filter((s) => s.status === "PENDING").length > 0 && (
+            {mainTab === "inbox" && awardsSubmissions.filter((s) => s.status === "PENDING").length > 0 && (
               <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 animate-in fade-in">
                 <div className="flex items-center gap-2.5">
                   <Crown className="w-5 h-5 text-amber-600 shrink-0" />
@@ -1782,22 +1793,24 @@ ${editingCampusAdminKey}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-[#dfe4db] rounded-xl p-3">
               <div className="flex items-center gap-2">
                 <Filter className="w-3.5 h-3.5 text-[#69776d]" />
-                <span className="text-xs font-bold text-[#48564d]">Filter Submissions:</span>
+                <div>
+                  <h2 className="text-sm font-bold text-[#17211e]">{mainTab === "inbox" ? "Awaiting your review" : "Reviewed matches"}</h2>
+                  <p className="text-xs text-[#69776d] mt-1">{mainTab === "inbox" ? `${pendingCount} pending · Check the scores and evidence before approving.` : "Approved and rejected submissions, with their evidence and scores."}</p>
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 {/* Status Filter */}
-                <select
+                {mainTab === "history" && <select
                   aria-label="Filter submissions by status"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="bg-[#f7f8f4] border border-[#d1d9ce] text-xs rounded-lg px-2.5 py-1.5 text-[#3f4b43] outline-none"
                 >
-                  <option value="ALL">All Statuses ({submissions.length})</option>
-                  <option value="PENDING">Pending Review ({pendingCount})</option>
+                  <option value="ALL">All reviewed ({submissions.length - pendingCount})</option>
                   <option value="APPROVED">Approved ({submissions.filter((s) => s.status === "APPROVED").length})</option>
                   <option value="REJECTED">Rejected ({submissions.filter((s) => s.status === "REJECTED").length})</option>
-                </select>
+                </select>}
 
                 {/* Game Filter */}
                 <select
@@ -1823,44 +1836,30 @@ ${editingCampusAdminKey}
                 <p className="text-xs">Loading POC submissions pipeline...</p>
               </div>
             ) : filteredSubmissions.length === 0 ? (
-              <div className="py-20 text-center bg-white border border-[#dfe4db] rounded-2xl p-8 space-y-3">
-                <Inbox className="w-12 h-12 text-slate-600 mx-auto" />
-                <h3 className="text-sm font-bold text-[#48564d]">
-                  {submissions.length === 0
-                    ? "No submissions recorded yet"
-                    : `No ${statusFilter === "PENDING" ? "pending" : statusFilter === "APPROVED" ? "approved" : statusFilter === "REJECTED" ? "rejected" : "matching"} submissions`}
+              <div className="py-16 text-center bg-white border border-[#dfe4db] rounded-2xl px-6 space-y-3">
+                {mainTab === "inbox" ? <Inbox className="w-10 h-10 text-emerald-700 mx-auto" /> : <History className="w-10 h-10 text-[#69776d] mx-auto" />}
+                <h3 className="text-base font-bold text-[#17211e]">
+                  {mainTab === "inbox"
+                    ? pendingCount === 0 ? "You’re all caught up" : "No pending matches for this game"
+                    : submissions.length === pendingCount ? "No reviewed matches yet" : "No matches fit these filters"}
                 </h3>
-                <p className="text-xs text-[#87938a] max-w-sm mx-auto">
-                  {submissions.length === 0
-                    ? "When POCs enter their game codes and submit match results with proof screenshots, they will appear here awaiting your approval."
-                    : `There are ${submissions.length} total submission(s) in other filters or arenas. Switch your status/game filter above to view them.`}
+                <p className="text-sm text-[#69776d] max-w-sm mx-auto">
+                  {mainTab === "inbox"
+                    ? pendingCount === 0 ? "New match submissions will appear here when POCs send their results." : "Choose another game to review the remaining submissions."
+                    : submissions.length === pendingCount ? "Matches move here after you approve or reject them." : "Try another game or status to find a reviewed match."}
                 </p>
-                {submissions.length > 0 && (
-                  <div className="pt-2 flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => {
-                        setStatusFilter("ALL");
-                        setSelectedGameFilter("ALL");
-                      }}
-                      className="px-3.5 py-2 rounded-xl bg-[#edf0e9] hover:bg-[#dfe6db] text-[#3f4b43] text-xs font-bold transition flex items-center gap-1.5 shadow"
-                    >
-                      <Filter className="w-3.5 h-3.5 text-[#69776d]" />
-                      <span>View All Submissions ({submissions.length})</span>
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                  {(selectedGameFilter !== "ALL" || (mainTab === "history" && statusFilter !== "ALL")) && (
+                    <button type="button" onClick={() => { setStatusFilter("ALL"); setSelectedGameFilter("ALL"); }} className="px-4 py-2 rounded-xl bg-[#edf0e9] text-[#3f4b43] text-xs font-bold">
+                      Clear filters
                     </button>
-                    {submissions.some((s) => s.status === "APPROVED") && (
-                      <button
-                        onClick={() => {
-                          setStatusFilter("APPROVED");
-                          setSelectedGameFilter("ALL");
-                        }}
-                        className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-500/30 text-xs font-bold transition flex items-center gap-1.5"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>View Approved ({submissions.filter((s) => s.status === "APPROVED").length})</span>
-                      </button>
-                    )}
-                  </div>
-                )}
+                  )}
+                  {mainTab === "inbox" && submissions.length > pendingCount && (
+                    <button type="button" onClick={() => { setMainTab("history"); setStatusFilter("ALL"); setSelectedGameFilter("ALL"); }} className="px-4 py-2 rounded-xl bg-[#123b31] text-white text-xs font-bold">
+                      View match history ({submissions.length - pendingCount})
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
