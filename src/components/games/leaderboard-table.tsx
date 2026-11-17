@@ -117,7 +117,7 @@ export function LeaderboardTable({
   };
 
   return (
-    <div className={cn("w-full max-w-4xl mx-auto space-y-3.5", isProjector && "max-w-5xl", className)}>
+    <div className={cn("standings-table w-full mx-auto space-y-4", isProjector && "text-base", className)}>
       {/* Search & Group Filters */}
       {!isProjector && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1">
@@ -126,10 +126,11 @@ export function LeaderboardTable({
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search team or squad..."
+                placeholder="Search teams…"
+                aria-label="Search teams or players"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-slate-200/90 bg-white pl-10 pr-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20 transition shadow-xs"
+                className="w-full rounded-xl border border-[#e0e3dc] bg-[#f8f9f5] pl-10 pr-3.5 py-3 text-xs text-slate-800 placeholder-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20 transition shadow-xs"
               />
             </div>
 
@@ -221,10 +222,10 @@ export function LeaderboardTable({
       )}
 
       {/* Styled Table */}
-      <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-md">
-        <table className="w-full text-left text-sm border-collapse">
+      <div className="overflow-x-auto rounded-xl border border-[#e4e7e0] bg-white">
+        <table className="w-full min-w-[570px] text-left text-sm border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-400 bg-slate-50/90">
+            <tr className="border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-[#7d867f] bg-[#f5f6f1]">
               <th className="py-3.5 pl-6 pr-3 w-18">Rank</th>
               <th className="py-3.5 px-4 font-black">
                 {isEfootball ? "Player" : isMatiks ? "Participant" : "Team / Squad"}
@@ -284,7 +285,7 @@ export function LeaderboardTable({
                   {/* Rank Badges */}
                   <td className="py-3.5 pl-6 pr-3 whitespace-nowrap">
                     {isFirst ? (
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 font-black text-xs shadow-sm shadow-amber-500/20">
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-[#ff986b] text-slate-950 font-black text-xs shadow-sm shadow-amber-500/20">
                         1
                       </span>
                     ) : isSecond ? (

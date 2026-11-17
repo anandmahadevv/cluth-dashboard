@@ -367,5 +367,14 @@
     }
   ],
   "version": 2,
-  "lastUpdated": "2026-11-15T10:07:41.873Z"
+  "campusTeams": {
+    "kanyakumari": {
+      "BGMI": [],
+      "MATIKS": [],
+      "VALORANT": [],
+      "EFOOTBALL": [],
+      "FREE_FIRE": []
+    }
+  },
+  "lastUpdated": "2026-11-17T08:16:31.496Z"
 }

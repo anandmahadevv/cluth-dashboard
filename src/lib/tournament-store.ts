@@ -18,6 +18,7 @@ export type SubmissionStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export interface TeamScoreEntry {
   id: string;
+  campusId?: string;
   teamName: string;
   gameId: GameId;
   matchesPlayed: number;
@@ -32,6 +33,7 @@ export interface TeamScoreEntry {
 
 export interface MatchSubmission {
   id: string;
+  campusId?: string;
   gameId: GameId;
   matchNumber: number | string;
   timestamp: string;
@@ -54,9 +56,12 @@ export interface MatchSubmission {
 
 export interface TournamentStoreData {
   lastUpdated: string;
+  campusLocks?: Record<string, boolean>;
   teams: Record<GameId, TeamScoreEntry[]>;
+  campusTeams?: Record<string, Record<GameId, TeamScoreEntry[]>>;
   matches: MatchSubmission[];
   awards?: Partial<Record<GameId, IndividualAwards>>;
+  campusAwards?: Record<string, Partial<Record<GameId, IndividualAwards>>>;
 }
 
 // On Vercel serverless functions, root (/var/task) is read-only. /tmp is the writable scratch space.
@@ -297,11 +302,103 @@ export function verifyAdminPassword(password: string): boolean {
 }
 
 /**
+ * Check if a campus is locked (read-only for non-super-admins)
+ */
+export function isCampusLocked(store: TournamentStoreData, campusId: string = "mangalore"): boolean {
+  if (store.campusLocks && store.campusLocks[campusId] !== undefined) {
+    return store.campusLocks[campusId];
+  }
+  return campusId === "mangalore";
+}
+
+/**
+ * Toggle campus lock (Super Admin only)
+ */
+export async function toggleCampusLockAsync(params: {
+  campusId: string;
+  isLocked: boolean;
+  adminPassword?: string;
+  pocCode?: string;
+}): Promise<{ success: boolean; isLocked?: boolean; error?: string }> {
+  const isSuper =
+    (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
+    params.pocCode === "CLUTCH-SUPER-2026";
+
+  if (!isSuper) {
+    return { success: false, error: "Unauthorized: Super Admin authorization is required to change campus lock." };
+  }
+
+  const store = await getStoreAsync(true);
+  if (!store.campusLocks) {
+    store.campusLocks = { mangalore: true, kanyakumari: false, coimbatore: false, bangalore: false };
+  }
+  store.campusLocks[params.campusId] = params.isLocked;
+  await saveStoreAsync(store);
+
+  return { success: true, isLocked: params.isLocked };
+}
+
+/**
+ * Helper to get teams array for a specific campus and game
+ */
+export function getCampusTeamsList(
+  store: TournamentStoreData,
+  campusId: string = "mangalore",
+  gameId: GameId
+): TeamScoreEntry[] {
+  if (campusId === "mangalore") {
+    return store.teams[gameId] || [];
+  }
+  if (!store.campusTeams) {
+    store.campusTeams = {};
+  }
+  if (!store.campusTeams[campusId]) {
+    store.campusTeams[campusId] = {
+      FREE_FIRE: [],
+      BGMI: [],
+      VALORANT: [],
+      EFOOTBALL: [],
+      MATIKS: [],
+    };
+  }
+  return store.campusTeams[campusId][gameId] || [];
+}
+
+/**
+ * Helper to set teams array for a specific campus and game
+ */
+export function setCampusTeamsList(
+  store: TournamentStoreData,
+  campusId: string = "mangalore",
+  gameId: GameId,
+  teams: TeamScoreEntry[]
+) {
+  if (campusId === "mangalore") {
+    store.teams[gameId] = teams;
+    return;
+  }
+  if (!store.campusTeams) {
+    store.campusTeams = {};
+  }
+  if (!store.campusTeams[campusId]) {
+    store.campusTeams[campusId] = {
+      FREE_FIRE: [],
+      BGMI: [],
+      VALORANT: [],
+      EFOOTBALL: [],
+      MATIKS: [],
+    };
+  }
+  store.campusTeams[campusId][gameId] = teams;
+}
+
+/**
  * Helper to rollback points awarded by an approved match
  */
 function rollbackMatchScores(store: TournamentStoreData, match: MatchSubmission) {
   if (match.status === "APPROVED") {
-    const teams = store.teams[match.gameId];
+    const campusId = match.campusId || "mangalore";
+    const teams = getCampusTeamsList(store, campusId, match.gameId);
     if (teams && match.teamResults) {
       match.teamResults.forEach((res) => {
         const team = teams.find((t) => t.id === res.teamId);
@@ -312,7 +409,7 @@ function rollbackMatchScores(store: TournamentStoreData, match: MatchSubmission)
           team.totalPoints = Math.max(0, team.totalPoints - res.matchPoints);
         }
       });
-      store.teams[match.gameId] = sortAndRankTeams(teams);
+      setCampusTeamsList(store, campusId, match.gameId, sortAndRankTeams(teams));
     }
   }
 }
@@ -320,9 +417,13 @@ function rollbackMatchScores(store: TournamentStoreData, match: MatchSubmission)
 /**
  * Get sorted leaderboard for a specific game (async, filters hidden teams by default)
  */
-export async function getGameLeaderboardAsync(gameId: GameId, includeHidden = false): Promise<TeamScoreEntry[]> {
+export async function getGameLeaderboardAsync(
+  gameId: GameId,
+  includeHidden = false,
+  campusId: string = "mangalore"
+): Promise<TeamScoreEntry[]> {
   const store = await getStoreAsync();
-  const list = store.teams[gameId] || [];
+  const list = getCampusTeamsList(store, campusId, gameId);
   const filtered = includeHidden ? list : list.filter((t) => !t.hidden);
   return sortAndRankTeams(filtered);
 }
@@ -330,9 +431,14 @@ export async function getGameLeaderboardAsync(gameId: GameId, includeHidden = fa
 /**
  * Get matches for a game asynchronously
  */
-export async function getGameMatchesAsync(gameId?: GameId, approvedOnly = true): Promise<MatchSubmission[]> {
+export async function getGameMatchesAsync(
+  gameId?: GameId,
+  approvedOnly = true,
+  campusId?: string
+): Promise<MatchSubmission[]> {
   const store = await getStoreAsync();
   return store.matches.filter((m) => {
+    if (campusId && (m.campusId || "mangalore") !== campusId) return false;
     if (gameId && m.gameId !== gameId) return false;
     if (approvedOnly && m.status && m.status !== "APPROVED") return false;
     return true;
@@ -349,6 +455,7 @@ export async function recordMatchSubmissionAsync(params: {
   proofUrl: string;
   notes?: string;
   autoApprove?: boolean;
+  campusId?: string;
   teamResults: {
     teamId: string;
     placement: number;
@@ -361,10 +468,20 @@ export async function recordMatchSubmissionAsync(params: {
     return { success: false, error: auth.error };
   }
 
+  const campusId = params.campusId || "mangalore";
   const store = await getStoreAsync();
-  const teams = store.teams[params.gameId];
+
+  const isSuperAdminCode = !!auth.isSuperAdmin && params.pocCode === "CLUTCH-SUPER-2026";
+  if (isCampusLocked(store, campusId) && !isSuperAdminCode) {
+    return {
+      success: false,
+      error: `This campus (${campusId}) tournament is LOCKED by Super Admin. Read-only mode.`,
+    };
+  }
+
+  const teams = getCampusTeamsList(store, campusId, params.gameId);
   if (!teams || teams.length === 0) {
-    return { success: false, error: "No teams configured for this game." };
+    return { success: false, error: `No teams configured for ${params.gameId} in ${campusId}.` };
   }
 
   const detailedResults: MatchSubmission["teamResults"] = [];
@@ -374,10 +491,8 @@ export async function recordMatchSubmissionAsync(params: {
     if (!team) return;
 
     let placementPts = res.placementPoints || 0;
-    // For Valorant: pure placement points only, no combat/kill score
     const kills = params.gameId === "VALORANT" ? 0 : (res.kills || 0);
 
-    // Auto-calculate placement points based on game matrix
     const matrix = PLACEMENT_POINTS[params.gameId];
     if (matrix && res.placement >= 1 && res.placement <= matrix.length) {
       if (placementPts === 0) {
@@ -397,7 +512,6 @@ export async function recordMatchSubmissionAsync(params: {
     });
   });
 
-  const isSuperAdminCode = !!auth.isSuperAdmin && params.pocCode === "CLUTCH-SUPER-2026";
   const shouldApprove = isSuperAdminCode && params.autoApprove === true;
   const status: SubmissionStatus = shouldApprove ? "APPROVED" : "PENDING";
 
@@ -413,11 +527,12 @@ export async function recordMatchSubmissionAsync(params: {
       team.lastMatchRank = res.placement;
     });
 
-    store.teams[params.gameId] = sortAndRankTeams(teams);
+    setCampusTeamsList(store, campusId, params.gameId, sortAndRankTeams(teams));
   }
 
   const matchEntry: MatchSubmission = {
     id: `SUB-${params.gameId.substring(0, 2)}-${Date.now()}`,
+    campusId: campusId,
     gameId: params.gameId,
     matchNumber: params.matchNumber,
     timestamp: new Date().toISOString(),
@@ -433,12 +548,13 @@ export async function recordMatchSubmissionAsync(params: {
   store.matches.unshift(matchEntry);
   await saveStoreAsync(store);
 
+  const finalTeams = getCampusTeamsList(store, campusId, params.gameId);
   if (shouldApprove) {
     return {
       success: true,
       pending: false,
       submissionId: matchEntry.id,
-      leaderboard: store.teams[params.gameId],
+      leaderboard: finalTeams,
       message: `Match ${params.matchNumber} results approved and broadcast live to leaderboard!`,
     };
   }
@@ -470,9 +586,11 @@ export async function reviewMatchSubmissionAsync(params: {
     return { success: false, error: "Submission not found." };
   }
 
+  const campusId = match.campusId || "mangalore";
+
   if (params.action === "APPROVE") {
     if (match.status !== "APPROVED") {
-      const teams = store.teams[match.gameId];
+      const teams = getCampusTeamsList(store, campusId, match.gameId);
       if (teams && match.teamResults) {
         match.teamResults.forEach((res) => {
           const team = teams.find((t) => t.id === res.teamId);
@@ -484,7 +602,7 @@ export async function reviewMatchSubmissionAsync(params: {
             team.lastMatchRank = res.placement;
           }
         });
-        store.teams[match.gameId] = sortAndRankTeams(teams);
+        setCampusTeamsList(store, campusId, match.gameId, sortAndRankTeams(teams));
       }
     }
 
@@ -497,7 +615,7 @@ export async function reviewMatchSubmissionAsync(params: {
     return {
       success: true,
       match,
-      leaderboard: store.teams[match.gameId],
+      leaderboard: getCampusTeamsList(store, campusId, match.gameId),
     };
   } else if (params.action === "UNDO") {
     // Rollback points and restore match status to PENDING
@@ -511,7 +629,7 @@ export async function reviewMatchSubmissionAsync(params: {
     return {
       success: true,
       match,
-      leaderboard: store.teams[match.gameId],
+      leaderboard: getCampusTeamsList(store, campusId, match.gameId),
     };
   } else if (params.action === "DELETE") {
     // Rollback points if approved and remove match from store
@@ -524,7 +642,7 @@ export async function reviewMatchSubmissionAsync(params: {
 
     return {
       success: true,
-      leaderboard: store.teams[match.gameId],
+      leaderboard: getCampusTeamsList(store, campusId, match.gameId),
     };
   } else {
     // REJECT action: rollback points if previously approved
@@ -535,7 +653,7 @@ export async function reviewMatchSubmissionAsync(params: {
     match.rejectionReason = params.rejectionReason || "Submission rejected by Super Admin.";
     await saveStoreAsync(store);
 
-    return { success: true, match, leaderboard: store.teams[match.gameId] };
+    return { success: true, match, leaderboard: getCampusTeamsList(store, campusId, match.gameId) };
   }
 }
 
@@ -545,9 +663,11 @@ export async function reviewMatchSubmissionAsync(params: {
 export async function getAllSubmissionsAsync(options?: {
   gameId?: GameId;
   status?: SubmissionStatus | "ALL";
+  campusId?: string;
 }): Promise<MatchSubmission[]> {
   const store = await getStoreAsync();
   return store.matches.filter((m) => {
+    if (options?.campusId && (m.campusId || "mangalore") !== options.campusId) return false;
     if (options?.gameId && m.gameId !== options.gameId) return false;
     if (options?.status && options.status !== "ALL" && m.status !== options.status) return false;
     return true;
@@ -557,7 +677,11 @@ export async function getAllSubmissionsAsync(options?: {
 /**
  * Reset scores for a single game or all games back to 0 asynchronously
  */
-export async function resetGameScoresAsync(code: string, targetGame?: GameId | "ALL"): Promise<{ success: boolean; error?: string }> {
+export async function resetGameScoresAsync(
+  code: string,
+  targetGame?: GameId | "ALL",
+  campusId: string = "mangalore"
+): Promise<{ success: boolean; error?: string }> {
   const auth = verifyGameCode(code);
   if (!auth.valid || !auth.isSuperAdmin) {
     return { success: false, error: "Unauthorized. Super Admin authorization is required to reset." };
@@ -566,12 +690,38 @@ export async function resetGameScoresAsync(code: string, targetGame?: GameId | "
   const store = await getStoreAsync();
   const initial = createInitialStoreData();
 
-  if (!targetGame || targetGame === "ALL") {
-    store.teams = initial.teams;
-    store.matches = [];
+  if (campusId === "mangalore") {
+    if (!targetGame || targetGame === "ALL") {
+      store.teams = initial.teams;
+      store.matches = store.matches.filter((m) => (m.campusId && m.campusId !== "mangalore"));
+    } else {
+      store.teams[targetGame] = initial.teams[targetGame];
+      store.matches = store.matches.filter((m) => !(m.gameId === targetGame && (!m.campusId || m.campusId === "mangalore")));
+    }
   } else {
-    store.teams[targetGame] = initial.teams[targetGame];
-    store.matches = store.matches.filter((m) => m.gameId !== targetGame);
+    if (!store.campusTeams) store.campusTeams = {};
+    if (!targetGame || targetGame === "ALL") {
+      store.campusTeams[campusId] = {
+        FREE_FIRE: [],
+        BGMI: [],
+        VALORANT: [],
+        EFOOTBALL: [],
+        MATIKS: [],
+      };
+      store.matches = store.matches.filter((m) => m.campusId !== campusId);
+    } else {
+      if (!store.campusTeams[campusId]) {
+        store.campusTeams[campusId] = {
+          FREE_FIRE: [],
+          BGMI: [],
+          VALORANT: [],
+          EFOOTBALL: [],
+          MATIKS: [],
+        };
+      }
+      store.campusTeams[campusId][targetGame] = [];
+      store.matches = store.matches.filter((m) => !(m.gameId === targetGame && m.campusId === campusId));
+    }
   }
 
   await saveStoreAsync(store);
@@ -584,10 +734,19 @@ export async function resetGameScoresAsync(code: string, targetGame?: GameId | "
 export async function addTeamToGameAsync(params: {
   gameId: GameId;
   teamName: string;
+  campusId?: string;
   adminPassword?: string;
+  pocCode?: string;
 }): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; error?: string }> {
-  if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
-    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
+  const isSuper =
+    (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
+    params.pocCode === "CLUTCH-SUPER-2026";
+
+  const campusId = params.campusId || "mangalore";
+  const store = await getStoreAsync();
+
+  if (isCampusLocked(store, campusId) && !isSuper) {
+    return { success: false, error: `This campus (${campusId}) is LOCKED. Only Super Admin can modify teams.` };
   }
 
   const name = (params.teamName || "").trim();
@@ -595,15 +754,15 @@ export async function addTeamToGameAsync(params: {
     return { success: false, error: "Team name cannot be empty." };
   }
 
-  const store = await getStoreAsync();
-  const currentTeams = store.teams[params.gameId] || [];
+  const currentTeams = getCampusTeamsList(store, campusId, params.gameId);
 
   if (currentTeams.some((t) => t.teamName.toLowerCase() === name.toLowerCase())) {
     return { success: false, error: `A team named "${name}" already exists in ${params.gameId}.` };
   }
 
   const newTeam: TeamScoreEntry = {
-    id: `${params.gameId.toLowerCase()}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
+    id: `${params.gameId.toLowerCase()}-${campusId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
+    campusId,
     teamName: name,
     gameId: params.gameId,
     matchesPlayed: 0,
@@ -614,10 +773,10 @@ export async function addTeamToGameAsync(params: {
   };
 
   currentTeams.push(newTeam);
-  store.teams[params.gameId] = sortAndRankTeams(currentTeams);
+  setCampusTeamsList(store, campusId, params.gameId, sortAndRankTeams(currentTeams));
   await saveStoreAsync(store);
 
-  return { success: true, team: newTeam, teams: store.teams[params.gameId] };
+  return { success: true, team: newTeam, teams: getCampusTeamsList(store, campusId, params.gameId) };
 }
 
 /**
@@ -626,14 +785,22 @@ export async function addTeamToGameAsync(params: {
 export async function removeTeamFromGameAsync(params: {
   gameId: GameId;
   teamId: string;
+  campusId?: string;
   adminPassword?: string;
+  pocCode?: string;
 }): Promise<{ success: boolean; teams?: TeamScoreEntry[]; error?: string }> {
-  if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
-    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
+  const isSuper =
+    (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
+    params.pocCode === "CLUTCH-SUPER-2026";
+
+  const campusId = params.campusId || "mangalore";
+  const store = await getStoreAsync();
+
+  if (isCampusLocked(store, campusId) && !isSuper) {
+    return { success: false, error: `This campus (${campusId}) is LOCKED. Only Super Admin can modify teams.` };
   }
 
-  const store = await getStoreAsync();
-  const currentTeams = store.teams[params.gameId] || [];
+  const currentTeams = getCampusTeamsList(store, campusId, params.gameId);
 
   const teamIdx = currentTeams.findIndex((t) => t.id === params.teamId);
   if (teamIdx === -1) {
@@ -641,10 +808,10 @@ export async function removeTeamFromGameAsync(params: {
   }
 
   currentTeams.splice(teamIdx, 1);
-  store.teams[params.gameId] = sortAndRankTeams(currentTeams);
+  setCampusTeamsList(store, campusId, params.gameId, sortAndRankTeams(currentTeams));
   await saveStoreAsync(store);
 
-  return { success: true, teams: store.teams[params.gameId] };
+  return { success: true, teams: getCampusTeamsList(store, campusId, params.gameId) };
 }
 
 /**
@@ -654,10 +821,19 @@ export async function updateTeamNameAsync(params: {
   gameId: GameId;
   teamId: string;
   newTeamName: string;
+  campusId?: string;
   adminPassword?: string;
+  pocCode?: string;
 }): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; error?: string }> {
-  if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
-    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
+  const isSuper =
+    (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
+    params.pocCode === "CLUTCH-SUPER-2026";
+
+  const campusId = params.campusId || "mangalore";
+  const store = await getStoreAsync();
+
+  if (isCampusLocked(store, campusId) && !isSuper) {
+    return { success: false, error: `This campus (${campusId}) is LOCKED. Only Super Admin can modify teams.` };
   }
 
   const newName = (params.newTeamName || "").trim();
@@ -665,8 +841,7 @@ export async function updateTeamNameAsync(params: {
     return { success: false, error: "New team name cannot be empty." };
   }
 
-  const store = await getStoreAsync();
-  const currentTeams = store.teams[params.gameId] || [];
+  const currentTeams = getCampusTeamsList(store, campusId, params.gameId);
 
   const team = currentTeams.find((t) => t.id === params.teamId);
   if (!team) {
@@ -685,7 +860,7 @@ export async function updateTeamNameAsync(params: {
 
   // Also update match submissions for this team
   store.matches.forEach((m) => {
-    if (m.gameId === params.gameId && m.teamResults) {
+    if ((m.campusId || "mangalore") === campusId && m.gameId === params.gameId && m.teamResults) {
       m.teamResults.forEach((tr) => {
         if (tr.teamId === params.teamId || tr.teamName === oldName) {
           tr.teamName = newName;
@@ -694,10 +869,10 @@ export async function updateTeamNameAsync(params: {
     }
   });
 
-  store.teams[params.gameId] = sortAndRankTeams(currentTeams);
+  setCampusTeamsList(store, campusId, params.gameId, sortAndRankTeams(currentTeams));
   await saveStoreAsync(store);
 
-  return { success: true, team, teams: store.teams[params.gameId] };
+  return { success: true, team, teams: getCampusTeamsList(store, campusId, params.gameId) };
 }
 
 /**
@@ -706,15 +881,23 @@ export async function updateTeamNameAsync(params: {
 export async function toggleTeamVisibilityAsync(params: {
   gameId: GameId;
   teamId: string;
+  campusId?: string;
   hidden?: boolean;
   adminPassword?: string;
+  pocCode?: string;
 }): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; message?: string; error?: string }> {
-  if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
-    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
+  const isSuper =
+    (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
+    params.pocCode === "CLUTCH-SUPER-2026";
+
+  const campusId = params.campusId || "mangalore";
+  const store = await getStoreAsync();
+
+  if (isCampusLocked(store, campusId) && !isSuper) {
+    return { success: false, error: `This campus (${campusId}) is LOCKED. Only Super Admin can modify teams.` };
   }
 
-  const store = await getStoreAsync();
-  const currentTeams = store.teams[params.gameId] || [];
+  const currentTeams = getCampusTeamsList(store, campusId, params.gameId);
 
   const team = currentTeams.find((t) => t.id === params.teamId);
   if (!team) {
@@ -724,14 +907,14 @@ export async function toggleTeamVisibilityAsync(params: {
   // Toggle or set visibility
   team.hidden = params.hidden !== undefined ? params.hidden : !team.hidden;
 
-  store.teams[params.gameId] = sortAndRankTeams(currentTeams);
+  setCampusTeamsList(store, campusId, params.gameId, sortAndRankTeams(currentTeams));
   await saveStoreAsync(store);
 
   const statusLabel = team.hidden ? "hidden from public view" : "visible on public leaderboards";
   return {
     success: true,
     team,
-    teams: store.teams[params.gameId],
+    teams: getCampusTeamsList(store, campusId, params.gameId),
     message: `Team "${team.teamName}" is now ${statusLabel}.`,
   };
 }
@@ -742,22 +925,33 @@ export async function toggleTeamVisibilityAsync(params: {
 export async function toggleTeamQualifiedAsync(params: {
   gameId: GameId;
   teamId: string;
+  campusId?: string;
   qualified?: boolean;
   pocCode?: string;
   adminPassword?: string;
 }): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; message?: string; error?: string }> {
+  const isSuper =
+    (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
+    params.pocCode === "CLUTCH-SUPER-2026";
+
+  const campusId = params.campusId || "mangalore";
+  const store = await getStoreAsync();
+
+  if (isCampusLocked(store, campusId) && !isSuper) {
+    return { success: false, error: `This campus (${campusId}) is LOCKED. Only Super Admin can modify teams.` };
+  }
+
   // Allow authorized POCs (with valid room code) or Super Admin
   if (params.pocCode) {
     const check = verifyGameCode(params.pocCode, params.gameId);
     if (!check.valid) {
       return { success: false, error: "Unauthorized: Invalid room verification code." };
     }
-  } else if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
+  } else if (!isSuper) {
     return { success: false, error: "Unauthorized: Invalid Super Admin password." };
   }
 
-  const store = await getStoreAsync();
-  const currentTeams = store.teams[params.gameId] || [];
+  const currentTeams = getCampusTeamsList(store, campusId, params.gameId);
 
   const team = currentTeams.find((t) => t.id === params.teamId);
   if (!team) {
@@ -767,14 +961,14 @@ export async function toggleTeamQualifiedAsync(params: {
   // Toggle or set qualified
   team.qualified = params.qualified !== undefined ? params.qualified : !team.qualified;
 
-  store.teams[params.gameId] = sortAndRankTeams(currentTeams);
+  setCampusTeamsList(store, campusId, params.gameId, sortAndRankTeams(currentTeams));
   await saveStoreAsync(store);
 
   const statusLabel = team.qualified ? "marked as QUALIFIED for Grand Finals" : "removed from Qualified status";
   return {
     success: true,
     team,
-    teams: store.teams[params.gameId],
+    teams: getCampusTeamsList(store, campusId, params.gameId),
     message: `Team "${team.teamName}" is now ${statusLabel}.`,
   };
 }
@@ -782,25 +976,40 @@ export async function toggleTeamQualifiedAsync(params: {
 /**
  * Retrieve individual accolades & special awards for a game (MVP, Top Fragger)
  */
-export async function getAwardsAsync(gameId: GameId): Promise<IndividualAwards> {
+export async function getAwardsAsync(
+  gameId: GameId,
+  campusId: string = "mangalore"
+): Promise<IndividualAwards> {
   let store = await getStoreAsync();
-  const currentAward = store.awards?.[gameId];
-  const hasContent = Boolean(
-    currentAward?.winnerTeam ||
-    currentAward?.runnerUpTeam ||
-    currentAward?.mvp?.playerName ||
-    currentAward?.topFragger?.playerName
-  );
 
-  // If this instance didn't find awards in memory, force a fresh Supabase fetch
-  if (!hasContent && isSupabaseConfigured()) {
-    store = await getStoreAsync(true);
+  if (campusId === "mangalore") {
+    const currentAward = store.awards?.[gameId];
+    const hasContent = Boolean(
+      currentAward?.winnerTeam ||
+      currentAward?.runnerUpTeam ||
+      currentAward?.mvp?.playerName ||
+      currentAward?.topFragger?.playerName
+    );
+
+    // If this instance didn't find awards in memory, force a fresh Supabase fetch
+    if (!hasContent && isSupabaseConfigured()) {
+      store = await getStoreAsync(true);
+    }
+
+    if (!store.awards) {
+      store.awards = {};
+    }
+    return store.awards[gameId] || {};
   }
 
-  if (!store.awards) {
-    store.awards = {};
+  if (!store.campusAwards) {
+    store.campusAwards = {};
   }
-  return store.awards[gameId] || {};
+  if (!store.campusAwards[campusId]) {
+    store.campusAwards[campusId] = {};
+  }
+
+  return store.campusAwards[campusId][gameId] || {};
 }
 
 /**
@@ -809,34 +1018,58 @@ export async function getAwardsAsync(gameId: GameId): Promise<IndividualAwards> 
 export async function saveAwardsAsync(params: {
   gameId: GameId;
   awards: IndividualAwards;
+  campusId?: string;
   pocCode?: string;
   adminPassword?: string;
 }): Promise<{ success: boolean; awards?: IndividualAwards; error?: string; message?: string }> {
+  const isSuper =
+    (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
+    params.pocCode === "CLUTCH-SUPER-2026";
+
+  const campusId = params.campusId || "mangalore";
+  const store = await getStoreAsync(true);
+
+  if (isCampusLocked(store, campusId) && !isSuper) {
+    return {
+      success: false,
+      error: `This campus (${campusId}) is LOCKED by Super Admin. Accolades cannot be edited.`,
+    };
+  }
+
   if (params.pocCode) {
     const check = verifyGameCode(params.pocCode, params.gameId);
     if (!check.valid) {
       return { success: false, error: "Unauthorized: Invalid room verification code." };
     }
-  } else if (params.adminPassword && !verifyAdminPassword(params.adminPassword)) {
-    return { success: false, error: "Unauthorized: Invalid Super Admin password." };
-  } else if (!params.pocCode && !params.adminPassword) {
-    return { success: false, error: "Unauthorized: Passkey or verification code required." };
+  } else if (!isSuper) {
+    return { success: false, error: "Unauthorized: Super Admin or valid POC passkey required." };
   }
 
-  const store = await getStoreAsync(true);
-  if (!store.awards) {
-    store.awards = {};
+  if (campusId === "mangalore") {
+    if (!store.awards) store.awards = {};
+    store.awards[params.gameId] = {
+      ...store.awards[params.gameId],
+      ...params.awards,
+    };
   }
-  store.awards[params.gameId] = {
-    ...store.awards[params.gameId],
+
+  if (!store.campusAwards) store.campusAwards = {};
+  if (!store.campusAwards[campusId]) store.campusAwards[campusId] = {};
+  store.campusAwards[campusId][params.gameId] = {
+    ...store.campusAwards[campusId][params.gameId],
     ...params.awards,
   };
 
   await saveStoreAsync(store);
 
+  const finalAwards =
+    campusId === "mangalore"
+      ? store.awards?.[params.gameId]
+      : store.campusAwards[campusId][params.gameId];
+
   return {
     success: true,
-    awards: store.awards[params.gameId],
+    awards: finalAwards,
     message: "Special Awards (MVP & Top Fragger) updated successfully!",
   };
 }

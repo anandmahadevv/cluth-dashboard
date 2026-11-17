@@ -9,13 +9,15 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const gameId = (searchParams.get("gameId") || "FREE_FIRE") as GameId;
+    const campusId = searchParams.get("campusId") || "mangalore";
 
-    const awards = await getAwardsAsync(gameId);
+    const awards = await getAwardsAsync(gameId, campusId);
 
     return NextResponse.json(
       {
         success: true,
         gameId,
+        campusId,
         awards,
       },
       {

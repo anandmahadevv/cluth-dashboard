@@ -7,13 +7,14 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { gameId, pocCode, matchNumber, proofUrl, notes, autoApprove, teamResults } = body as {
+    const { gameId, pocCode, matchNumber, proofUrl, notes, autoApprove, campusId, teamResults } = body as {
       gameId: GameId;
       pocCode: string;
       matchNumber: number | string;
       proofUrl: string;
       notes?: string;
       autoApprove?: boolean;
+      campusId?: string;
       teamResults: {
         teamId: string;
         placement: number;
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
       proofUrl,
       notes,
       autoApprove,
+      campusId: campusId || "mangalore",
       teamResults,
     });
 

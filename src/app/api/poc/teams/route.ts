@@ -11,19 +11,20 @@ import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/poc/teams?gameId=FREE_FIRE&includeHidden=true
+// GET /api/poc/teams?gameId=FREE_FIRE&includeHidden=true&campusId=mangalore
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const gameId = searchParams.get("gameId") as GameId;
     const includeHidden = searchParams.get("includeHidden") !== "false";
+    const campusId = searchParams.get("campusId") || "mangalore";
 
     if (!gameId) {
       return NextResponse.json({ success: false, error: "gameId is required." }, { status: 400 });
     }
 
-    const teams = await getGameLeaderboardAsync(gameId, includeHidden);
-    return NextResponse.json({ success: true, gameId, teams });
+    const teams = await getGameLeaderboardAsync(gameId, includeHidden, campusId);
+    return NextResponse.json({ success: true, gameId, campusId, teams });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message || "Failed to fetch teams." }, { status: 500 });
   }
@@ -33,10 +34,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { gameId, teamName, adminPassword } = body as {
+    const { gameId, teamName, campusId, adminPassword, pocCode } = body as {
       gameId: GameId;
       teamName: string;
+      campusId?: string;
       adminPassword?: string;
+      pocCode?: string;
     };
 
     if (!gameId || !teamName) {
@@ -46,7 +49,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await addTeamToGameAsync({ gameId, teamName, adminPassword });
+    const result = await addTeamToGameAsync({
+      gameId,
+      teamName,
+      campusId: campusId || "mangalore",
+      adminPassword,
+      pocCode,
+    });
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });
     }
@@ -66,11 +75,13 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { gameId, teamId, newTeamName, adminPassword } = body as {
+    const { gameId, teamId, newTeamName, campusId, adminPassword, pocCode } = body as {
       gameId: GameId;
       teamId: string;
       newTeamName: string;
+      campusId?: string;
       adminPassword?: string;
+      pocCode?: string;
     };
 
     if (!gameId || !teamId || !newTeamName) {
@@ -80,7 +91,14 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const result = await updateTeamNameAsync({ gameId, teamId, newTeamName, adminPassword });
+    const result = await updateTeamNameAsync({
+      gameId,
+      teamId,
+      newTeamName,
+      campusId: campusId || "mangalore",
+      adminPassword,
+      pocCode,
+    });
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });
     }
@@ -100,10 +118,12 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const body = await req.json();
-    const { gameId, teamId, adminPassword } = body as {
+    const { gameId, teamId, campusId, adminPassword, pocCode } = body as {
       gameId: GameId;
       teamId: string;
+      campusId?: string;
       adminPassword?: string;
+      pocCode?: string;
     };
 
     if (!gameId || !teamId) {
@@ -113,7 +133,13 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const result = await removeTeamFromGameAsync({ gameId, teamId, adminPassword });
+    const result = await removeTeamFromGameAsync({
+      gameId,
+      teamId,
+      campusId: campusId || "mangalore",
+      adminPassword,
+      pocCode,
+    });
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });
     }
@@ -132,12 +158,13 @@ export async function DELETE(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { gameId, teamId, hidden, qualified, action, pocCode, adminPassword } = body as {
+    const { gameId, teamId, hidden, qualified, action, campusId, pocCode, adminPassword } = body as {
       gameId: GameId;
       teamId: string;
       hidden?: boolean;
       qualified?: boolean;
       action?: "TOGGLE_VISIBILITY" | "TOGGLE_QUALIFIED";
+      campusId?: string;
       pocCode?: string;
       adminPassword?: string;
     };
@@ -154,6 +181,7 @@ export async function PATCH(req: NextRequest) {
       const result = await toggleTeamQualifiedAsync({
         gameId,
         teamId,
+        campusId: campusId || "mangalore",
         qualified,
         pocCode,
         adminPassword,
@@ -172,7 +200,14 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Toggle Public Visibility (Hide / Unhide)
-    const result = await toggleTeamVisibilityAsync({ gameId, teamId, hidden, adminPassword });
+    const result = await toggleTeamVisibilityAsync({
+      gameId,
+      teamId,
+      campusId: campusId || "mangalore",
+      hidden,
+      adminPassword,
+      pocCode,
+    });
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });
     }
@@ -187,4 +222,3 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: false, error: err.message || "Failed to update team." }, { status: 500 });
   }
 }
-

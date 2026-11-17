@@ -81,11 +81,30 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Sync initial campus from URL or localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlCampus = params.get("campus");
+      const stored = localStorage.getItem("clutch_selected_campus");
+      const targetId = urlCampus || stored || "mangalore";
+      const match = CAMPUSES.find((c) => c.id === targetId);
+      if (match) setSelectedCampus(match);
+    }
+  }, [pathname]);
+
   const handleSelectCampus = (campus: CampusItem) => {
     setSelectedCampus(campus);
     setCampusDropdownOpen(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("clutch_selected_campus", campus.id);
+      window.dispatchEvent(new CustomEvent("clutch_campus_change", { detail: campus.id }));
+      const url = new URL(window.location.href);
+      url.searchParams.set("campus", campus.id);
+      window.history.pushState({}, "", url.toString());
+    }
     if (!campus.isLive) {
-      setNoticeMessage(`${campus.name} (${campus.university}) edition is scheduled for ${campus.status}. Mangalore edition is active!`);
+      setNoticeMessage(`${campus.name} (${campus.university}) edition is scheduled for ${campus.status}. Mangalore edition is concluded & locked!`);
       setTimeout(() => setNoticeMessage(null), 4000);
     }
   };
@@ -104,8 +123,8 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md transition-all shadow-2xs">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+      <header className="sticky top-0 z-40 w-full border-b border-[#e1e4dd] bg-[#f5f4f0]/95 backdrop-blur-md transition-all">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-lg bg-black border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center p-0.5 shrink-0">
@@ -133,7 +152,7 @@ export function Navbar() {
                 href={link.href}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
                   isActive(link.href)
-                    ? "bg-slate-100 text-slate-900 font-black"
+                    ? "bg-[#e8eae2] text-[#17211e] font-black"
                     : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
@@ -301,7 +320,7 @@ export function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className={`block px-3 py-2 text-xs font-bold rounded-lg ${
                   isActive(link.href)
-                    ? "bg-slate-100 text-slate-900 font-black"
+                    ? "bg-[#e8eae2] text-[#17211e] font-black"
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
               >

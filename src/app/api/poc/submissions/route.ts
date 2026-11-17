@@ -10,10 +10,12 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const game = searchParams.get("game") as GameId | null;
     const status = searchParams.get("status") as SubmissionStatus | "ALL" | null;
+    const campusId = searchParams.get("campusId") || undefined;
 
     const submissions = await getAllSubmissionsAsync({
       gameId: game || undefined,
       status: status || undefined,
+      campusId,
     });
 
     const pendingCount = submissions.filter((s) => s.status === "PENDING").length;

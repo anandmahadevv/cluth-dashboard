@@ -60,6 +60,12 @@ export default function PocPortalPage() {
   const [authError, setAuthError] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
 
+  // Multi-Campus Role Scope
+  const [campusId, setCampusId] = useState<string>("mangalore");
+  const [campusName, setCampusName] = useState<string>("Mangalore Arena");
+  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
+
   // Scoring Step state
   const [teams, setTeams] = useState<TeamEntry[]>([]);
   const [orderedTeamIds, setOrderedTeamIds] = useState<string[]>([]);
@@ -97,7 +103,7 @@ export default function PocPortalPage() {
 
   const fetchAwards = async () => {
     try {
-      const res = await fetch(`/api/public/awards?gameId=${selectedGame}&t=${Date.now()}`);
+      const res = await fetch(`/api/public/awards?gameId=${selectedGame}&campusId=${campusId}&t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.awards) {
         if (data.awards.winnerTeam) setWinnerTeam(data.awards.winnerTeam);
@@ -130,6 +136,7 @@ export default function PocPortalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: selectedGame,
+          campusId,
           pocCode,
           awards: {
             winnerTeam: winnerTeam.trim(),
@@ -169,7 +176,7 @@ export default function PocPortalPage() {
     setIsRefreshing(true);
     try {
       const res = await fetch(
-        `/api/poc/teams?gameId=${selectedGame}&includeHidden=true&t=${Date.now()}`,
+        `/api/poc/teams?gameId=${selectedGame}&campusId=${campusId}&includeHidden=true&t=${Date.now()}`,
         { cache: "no-store", headers: { "Cache-Control": "no-cache" } }
       );
       const data = await res.json();
@@ -209,6 +216,7 @@ export default function PocPortalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: selectedGame,
+          campusId,
           teamId,
           qualified: targetQualified,
           action: "TOGGLE_QUALIFIED",
@@ -331,6 +339,11 @@ export default function PocPortalPage() {
         setIsVerifying(false);
         return;
       }
+
+      if (data.campusId) setCampusId(data.campusId);
+      if (data.campusName) setCampusName(data.campusName);
+      if (data.isLocked !== undefined) setIsLocked(data.isLocked);
+      if (data.isSuperAdmin !== undefined) setIsSuperAdmin(data.isSuperAdmin);
 
       setTeams(data.teams);
       const teamIdList = data.teams.map((t: TeamEntry) => t.id);
@@ -532,6 +545,7 @@ export default function PocPortalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: selectedGame,
+          campusId: campusId,
           pocCode: pocCode,
           matchNumber: matchNumber,
           proofUrl: proofUrl,
@@ -757,6 +771,50 @@ export default function PocPortalPage() {
                 </button>
               </div>
             </div>
+
+            {/* Campus Isolation & Scope Banner */}
+            <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
+                  📍
+                </div>
+                <div>
+                  <div className="text-xs font-black text-white flex items-center gap-2">
+                    <span>Campus Scope: {campusName}</span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                      ID: {campusId}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    Your session is strictly isolated to the {campusName} roster and tournament.
+                  </div>
+                </div>
+              </div>
+              <div>
+                {isLocked ? (
+                  <span className="text-xs font-bold px-3 py-1 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5" /> Locked (Read-Only)
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Submissions Open
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Campus Locked Alert Notice if locked and not super admin */}
+            {isLocked && !isSuperAdmin && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 flex items-start gap-3 shadow-md">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="text-sm font-bold">Tournament Locked by Super Admin</div>
+                  <div className="text-xs text-amber-200/80 leading-relaxed">
+                    This campus tournament ({campusName}) has been marked as concluded and locked in read-only mode by the Super Admin. Official scores are protected from being overwritten. Match submissions are currently disabled.
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Quick Helper Banner */}
             <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs flex flex-wrap items-center justify-between gap-2">
@@ -1417,13 +1475,18 @@ export default function PocPortalPage() {
                   {/* Submit Button */}
                   <button
                     onClick={handleSubmitMatch}
-                    disabled={isSubmitting || !proofUrl}
+                    disabled={isSubmitting || !proofUrl || (isLocked && !isSuperAdmin)}
                     className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-98"
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span>Submitting Match Results...</span>
+                      </>
+                    ) : isLocked && !isSuperAdmin ? (
+                      <>
+                        <Lock className="w-4 h-4 text-amber-300" />
+                        <span>Campus Locked (Read-Only Mode)</span>
                       </>
                     ) : (
                       <>

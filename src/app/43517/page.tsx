@@ -45,7 +45,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import { GameId } from "@/types";
-import { PLACEMENT_POINTS, getFreeFireGroupInfo } from "@/lib/tournament-constants";
+import {
+  PLACEMENT_POINTS,
+  getFreeFireGroupInfo,
+  CAMPUSES_REGISTRY,
+  SUPER_ADMIN_CODE,
+} from "@/lib/tournament-constants";
 import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 
 interface TeamEntry {
@@ -105,6 +110,18 @@ export default function SuperAdminPortalPage() {
   const [mainTab, setMainTab] = useState<"inbox" | "direct" | "history" | "teams" | "awards">("inbox");
   const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  // Multi-Campus State & Controls
+  const [selectedCampus, setSelectedCampus] = useState<string>("mangalore");
+  const [campusLocks, setCampusLocks] = useState<Record<string, boolean>>({
+    mangalore: true,
+    kanyakumari: false,
+    coimbatore: false,
+    bangalore: false,
+  });
+  const [isTogglingLock, setIsTogglingLock] = useState(false);
+  const [showKeysModal, setShowKeysModal] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Special Awards State (Winner, Runner-up, MVP & Top Fragger)
   const [awardsGame, setAwardsGame] = useState<GameId>("FREE_FIRE");
@@ -205,11 +222,57 @@ export default function SuperAdminPortalPage() {
     }
   }, []);
 
+  // Campus Lock & Access Helpers
+  const fetchCampusLocks = async () => {
+    try {
+      const res = await fetch(`/api/poc/campus-lock?t=${Date.now()}`);
+      const data = await res.json();
+      if (data.success && data.locks) {
+        setCampusLocks(data.locks);
+      }
+    } catch {}
+  };
+
+  const handleToggleLock = async (campusId: string) => {
+    const current = !!campusLocks[campusId];
+    const newLock = !current;
+    setIsTogglingLock(true);
+    try {
+      const res = await fetch("/api/poc/campus-lock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campusId,
+          isLocked: newLock,
+          adminPassword,
+          pocCode: SUPER_CODE,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCampusLocks((prev) => ({ ...prev, [campusId]: newLock }));
+      } else {
+        alert(data.error || "Failed to update lock");
+      }
+    } catch {
+      alert("Network error updating campus lock");
+    } finally {
+      setIsTogglingLock(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(label);
+    setTimeout(() => setCopiedKey(null), 2500);
+  };
+
   // Fetch submissions and game data when authenticated + live auto-polling every 4 seconds
   useEffect(() => {
     if (isAuthenticated) {
+      fetchCampusLocks();
       fetchSubmissions();
-      fetchTeamsForDirectGame(directGame);
+      fetchTeamsForDirectGame(directGame, selectedCampus);
 
       const interval = setInterval(() => {
         fetchSubmissions(true);
@@ -217,7 +280,7 @@ export default function SuperAdminPortalPage() {
 
       return () => clearInterval(interval);
     }
-  }, [isAuthenticated, directGame]);
+  }, [isAuthenticated, directGame, selectedCampus]);
 
   // Handle Admin Password Login
   const handleLogin = async (e: React.FormEvent) => {
@@ -239,6 +302,7 @@ export default function SuperAdminPortalPage() {
 
       setIsAuthenticated(true);
       sessionStorage.setItem("clutch_admin_auth", adminPassword);
+      fetchCampusLocks();
       fetchSubmissions();
     } catch (err: any) {
       setAuthError(err.message || "Authentication failed");
@@ -253,11 +317,11 @@ export default function SuperAdminPortalPage() {
     setAdminPassword("");
   };
 
-  // Fetch all POC submissions
+  // Fetch all POC submissions for the selected campus
   const fetchSubmissions = async (isBackground = false) => {
     if (!isBackground) setIsLoadingSubmissions(true);
     try {
-      const res = await fetch(`/api/poc/submissions?t=${Date.now()}`, {
+      const res = await fetch(`/api/poc/submissions?campusId=${selectedCampus}&t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Cache-Control": "no-cache" },
       });
@@ -273,10 +337,10 @@ export default function SuperAdminPortalPage() {
   };
 
   // Fetch Teams for direct scoring (always includes all teams for Super Admin)
-  const fetchTeamsForDirectGame = async (gameId: GameId) => {
+  const fetchTeamsForDirectGame = async (gameId: GameId, campusId: string = selectedCampus) => {
     setIsLoadingTeams(true);
     try {
-      const res = await fetch(`/api/poc/teams?gameId=${gameId}&includeHidden=true&t=${Date.now()}`);
+      const res = await fetch(`/api/poc/teams?gameId=${gameId}&campusId=${campusId}&includeHidden=true&t=${Date.now()}`);
 
       const data = await res.json();
       if (res.ok && data.success && Array.isArray(data.teams)) {
@@ -306,11 +370,11 @@ export default function SuperAdminPortalPage() {
   };
 
   // Fetch Roster for selected game
-  const fetchRoster = async (gameId: GameId) => {
+  const fetchRoster = async (gameId: GameId, campusId: string = selectedCampus) => {
     setIsLoadingRoster(true);
     setRosterError("");
     try {
-      const res = await fetch(`/api/poc/teams?gameId=${gameId}&includeHidden=true&t=${Date.now()}`, {
+      const res = await fetch(`/api/poc/teams?gameId=${gameId}&campusId=${campusId}&includeHidden=true&t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Cache-Control": "no-cache" },
       });
@@ -329,15 +393,15 @@ export default function SuperAdminPortalPage() {
 
   useEffect(() => {
     if (isAuthenticated && mainTab === "teams") {
-      fetchRoster(rosterGame);
+      fetchRoster(rosterGame, selectedCampus);
     }
-  }, [isAuthenticated, mainTab, rosterGame]);
+  }, [isAuthenticated, mainTab, rosterGame, selectedCampus]);
 
   // Special Awards Fetch & Save
-  const fetchAdminAwards = async (game: GameId) => {
+  const fetchAdminAwards = async (game: GameId, campusId: string = selectedCampus) => {
     setIsLoadingAwards(true);
     try {
-      const res = await fetch(`/api/public/awards?gameId=${game}&t=${Date.now()}`);
+      const res = await fetch(`/api/public/awards?gameId=${game}&campusId=${campusId}&t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.awards) {
         setAdminWinnerTeam(data.awards.winnerTeam || "");
@@ -383,9 +447,9 @@ export default function SuperAdminPortalPage() {
 
   useEffect(() => {
     if (isAuthenticated && mainTab === "awards") {
-      fetchAdminAwards(awardsGame);
+      fetchAdminAwards(awardsGame, selectedCampus);
     }
-  }, [isAuthenticated, mainTab, awardsGame]);
+  }, [isAuthenticated, mainTab, awardsGame, selectedCampus]);
 
   const handleSaveAdminAwards = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -402,6 +466,7 @@ export default function SuperAdminPortalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: awardsGame,
+          campusId: selectedCampus,
           adminPassword: pass,
           awards: {
             winnerTeam: adminWinnerTeam.trim(),
@@ -449,6 +514,7 @@ export default function SuperAdminPortalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: rosterGame,
+          campusId: selectedCampus,
           teamName: newTeamName.trim(),
           adminPassword,
         }),
@@ -497,6 +563,7 @@ export default function SuperAdminPortalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: rosterGame,
+          campusId: selectedCampus,
           teamId,
           newTeamName: editingTeamName.trim(),
           adminPassword,
@@ -536,6 +603,7 @@ export default function SuperAdminPortalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: rosterGame,
+          campusId: selectedCampus,
           teamId: t.id,
           adminPassword,
         }),
@@ -586,6 +654,7 @@ export default function SuperAdminPortalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: game,
+          campusId: selectedCampus,
           teamId,
           hidden: targetHidden,
           adminPassword: pass,
@@ -650,6 +719,7 @@ export default function SuperAdminPortalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: game,
+          campusId: selectedCampus,
           teamId,
           qualified: targetQualified,
           action: "TOGGLE_QUALIFIED",
@@ -1114,6 +1184,7 @@ export default function SuperAdminPortalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: directGame,
+          campusId: selectedCampus,
           pocCode: SUPER_CODE,
           matchNumber,
           proofUrl: directProofUrl,
@@ -1317,6 +1388,100 @@ export default function SuperAdminPortalPage() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Multi-Campus Switcher & Security Command Bar */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-400">
+                  Global Campus Control Center
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+                  Super Admin Exclusive
+                </span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2 mt-0.5">
+                <span>Managing: {CAMPUSES_REGISTRY[selectedCampus]?.name || selectedCampus}</span>
+                <span className="text-xs font-semibold text-slate-400">({CAMPUSES_REGISTRY[selectedCampus]?.university})</span>
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              {/* Campus Passkeys Button */}
+              <button
+                onClick={() => setShowKeysModal(true)}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 border border-slate-700 shadow-sm"
+              >
+                <span>🔑</span>
+                <span>Campus Passkeys</span>
+              </button>
+
+              {/* Campus Lock / Unlock Toggle Button */}
+              <button
+                disabled={isTogglingLock}
+                onClick={() => handleToggleLock(selectedCampus)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm ${
+                  campusLocks[selectedCampus]
+                    ? "bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30"
+                    : "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
+                }`}
+                title={
+                  campusLocks[selectedCampus]
+                    ? "Click to unlock this campus (allow non-super admins to submit scores)"
+                    : "Click to lock this campus (freeze tournament and prevent score changes)"
+                }
+              >
+                {isTogglingLock ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : campusLocks[selectedCampus] ? (
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                ) : (
+                  <Unlock className="w-3.5 h-3.5 text-emerald-400" />
+                )}
+                <span>
+                  {campusLocks[selectedCampus] ? "Campus Locked (Read-Only)" : "Campus Open (Accepting Scores)"}
+                </span>
+                <span className="text-[10px] opacity-75 underline ml-1">Toggle</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Campus Switcher Pills */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-800/80">
+            {Object.values(CAMPUSES_REGISTRY).map((c) => {
+              const isSelected = selectedCampus === c.id;
+              const isLocked = !!campusLocks[c.id];
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCampus(c.id)}
+                  className={`p-3 rounded-2xl text-left transition-all border flex flex-col gap-1 ${
+                    isSelected
+                      ? "bg-emerald-950/40 border-emerald-500/60 shadow-lg shadow-emerald-950/50"
+                      : "bg-slate-950/60 border-slate-800/80 hover:bg-slate-800/50 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-extrabold ${isSelected ? "text-emerald-400" : "text-white"}`}>
+                      {c.shortName}
+                    </span>
+                    {isLocked ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-0.5">
+                        <Lock className="w-2.5 h-2.5" /> Locked
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-400 truncate">{c.university}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Navigation Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
           <div className="flex items-center gap-2">
@@ -3244,34 +3409,78 @@ export default function SuperAdminPortalPage() {
       )}
 
       {/* ---------------------------------------------------- */}
-      {/* MODAL 3: RESET GAME SCORES CONFIRMATION             */}
+      {/* MODAL 4: CAMPUS PASSKEYS & ACCESS CODES            */}
       {/* ---------------------------------------------------- */}
-      {resetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center gap-3 text-red-400">
-              <RotateCcw className="w-6 h-6" />
-              <h3 className="font-bold text-base text-white">Reset {directGame} Standings?</h3>
-            </div>
-            <p className="text-xs text-slate-300">
-              This will reset all team points and match counts back to <strong>0</strong> for <strong>{directGame}</strong>.
-            </p>
-            <div className="flex items-center justify-end gap-3 pt-2">
+      {showKeysModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🔑</span>
+                <div>
+                  <h3 className="text-base font-black text-white">Campus & POC Access Passkeys</h3>
+                  <p className="text-xs text-slate-400">Share each key with its respective campus admin.</p>
+                </div>
+              </div>
               <button
-                onClick={() => setResetModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
+                onClick={() => setShowKeysModal(false)}
+                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleResetScores}
-                disabled={isResetting}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-bold text-white flex items-center gap-1.5"
-              >
-                {isResetting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Confirm Reset</span>
+                <X className="w-4 h-4" />
               </button>
             </div>
+
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+              {/* Super Admin Key */}
+              <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/50 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-black text-emerald-400 uppercase tracking-wider">SUPER ADMIN (YOU)</div>
+                  <div className="text-[11px] text-slate-400">Master omnipotent key across all campuses</div>
+                  <div className="font-mono text-sm font-bold text-white mt-1">CLUTCH-SUPER-2026</div>
+                </div>
+                <button
+                  onClick={() => copyToClipboard("CLUTCH-SUPER-2026", "SUPER")}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 shrink-0"
+                >
+                  {copiedKey === "SUPER" ? <Check className="w-3.5 h-3.5" /> : null}
+                  <span>{copiedKey === "SUPER" ? "Copied!" : "Copy"}</span>
+                </button>
+              </div>
+
+              {/* Campus Keys */}
+              {Object.values(CAMPUSES_REGISTRY).map((camp) => (
+                <div key={camp.id} className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white">{camp.name}</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                        {camp.status}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">{camp.university}</div>
+                    <div className="font-mono text-xs font-bold text-amber-300 mt-1">{camp.adminCode}</div>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(camp.adminCode, camp.id)}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1 border border-slate-700 shrink-0"
+                  >
+                    {copiedKey === camp.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : null}
+                    <span>{copiedKey === camp.id ? "Copied!" : "Copy Key"}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-[11px] text-slate-400 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+              💡 <strong>Isolation Rule:</strong> Campus SPOCs can only see and submit scores for their own campus. When a campus is locked, they cannot modify results.
+            </div>
+
+            <button
+              onClick={() => setShowKeysModal(false)}
+              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

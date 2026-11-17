@@ -91,22 +91,23 @@ export async function getPublicGames(): Promise<PublicApiResponse<GameConfig[]>>
 }
 
 export async function getLeaderboard(
-  gameId: GameId
+  gameId: GameId,
+  campusId?: string
 ): Promise<PublicApiResponse<FreeFireLeaderboardEntry[] | BgmiLeaderboardEntry[] | any[]>> {
-  return safePublicFetch<any[]>(
-    API_ENDPOINTS.leaderboardsByGame(gameId),
-    []
-  );
+  const base = API_ENDPOINTS.leaderboardsByGame(gameId);
+  const url = campusId ? `${base}?campusId=${encodeURIComponent(campusId)}` : base;
+  return safePublicFetch<any[]>(url, []);
 }
 
 export async function getMatches(
-  gameId?: GameId
+  gameId?: GameId,
+  campusId?: string
 ): Promise<PublicApiResponse<any[]>> {
-  const endpoint = gameId ? API_ENDPOINTS.matchesByGame(gameId) : API_ENDPOINTS.results;
-  return safePublicFetch<any[]>(
-    endpoint,
-    []
-  );
+  const base = gameId ? API_ENDPOINTS.matchesByGame(gameId) : API_ENDPOINTS.results;
+  const url = campusId
+    ? `${base}${base.includes("?") ? "&" : "?"}campusId=${encodeURIComponent(campusId)}`
+    : base;
+  return safePublicFetch<any[]>(url, []);
 }
 
 export async function getWinners(): Promise<PublicApiResponse<GameWinner[]>> {
@@ -116,9 +117,13 @@ export async function getWinners(): Promise<PublicApiResponse<GameWinner[]>> {
   );
 }
 
-export async function getAwards(gameId: GameId = "FREE_FIRE"): Promise<PublicApiResponse<IndividualAwards>> {
+export async function getAwards(
+  gameId: GameId = "FREE_FIRE",
+  campusId?: string
+): Promise<PublicApiResponse<IndividualAwards>> {
   try {
-    const res = await fetch(`/api/public/awards?gameId=${gameId}&t=${Date.now()}`, {
+    const campusQuery = campusId ? `&campusId=${encodeURIComponent(campusId)}` : "";
+    const res = await fetch(`/api/public/awards?gameId=${gameId}${campusQuery}&t=${Date.now()}`, {
       cache: "no-store",
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate",

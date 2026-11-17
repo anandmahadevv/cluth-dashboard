@@ -20,13 +20,13 @@ export function usePublicGames() {
   return usePolling(getPublicGames);
 }
 
-export function useGameLeaderboard(gameId: GameId) {
-  const fetcher = useCallback(() => getLeaderboard(gameId), [gameId]);
+export function useGameLeaderboard(gameId: GameId, campusId?: string) {
+  const fetcher = useCallback(() => getLeaderboard(gameId, campusId), [gameId, campusId]);
   return usePolling(fetcher);
 }
 
-export function useGameMatches(gameId?: GameId) {
-  const fetcher = useCallback(() => getMatches(gameId), [gameId]);
+export function useGameMatches(gameId?: GameId, campusId?: string) {
+  const fetcher = useCallback(() => getMatches(gameId, campusId), [gameId, campusId]);
   return usePolling(fetcher);
 }
 
@@ -34,7 +34,7 @@ export function useTournamentWinners() {
   return usePolling(getWinners);
 }
 
-export function useGameAwards(gameId: GameId = "FREE_FIRE") {
-  const fetcher = useCallback(() => getAwards(gameId), [gameId]);
+export function useGameAwards(gameId: GameId = "FREE_FIRE", campusId?: string) {
+  const fetcher = useCallback(() => getAwards(gameId, campusId), [gameId, campusId]);
   return usePolling(fetcher);
 }

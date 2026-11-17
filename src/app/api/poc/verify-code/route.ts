@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyGameCode, getGameLeaderboardAsync } from "@/lib/tournament-store";
+import {
+  getGameLeaderboardAsync,
+  getStoreAsync,
+  isCampusLocked,
+} from "@/lib/tournament-store";
+import { resolveAdminAccess, CAMPUSES_REGISTRY } from "@/lib/tournament-constants";
 import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -7,25 +12,51 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { code, gameId } = body as { code: string; gameId?: GameId };
+    const { code, gameId, campusId } = body as {
+      code: string;
+      gameId?: GameId;
+      campusId?: string;
+    };
 
     if (!code) {
-      return NextResponse.json({ success: false, error: "Please enter your game verification code." }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Please enter your access or room verification code." },
+        { status: 400 }
+      );
     }
 
-    const check = verifyGameCode(code, gameId);
-    if (!check.valid || !check.gameId) {
-      return NextResponse.json({ success: false, error: check.error || "Invalid code." }, { status: 401 });
+    const access = resolveAdminAccess(code);
+    if (!access.isValid) {
+      return NextResponse.json(
+        { success: false, error: access.error || "Invalid verification code." },
+        { status: 401 }
+      );
     }
 
-    const isSuperAdmin = !!check.isSuperAdmin;
-    const currentTeams = await getGameLeaderboardAsync(check.gameId, true);
+    const store = await getStoreAsync();
+    const effectiveCampusId = access.isSuperAdmin
+      ? campusId || "mangalore"
+      : access.campusId || "mangalore";
+
+    const targetGame: GameId =
+      access.gameId && access.gameId !== "ALL"
+        ? access.gameId
+        : gameId || "FREE_FIRE";
+
+    const locked = isCampusLocked(store, effectiveCampusId);
+    const currentTeams = await getGameLeaderboardAsync(targetGame, true, effectiveCampusId);
+    const campusMeta = CAMPUSES_REGISTRY[effectiveCampusId];
 
     return NextResponse.json(
       {
         success: true,
-        gameId: check.gameId,
-        isSuperAdmin,
+        gameId: targetGame,
+        isSuperAdmin: access.isSuperAdmin,
+        isCampusAdmin: !access.isSuperAdmin && access.gameId === "ALL",
+        canSwitchCampus: access.isSuperAdmin,
+        campusId: effectiveCampusId,
+        campusName: campusMeta?.name || effectiveCampusId,
+        isLocked: locked,
         teams: currentTeams,
       },
       {
@@ -35,7 +66,9 @@ export async function POST(req: NextRequest) {
       }
     );
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message || "Authentication failed" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err.message || "Authentication failed" },
+      { status: 500 }
+    );
   }
 }
-
