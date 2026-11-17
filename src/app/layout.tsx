@@ -12,6 +12,20 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://clutch.niat.me"),
+  openGraph: {
+    type: "website",
+    siteName: "CLUTCH",
+    title: "CLUTCH | NIAT Championship 2026",
+    description: "Live scores. Verified standings. One championship, every arena.",
+    images: [{ url: "/brand/clutch-og.png", width: 1200, height: 630, alt: "CLUTCH NIAT Championship 2026 — live scores and verified standings" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CLUTCH | NIAT Championship 2026",
+    description: "Live scores. Verified standings. One championship, every arena.",
+    images: ["/brand/clutch-og.png"],
+  },
   title: `${EVENT_DETAILS.brand} – Live Public E-Sports Leaderboard`,
   description: `${EVENT_DETAILS.fullName} at ${EVENT_DETAILS.venue} on ${EVENT_DETAILS.dateFormatted}. Real-time verified standings for Free Fire, BGMI, Valorant, eFootball, and MATIKS.`,
   keywords: [
