@@ -1,3 +1,4 @@
+import { getCampusGameIds, isCampusGameEnabled } from "@/lib/campus-games";
 import { NextRequest, NextResponse } from "next/server";
 import {
   getGameLeaderboardAsync,
@@ -42,6 +43,8 @@ export async function POST(req: NextRequest) {
       access.gameId && access.gameId !== "ALL"
         ? access.gameId
         : gameId || "FREE_FIRE";
+
+    if(!isCampusGameEnabled(effectiveCampusId,targetGame)) return NextResponse.json({success:false,error:"This game is not enabled for the assigned campus."},{status:400});
 
     const locked = isCampusLocked(store, effectiveCampusId);
     const currentTeams = await getGameLeaderboardAsync(targetGame, true, effectiveCampusId);

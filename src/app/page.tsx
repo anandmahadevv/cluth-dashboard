@@ -16,6 +16,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
+import {getCampusGameIds,isCampusGameEnabled} from "@/lib/campus-games";
 import { GameId } from "@/types";
 import { GAMES_CONFIG } from "@/lib/constants";
 import { CAMPUSES_REGISTRY } from "@/lib/tournament-constants";
@@ -78,6 +79,8 @@ export default function HomePage() {
 
   const activeCampusMeta = CAMPUSES_REGISTRY[currentCampusId] || CAMPUSES_REGISTRY["mangalore"];
 
+  const campusGames=getCampusGameIds(currentCampusId).map(id=>({id,label:GAMES_CONFIG[id].name,icon:({FREE_FIRE:Flame,BGMI:Crosshair,COD:Crosshair,VALORANT:Target,EFOOTBALL:Gamepad2,MATIKS:Brain})[id]}));
+  useEffect(()=>{if(!isCampusGameEnabled(currentCampusId,selectedGame))setSelectedGame("FREE_FIRE");},[currentCampusId,selectedGame]);
   // Determine current active leaderboard
   const currentLeaderboard = (rawLeaderboard || []).filter((t: any) => !t.hidden);
 
@@ -182,13 +185,7 @@ export default function HomePage() {
     return () => document.removeEventListener("fullscreenchange", syncFullscreen);
   }, []);
 
-  const games = [
-    { id: "FREE_FIRE" as const, label: "Free Fire", icon: Flame },
-    { id: "BGMI" as const, label: "BGMI", icon: Crosshair },
-    { id: "VALORANT" as const, label: "Valorant", icon: Target },
-    { id: "EFOOTBALL" as const, label: "eFootball", icon: Gamepad2 },
-    { id: "MATIKS" as const, label: "MATIKS", icon: Brain },
-  ];
+  const games = campusGames;
 
   return (
     <div className={isProjectorMode
@@ -217,7 +214,7 @@ export default function HomePage() {
               </div>
               <img src="/images/niat-logo.jpg" alt="NIAT" width={36} height={36} className="h-9 w-9 rounded-lg object-contain" />
             </div>
-            <div className="mt-7"><span className="text-5xl font-light leading-none tracking-[-0.06em]">05</span><p className="mt-2 text-xs text-[#bac5bd]">games. one championship.</p>
+            <div className="mt-7"><span className="text-5xl font-light leading-none tracking-[-0.06em]">{campusGames.length.toString().padStart(2,"0")}</span><p className="mt-2 text-xs text-[#bac5bd]">games. one championship.</p>
               <Link href="/winners" className="mt-6 inline-flex items-center gap-3 border-b border-[#ff986b]/50 pb-1.5 text-xs font-semibold text-[#ffb18d] transition hover:text-white">Meet the champions<ArrowUpRight className="h-4 w-4" /></Link>
             </div>
           </div>

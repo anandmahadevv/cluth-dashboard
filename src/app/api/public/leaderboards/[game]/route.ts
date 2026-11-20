@@ -1,3 +1,4 @@
+import { isCampusGameEnabled } from "@/lib/campus-games";
 import { NextRequest, NextResponse } from "next/server";
 import { getGameLeaderboardAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
@@ -14,8 +15,8 @@ export async function GET(
 
   let rawGame = params.game?.toUpperCase().replace(/-/g, "_") as GameId | "FIFA";
   if (rawGame === "FIFA") rawGame = "EFOOTBALL";
-  const validGames: GameId[] = ["FREE_FIRE", "BGMI", "VALORANT", "EFOOTBALL", "MATIKS"];
-  const game: GameId = validGames.includes(rawGame as GameId) ? (rawGame as GameId) : "FREE_FIRE";
+  if(!isCampusGameEnabled(campusId,rawGame)) return NextResponse.json({success:false,error:"This game is not enabled for this campus."},{status:400});
+  const game=rawGame as GameId;
 
   const leaderboard = await getGameLeaderboardAsync(game, false, campusId);
 

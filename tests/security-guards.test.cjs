@@ -1,5 +1,7 @@
+const campusPolicySource = require('typescript').transpileModule(require('fs').readFileSync('src/lib/campus-games.ts','utf8'),{compilerOptions:{module:require('typescript').ModuleKind.CommonJS}}).outputText;
+const campusPolicy={};new Function('exports',campusPolicySource)(campusPolicy);
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript');
-function load(file,mocks={}){const m={exports:{}};new Function('require','exports',ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText)(name=>mocks[name]||require(name),m.exports);return m.exports;}
+function load(file,mocks={}){const m={exports:{}};new Function('require','exports',ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText)(name=>mocks[name]||(['./campus-games','@/lib/campus-games'].includes(name)?campusPolicy:require(name)),m.exports);return m.exports;}
 const response={NextResponse:{json:(body,options)=>({body,status:options?.status||200})}};
 for(const name of ['campus-keys','submissions','awards/submissions'])test(`${name} rejects anonymous credential/history reads`,async()=>{
  const api=load(`src/app/api/poc/${name}/route.ts`,{'next/server':response,'@/lib/tournament-store':{verifyAdminPassword:()=>false}});

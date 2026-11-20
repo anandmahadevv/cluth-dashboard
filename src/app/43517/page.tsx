@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import {GAMES_CONFIG} from "@/lib/constants";
+import {getCampusGameIds,isCampusGameEnabled} from "@/lib/campus-games";
 import {
   ShieldCheck,
   Flame,
@@ -122,6 +124,8 @@ export default function SuperAdminPortalPage() {
 
   // Multi-Campus State & Controls
   const [selectedCampus, setSelectedCampus] = useState<string>("mangalore");
+  const campusGames=getCampusGameIds(selectedCampus).map(id=>({id,label:GAMES_CONFIG[id].name,name:GAMES_CONFIG[id].name,icon:({FREE_FIRE:Flame,BGMI:Crosshair,COD:Crosshair,VALORANT:Target,EFOOTBALL:Gamepad2,MATIKS:Brain})[id],color:"text-emerald-700",badge:GAMES_CONFIG[id].badge}));
+  const campusKeyGames=campusGames.map(g=>({...g,icon:({FREE_FIRE:"🔥",BGMI:"🎯",COD:"🎮",VALORANT:"⚡",EFOOTBALL:"⚽",MATIKS:"🧠"})[g.id]}));
   const [campusLocks, setCampusLocks] = useState<Record<string, boolean>>({
     mangalore: true,
     kanyakumari: false,
@@ -140,6 +144,7 @@ export default function SuperAdminPortalPage() {
     VALORANT: "",
     EFOOTBALL: "",
     MATIKS: "",
+    COD: "",
   });
   const [isLoadingPasskeys, setIsLoadingPasskeys] = useState(false);
   const [isSavingPasskeys, setIsSavingPasskeys] = useState(false);
@@ -225,6 +230,12 @@ export default function SuperAdminPortalPage() {
   const [isResetting, setIsResetting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  useEffect(()=>{
+    if(!isCampusGameEnabled(selectedCampus,directGame)) setDirectGame("FREE_FIRE");
+    if(!isCampusGameEnabled(selectedCampus,rosterGame)) setRosterGame("FREE_FIRE");
+    if(!isCampusGameEnabled(selectedCampus,awardsGame)) setAwardsGame("FREE_FIRE");
+    if(selectedGameFilter!=="ALL" && !isCampusGameEnabled(selectedCampus,selectedGameFilter)) setSelectedGameFilter("ALL");
+  },[selectedCampus,directGame,rosterGame,awardsGame,selectedGameFilter]);
 
   // Check sessionStorage on mount and validate against server
   useEffect(() => {
@@ -315,6 +326,7 @@ export default function SuperAdminPortalPage() {
           VALORANT: data.passkeys.gameKeys?.VALORANT || "",
           EFOOTBALL: data.passkeys.gameKeys?.EFOOTBALL || "",
           MATIKS: data.passkeys.gameKeys?.MATIKS || "",
+          COD: data.passkeys.gameKeys?.COD || "",
         });
       }
     } catch {
@@ -338,7 +350,7 @@ export default function SuperAdminPortalPage() {
     setPasskeysErrorMsg("");
 
     const uids = new Set<string>();
-    const games: GameId[] = ["FREE_FIRE", "BGMI", "VALORANT", "EFOOTBALL", "MATIKS"];
+    const games = getCampusGameIds(selectedCampus);
     for (const g of games) {
       const val = (editingGameKeys[g] || "").trim().toUpperCase();
       if (!val) {
@@ -364,13 +376,7 @@ export default function SuperAdminPortalPage() {
           pocCode: adminPassword,
           passkeys: {
             campusAdminKey: editingCampusAdminKey.trim().toUpperCase(),
-            gameKeys: {
-              FREE_FIRE: editingGameKeys.FREE_FIRE.trim().toUpperCase(),
-              BGMI: editingGameKeys.BGMI.trim().toUpperCase(),
-              VALORANT: editingGameKeys.VALORANT.trim().toUpperCase(),
-              EFOOTBALL: editingGameKeys.EFOOTBALL.trim().toUpperCase(),
-              MATIKS: editingGameKeys.MATIKS.trim().toUpperCase(),
-            },
+            gameKeys: Object.fromEntries(getCampusGameIds(selectedCampus).map(game=>[game,editingGameKeys[game].trim().toUpperCase()])),
           },
         }),
       });
@@ -421,6 +427,7 @@ export default function SuperAdminPortalPage() {
           VALORANT: data.passkeys.gameKeys?.VALORANT || "",
           EFOOTBALL: data.passkeys.gameKeys?.EFOOTBALL || "",
           MATIKS: data.passkeys.gameKeys?.MATIKS || "",
+          COD: data.passkeys.gameKeys?.COD || "",
         });
       }
 
@@ -444,11 +451,7 @@ Official Verification Portal: https://clutch.niat.me/poc
 ${editingCampusAdminKey}
 
 🎮 DEDICATED GAME POC UIDS:
-• Free Fire UID: ${editingGameKeys.FREE_FIRE}
-• BGMI UID: ${editingGameKeys.BGMI}
-• Valorant UID: ${editingGameKeys.VALORANT}
-• eFootball UID: ${editingGameKeys.EFOOTBALL}
-• MATIKS UID: ${editingGameKeys.MATIKS}
+${getCampusGameIds(selectedCampus).map(game=>`• ${GAMES_CONFIG[game].name} UID: ${editingGameKeys[game]}`).join("\n")}
 
 ⚠️ Rules:
 1. Each Game POC must use their distinct game UID above.
@@ -1829,11 +1832,7 @@ ${editingCampusAdminKey}
                   className="bg-[#f7f8f4] border border-[#d1d9ce] text-xs rounded-lg px-2.5 py-1.5 text-[#3f4b43] outline-none"
                 >
                   <option value="ALL">All Games</option>
-                  <option value="FREE_FIRE">Free Fire</option>
-                  <option value="BGMI">BGMI</option>
-                  <option value="VALORANT">Valorant</option>
-                  <option value="EFOOTBALL">eFootball</option>
-                  <option value="MATIKS">MATIKS</option>
+                  {campusGames.map(game=><option key={game.id} value={game.id}>{game.name}</option>)}
                 </select>
               </div>
             </div>
@@ -2189,13 +2188,7 @@ ${editingCampusAdminKey}
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 bg-[#f7f8f4] p-1.5 rounded-xl border border-[#dfe4db]">
-                {[
-                  { id: "FREE_FIRE" as GameId, label: "Free Fire", icon: Flame, color: "text-orange-700" },
-                  { id: "BGMI" as GameId, label: "BGMI", icon: Crosshair, color: "text-amber-700" },
-                  { id: "VALORANT" as GameId, label: "Valorant", icon: Target, color: "text-red-700" },
-                  { id: "EFOOTBALL" as GameId, label: "eFootball", icon: Gamepad2, color: "text-emerald-700" },
-                  { id: "MATIKS" as GameId, label: "MATIKS", icon: Brain, color: "text-purple-700" },
-                ].map((g) => {
+                {campusGames.map((g) => {
                   const Icon = g.icon;
                   const isActive = directGame === g.id;
                   return (
@@ -2787,7 +2780,7 @@ ${editingCampusAdminKey}
                     <span>Tournament Teams & Roster Manager</span>
                   </h2>
                   <p className="text-xs text-[#69776d] mt-0.5">
-                    Add new squads, rename existing teams, or remove participants across all 5 official arenas. Changes sync immediately to Supabase and the live leaderboard.
+                    Add new squads, rename existing teams, or remove participants across the enabled campus arenas. Changes sync immediately to Supabase and the live leaderboard.
                   </p>
                 </div>
 
@@ -2803,13 +2796,7 @@ ${editingCampusAdminKey}
 
               {/* Game Selector Chips */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
-                {[
-                  { id: "FREE_FIRE" as GameId, label: "Free Fire", icon: Flame, color: "text-amber-700" },
-                  { id: "BGMI" as GameId, label: "BGMI", icon: Crosshair, color: "text-blue-700" },
-                  { id: "VALORANT" as GameId, label: "Valorant", icon: Target, color: "text-rose-700" },
-                  { id: "EFOOTBALL" as GameId, label: "eFootball", icon: Gamepad2, color: "text-emerald-700" },
-                  { id: "MATIKS" as GameId, label: "MATIKS", icon: Brain, color: "text-purple-700" },
-                ].map((g) => {
+                {campusGames.map((g) => {
                   const Icon = g.icon;
                   const isSelected = rosterGame === g.id;
                   return (
@@ -3232,12 +3219,7 @@ ${editingCampusAdminKey}
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#dfe4db]/80">
                 <span className="text-xs font-semibold text-[#69776d] mr-2">Select Arena:</span>
                 {(
-                  [
-                    { id: "FREE_FIRE" as GameId, name: "Free Fire (Grand Finals)", icon: Flame },
-                    { id: "BGMI" as GameId, name: "BGMI", icon: Crosshair },
-                    { id: "VALORANT" as GameId, name: "eFootball / Valorant", icon: Gamepad2 },
-                    { id: "CHESS" as GameId, name: "Matiks / Chess", icon: Brain },
-                  ] as const
+                  campusGames
                 ).map(({ id, name, icon: Icon }) => (
                   <button
                     key={id}
@@ -3773,7 +3755,7 @@ ${editingCampusAdminKey}
                   </span>
                 </div>
                 <p className="text-xs text-[#69776d]">
-                  Entering this key at <code className="px-1.5 py-0.5 rounded bg-[#edf0e9] font-mono text-[11px]">/campus-admin</code> opens the campus admin dashboard to manage rosters, scores and awards for <strong>all 5 games</strong> in {CAMPUSES_REGISTRY[selectedCampus]?.name}.
+                  Entering this key at <code className="px-1.5 py-0.5 rounded bg-[#edf0e9] font-mono text-[11px]">/campus-admin</code> opens the campus admin dashboard to manage rosters, scores and awards for <strong>all {getCampusGameIds(selectedCampus).length} games</strong> in {CAMPUSES_REGISTRY[selectedCampus]?.name}.
                 </p>
                 <div className="flex items-center gap-2 pt-1">
                   <input
@@ -3818,13 +3800,7 @@ ${editingCampusAdminKey}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  {[
-                    { id: "FREE_FIRE", name: "Free Fire", icon: "🔥", badge: "BR / Squads" },
-                    { id: "BGMI", name: "BGMI", icon: "🎯", badge: "BR / Squads" },
-                    { id: "VALORANT", name: "Valorant", icon: "⚡", badge: "5v5 Tactical" },
-                    { id: "EFOOTBALL", name: "eFootball", icon: "⚽", badge: "1v1 Virtual" },
-                    { id: "MATIKS", name: "MATIKS", icon: "🧠", badge: "Math Speed Battle" },
-                  ].map((g) => {
+                  {campusKeyGames.map((g) => {
                     const gameId = g.id as GameId;
                     const val = editingGameKeys[gameId] || "";
                     return (

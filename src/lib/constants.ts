@@ -50,6 +50,13 @@ export const GAMES_CONFIG: Record<GameId, GameConfig> = {
       "Standard 15-point scoring matrix. Rank 1 receives 15 pts, Rank 2 receives 12 pts, down to 0, plus 1 point per kill.",
     scoringFormat: "Placement Points + Kill Points",
   },
+  COD: {
+    id:"COD",name:"Call of Duty",slug:"call-of-duty",badge:"BATTLE ROYALE",
+    tagline:"Call of Duty • Battle Royale",genre:"Battle Royale (Squad)",format:"Squads • Placement and confirmed eliminations",
+    color:"#84cc16",accentGlow:"rgba(132,204,22,.25)",bgGradient:"from-lime-950/40 via-zinc-900/60 to-black",
+    bannerImage:"/brand/icon.svg",rulesOverview:"Tournament scoring: placement points 15, 12, 10, 8, 6, 4, 2, 1, 1, 1; remaining placements 0. Each confirmed kill adds 1 point.",
+    scoringFormat:"Placement Points + Kill Points (1 point per kill)",
+  },
   VALORANT: {
     id: "VALORANT",
     name: "Valorant",

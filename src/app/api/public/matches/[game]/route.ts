@@ -1,3 +1,4 @@
+import { isCampusGameEnabled } from "@/lib/campus-games";
 import { NextRequest, NextResponse } from "next/server";
 import { getGameMatchesAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
@@ -12,6 +13,7 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const campusId = searchParams.get("campusId") || undefined;
   const rawGame = params.game?.toUpperCase().replace(/-/g, "_") as GameId;
+  if(!isCampusGameEnabled(campusId,rawGame)) return NextResponse.json({success:false,error:"This game is not enabled for this campus."},{status:400});
   const matches = await getGameMatchesAsync(rawGame, true, campusId);
 
   return NextResponse.json({

@@ -1,3 +1,5 @@
+const campusPolicySource = require('typescript').transpileModule(require('fs').readFileSync('src/lib/campus-games.ts','utf8'),{compilerOptions:{module:require('typescript').ModuleKind.CommonJS}}).outputText;
+const campusPolicy={};new Function('exports',campusPolicySource)(campusPolicy);
 const {adminPassword:TEST_ADMIN}=require('./access-test-env.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -9,7 +11,7 @@ function loadTs(file, overrides = {}) {
   const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true },
   }).outputText;
-  new Function('require', 'module', 'exports', code)(name => name in overrides ? overrides[name] : name === './campus-admin-context' ? loadTs('src/lib/campus-admin-context.ts') : require(name), mod, mod.exports);
+  new Function('require', 'module', 'exports', code)(name => name in overrides ? overrides[name] : name === './campus-admin-context' ? loadTs('src/lib/campus-admin-context.ts') : (['./campus-games','@/lib/campus-games'].includes(name)?campusPolicy:require(name)), mod, mod.exports);
   return mod.exports;
 }
 const identity = loadTs('src/lib/match-submission-identity.ts');

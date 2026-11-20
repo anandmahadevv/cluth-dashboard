@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import {isCampusGameEnabled} from "@/lib/campus-games";
 import { Gamepad2, ArrowLeft, MapPin } from "lucide-react";
 import { GAMES_CONFIG } from "@/lib/constants";
 import { CAMPUSES_REGISTRY } from "@/lib/tournament-constants";
@@ -101,6 +102,7 @@ export default function EfootballPage() {
     ? `/?campus=${currentCampusId}`
     : "/";
 
+  if(!isCampusGameEnabled(currentCampusId,"EFOOTBALL")) return <section className="mx-auto max-w-xl px-4 py-16 text-center"><h1 className="text-2xl font-bold">Game unavailable for this campus</h1><p className="mt-3 text-sm text-slate-600">Choose one of this campus’s enabled games from the leaderboard.</p><Link href={`/?campus=${currentCampusId}`} className="mt-6 inline-block font-bold underline">Open campus leaderboard</Link></section>;
   return (
     <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 bg-white text-slate-900">
       <div>

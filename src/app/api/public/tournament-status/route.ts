@@ -1,3 +1,4 @@
+import { getCampusGameIds, isCampusGameEnabled } from "@/lib/campus-games";
 import { NextRequest, NextResponse } from "next/server";
 import { getStoreAsync } from "@/lib/tournament-store";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -13,24 +14,11 @@ export async function GET(req: NextRequest) {
   const campusMeta = CAMPUSES_REGISTRY[campusId] || CAMPUSES_REGISTRY["mangalore"];
 
   const store = await getStoreAsync();
-  const campusMatches = store.matches.filter((m) => (m.campusId || "mangalore") === campusId);
+  const campusMatches = store.matches.filter((m) => (m.campusId || "mangalore") === campusId && m.status === "APPROVED" && isCampusGameEnabled(campusId,m.gameId));
   const matchesCount = campusMatches.length;
 
-  let totalTeams = 0;
-  if (campusId === "mangalore") {
-    if (store.teams) {
-      Object.values(store.teams).forEach((list: any) => {
-        totalTeams += Array.isArray(list) ? list.length : 0;
-      });
-    }
-  } else {
-    const cTeams = store.campusTeams?.[campusId];
-    if (cTeams) {
-      Object.values(cTeams).forEach((list: any) => {
-        totalTeams += Array.isArray(list) ? list.length : 0;
-      });
-    }
-  }
+  const teamLists=campusId === "mangalore" ? store.teams : store.campusTeams?.[campusId];
+  const totalTeams=getCampusGameIds(campusId).reduce((count,game)=>count+(teamLists?.[game]?.filter(t=>!t.hidden).length || 0),0);
 
   const isCompleted = campusId === "mangalore";
 
@@ -48,7 +36,7 @@ export async function GET(req: NextRequest) {
         : matchesCount > 0
         ? `${matchesCount} verified matches recorded across championship arenas.`
         : "Arena Ready • The Crown Has To Be Earned. Match verification underway.",
-      totalGames: 5,
+      totalGames: getCampusGameIds(campusId).length,
       matchesCompleted: matchesCount,
       approvedResultsCount: matchesCount,
       totalParticipatingTeams: totalTeams,

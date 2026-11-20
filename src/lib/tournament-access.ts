@@ -1,3 +1,4 @@
+import { getCampusGameIds, isCampusGameEnabled } from "./campus-games";
 import "server-only";
 import { GameId } from "@/types";
 import { CAMPUSES_REGISTRY, type CampusPasskeys } from "./tournament-constants";
@@ -20,7 +21,7 @@ export const VALID_GAME_CODES: Record<string, GameId | "ALL"> = {};
 export function generateDefaultCampusPasskeys(campusId:string):CampusPasskeys {
   const prefix=campusId.toUpperCase().slice(0,3);
   const key=(kind:string)=>`CLT-${prefix}-${kind}-${randomBytes(6).toString("hex").toUpperCase()}`;
-  return {campusAdminKey:key("ADMIN"),gameKeys:{FREE_FIRE:key("FF"),BGMI:key("BG"),VALORANT:key("VL"),EFOOTBALL:key("EF"),MATIKS:key("MT")}};
+  return {campusAdminKey:key("ADMIN"),gameKeys:Object.fromEntries(getCampusGameIds(campusId).map(game=>[game,key(game)])) as Record<GameId,string>};
 }
 
 export function resolveAdminAccess(
@@ -58,7 +59,7 @@ export function resolveAdminAccess(
     const keys = customized ? dynamicPasskeys?.[campusId] : DEFAULT_CAMPUS_PASSKEYS[campusId];
     if (keys?.campusAdminKey?.trim().toUpperCase() === cleanCode) matches.push({campusId,gameId:"ALL"});
     for (const [gameId, key] of Object.entries(keys?.gameKeys || {})) {
-      if (key?.trim().toUpperCase() === cleanCode) matches.push({campusId,gameId:gameId as GameId});
+      if (isCampusGameEnabled(campusId, gameId) && key?.trim().toUpperCase() === cleanCode) matches.push({campusId,gameId:gameId as GameId});
     }
     if (!customized) {
       if (DEFAULT_CAMPUS_PASSKEYS[campusId]?.campusAdminKey?.toUpperCase() === cleanCode && !matches.some(m=>m.campusId === campusId && m.gameId === "ALL")) matches.push({campusId,gameId:"ALL"});

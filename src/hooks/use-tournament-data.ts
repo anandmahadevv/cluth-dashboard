@@ -17,8 +17,9 @@ export function useTournamentStatus(campusId?: string) {
   return usePolling(fetcher, undefined, { key: `status-${campusId || "mangalore"}` });
 }
 
-export function usePublicGames() {
-  return usePolling(getPublicGames, undefined, { key: "games-config" });
+export function usePublicGames(campusId = "mangalore") {
+  const fetcher=useCallback(()=>getPublicGames(campusId),[campusId]);
+  return usePolling(fetcher, undefined, { key: `games-config-${campusId}` });
 }
 
 export function useGameLeaderboard(gameId: GameId, campusId?: string) {

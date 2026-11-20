@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {getCampusGameIds,isCampusGameEnabled} from "@/lib/campus-games";
+import {GAMES_CONFIG} from "@/lib/constants";
 import { Search, Flame, Crosshair, Gamepad2, Brain, CheckCircle2, Trophy } from "lucide-react";
 import { GameId } from "@/types";
 import { useGameMatches, useGameAwards } from "@/hooks/use-tournament-data";
@@ -44,6 +46,7 @@ export default function MatchResultsPage() {
     }
   }, []);
 
+  useEffect(()=>{if(selectedGameFilter!=="ALL"&&!isCampusGameEnabled(currentCampusId,selectedGameFilter))setSelectedGameFilter("ALL");},[currentCampusId,selectedGameFilter]);
   const activeCampusMeta = CAMPUSES_REGISTRY[currentCampusId] || CAMPUSES_REGISTRY["mangalore"];
 
   const { data: allMatches, lastUpdated, isRefreshing, refresh, isTabActive } =
@@ -93,20 +96,9 @@ export default function MatchResultsPage() {
       {/* Filter Tabs & Search */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 flex-wrap">
-          {["ALL", "FREE_FIRE", "BGMI", "VALORANT", "EFOOTBALL", "MATIKS"].map((key) => {
+          {["ALL", ...getCampusGameIds(currentCampusId)].map((key) => {
             const isSelected = selectedGameFilter === key;
-            const label =
-              key === "ALL"
-                ? "All Games"
-                : key === "FREE_FIRE"
-                ? "Free Fire"
-                : key === "BGMI"
-                ? "BGMI"
-                : key === "VALORANT"
-                ? "Valorant"
-                : key === "EFOOTBALL"
-                ? "eFootball"
-                : "MATIKS";
+            const label = key === "ALL" ? "All Games" : GAMES_CONFIG[key as GameId].name;
 
             return (
               <button
@@ -178,15 +170,7 @@ export default function MatchResultsPage() {
                           : "bg-purple-50 text-purple-700 border border-purple-200"
                       }`}
                     >
-                      {isFF
-                        ? "Free Fire"
-                        : isBGMI
-                        ? "BGMI"
-                        : isVAL
-                        ? "Valorant"
-                        : isEF
-                        ? "eFootball"
-                        : "MATIKS"}
+                      {GAMES_CONFIG[gameId as GameId].name}
                     </span>
                   </td>
 

@@ -1,3 +1,4 @@
+import { getCampusGameIds, isCampusGameEnabled } from "@/lib/campus-games";
 import { NextRequest, NextResponse } from "next/server";
 import { getStoreAsync } from "@/lib/tournament-store";
 import { resolveAdminAccess } from "@/lib/tournament-access";
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "This game is outside your assigned access." }, { status: 403, headers });
     }
     const effectiveCampus = access.isSuperAdmin ? campusId || "mangalore" : access.campusId || "mangalore";
+    if(!isCampusGameEnabled(effectiveCampus,gameId)) return NextResponse.json({success:false,error:"This game is not enabled for your campus."},{status:400,headers});
     const submissions = store.matches
       .filter(m => (m.campusId || "mangalore") === effectiveCampus && m.gameId === gameId as GameId)
       .sort((a, b) => b.timestamp.localeCompare(a.timestamp));

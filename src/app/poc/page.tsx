@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import {ALL_GAME_IDS} from "@/lib/campus-games";
 import { PocMatchStatus } from "@/components/operations/poc-match-status";
 import { parsePocDraft, pocDraftKey, type PocDraft } from "@/lib/poc-draft-storage";
 import {
@@ -58,6 +59,7 @@ interface TeamScoreInput {
 }
 
 export default function PocPortalPage() {
+  const pocGameOptions=ALL_GAME_IDS.map(id=>({id,label:GAMES_CONFIG[id].name,icon:({FREE_FIRE:Flame,BGMI:Crosshair,COD:Crosshair,VALORANT:Target,EFOOTBALL:Gamepad2,MATIKS:Brain})[id],color:"text-emerald-700"}));
   const [activeScoringTeam, setActiveScoringTeam] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<GameId>("FREE_FIRE");
   const [pocCode, setPocCode] = useState("");
@@ -623,13 +625,7 @@ export default function PocPortalPage() {
                   Select Game
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "FREE_FIRE", label: "Free Fire", icon: Flame, color: "text-amber-700" },
-                    { id: "BGMI", label: "BGMI", icon: Crosshair, color: "text-blue-700" },
-                    { id: "VALORANT", label: "Valorant", icon: Target, color: "text-rose-700" },
-                    { id: "EFOOTBALL", label: "eFootball", icon: Gamepad2, color: "text-emerald-700" },
-                    { id: "MATIKS", label: "MATIKS", icon: Brain, color: "text-purple-700" },
-                  ].map((g) => {
+                  {pocGameOptions.map((g) => {
                     const Icon = g.icon;
                     const isSelected = selectedGame === g.id;
                     return (

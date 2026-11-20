@@ -64,6 +64,7 @@ export interface CampusPasskeys {
 // Official Placement Points Rules
 export const PLACEMENT_POINTS: Record<GameId, number[]> = {
   FREE_FIRE: [12, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0], // 17 Squads
+  COD: [15, 12, 10, 8, 6, 4, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0],
   BGMI: [15, 12, 10, 8, 6, 4, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0],
   VALORANT: [10, 6, 4, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], // Placement points
   EFOOTBALL: [10, 6, 4, 2, 1, 1, 1, 1, 0, 0],
@@ -72,6 +73,7 @@ export const PLACEMENT_POINTS: Record<GameId, number[]> = {
 
 // Initial Seeded Teams at 0 Score (Official Registrations from GSheet)
 export const INITIAL_TEAMS: Record<GameId, string[]> = {
+  COD: [],
   FREE_FIRE: [
     "Khopdi Phodu gng",
     "GLOBEL HUNTERS",

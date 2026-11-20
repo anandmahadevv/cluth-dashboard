@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import {getCampusGameIds} from "@/lib/campus-games";
 import Image from "next/image";
 import { ShieldCheck, LogOut, RefreshCw, Loader2, Lock, Inbox, History, Users, Trophy, Plus, ChevronUp, ChevronDown } from "lucide-react";
 import { AccessShell, WorkspaceIntro } from "./access-shell";
@@ -16,7 +17,7 @@ interface AwardSubmission { id:string; status:string; timestamp:string; rejectio
 interface CampusData { campusId:string; campusName:string; isLocked:boolean; teams:Team[]; matches:Submission[]; awards:IndividualAwards|null; awardsSubmissions:AwardSubmission[] }
 interface Score {teamId:string; placement:number; placementPoints:number; kills:number}
 type Tab="queue"|"history"|"scores"|"teams"|"awards";
-const games=Object.entries(GAMES_CONFIG) as [GameId,{name:string}][];
+
 const statusStyle=(status:string)=>status==="APPROVED"?"bg-emerald-50 text-emerald-800":status==="REJECTED"?"bg-red-50 text-red-800":"bg-amber-50 text-amber-800";
 
 export function CampusAdminPanel() {
@@ -80,6 +81,7 @@ export function CampusAdminPanel() {
   }
   const switchGame=(next:GameId)=>{loadVersion.current.version++;resetDraft();setData(null);setNotice("");setError("");setGameId(next);};
   const logout=()=>{loadVersion.current.version++;setAccessKey("");setKeyInput("");setData(null);setAssignedCampus(null);resetDraft();setNotice("");setError("");};
+  const games=getCampusGameIds(assignedCampus?.id).map(id=>[id,GAMES_CONFIG[id]] as const);
   const blocked=busy||loading||Boolean(data?.isLocked);
   const pending=data?.matches.filter(m=>m.status==="PENDING") || [];
   const pendingAwards=data?.awardsSubmissions.filter(a=>a.status==="PENDING") || [];
@@ -102,7 +104,7 @@ export function CampusAdminPanel() {
   return <div className="ops-panel min-h-screen font-sans">
     <header className="border-b border-[#dfe4db] bg-white"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6"><Link href={`/?campus=${assignedCampus?.id || ""}`} className="flex items-center gap-3"><Image src="/images/clutch-logo.jpg" alt="CLUTCH" width={36} height={36} className="rounded-lg"/><span className="text-xs font-semibold text-[#69776d]">Campus admin workspace</span></Link><div className="flex gap-2"><button type="button" disabled={busy||loading} onClick={()=>void load(accessKey,gameId)} className={secondary} aria-label="Refresh campus data"><RefreshCw className={`h-4 w-4 ${loading?"animate-spin":""}`}/></button><button type="button" disabled={busy} onClick={logout} className={secondary}><LogOut className="h-4 w-4"/>Sign out</button></div></div></header>
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
-      <WorkspaceIntro role="Campus administration" title={assignedCampus?.name || "Your campus workspace"} description="Manage your campus teams, verify match evidence, and publish results across all five games." metrics={[{label:"Pending matches",value:pending.length},{label:"Approved matches",value:data?.matches.filter(m=>m.status==="APPROVED").length || 0},{label:"Pending awards",value:pendingAwards.length}]}/>
+      <WorkspaceIntro role="Campus administration" title={assignedCampus?.name || "Your campus workspace"} description="Manage your campus teams, verify match evidence, and publish results for your campus games." metrics={[{label:"Pending matches",value:pending.length},{label:"Approved matches",value:data?.matches.filter(m=>m.status==="APPROVED").length || 0},{label:"Pending awards",value:pendingAwards.length}]}/>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#dfe4db] bg-white p-4"><label className="flex items-center gap-3 text-xs font-bold">Game<select disabled={busy} value={gameId} onChange={e=>switchGame(e.target.value as GameId)} className="rounded-lg border border-[#d1d9ce] bg-[#f7f8f4] px-3 py-2">{games.map(([id,g])=><option key={id} value={id}>{g.name}</option>)}</select></label><p className="text-xs text-[#69776d]">Assigned campus only · Key management, resets and locks belong to Super Admin</p></div>
       {data?.isLocked&&<p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><Lock className="h-4 w-4 shrink-0"/>Super Admin has locked this campus. You can view records; editing is disabled.</p>}
       {feedback}

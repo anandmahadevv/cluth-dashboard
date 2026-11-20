@@ -1,3 +1,4 @@
+import { getCampusGameIds, isCampusGameEnabled } from "@/lib/campus-games";
 import { NextRequest, NextResponse } from "next/server";
 import { campusAdminContext } from "@/lib/campus-admin-context";
 import { resolveAdminAccess } from "@/lib/tournament-access";
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
     if(body.campusId && body.campusId!==campusId) return reply({success:false,error:"You can only manage your assigned campus."},403);
     const gameId=(body.gameId || "FREE_FIRE") as GameId;
     if(!Object.prototype.hasOwnProperty.call(GAMES_CONFIG,gameId)) return reply({success:false,error:"Unknown game."},400);
+    if(!isCampusGameEnabled(campusId,gameId)) return reply({success:false,error:"This game is not enabled for your campus."},400);
     const action=body.action;
     if(action === "LOAD") {
       const matches=store.matches.filter(m=>(m.campusId || "mangalore")===campusId && m.gameId===gameId).map(({pocCode: _key,...safe})=>safe);

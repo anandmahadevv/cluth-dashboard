@@ -1,4 +1,4 @@
-export type GameId = "FREE_FIRE" | "BGMI" | "VALORANT" | "EFOOTBALL" | "MATIKS";
+export type GameId = "FREE_FIRE" | "BGMI" | "VALORANT" | "EFOOTBALL" | "MATIKS" | "COD";
 
 export type TournamentStatus = "Upcoming" | "Live" | "Completed" | "upcoming" | "live" | "completed";
 

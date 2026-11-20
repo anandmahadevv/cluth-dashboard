@@ -8,7 +8,7 @@ function fixture(access) {
  const store={matches:[{id:'mine',campusId:'a',gameId:'FREE_FIRE',timestamp:'2026-01-01',status:'REJECTED',matchNumber:1,pocCode:'secret',proofUrl:'private-image',rejectionReason:'Check kills',teamResults:[{}]},
  {id:'other-campus',campusId:'b',gameId:'FREE_FIRE',timestamp:'2026-01-02',status:'PENDING',teamResults:[]},
  {id:'other-game',campusId:'a',gameId:'BGMI',timestamp:'2026-01-03',status:'APPROVED',teamResults:[]}]};
- const mocks={'next/server':{NextResponse:{json:(body,options)=>({body,...options})}},'@/lib/tournament-store':{getStoreAsync:async()=>store},
+ const mocks={'@/lib/campus-games':{isCampusGameEnabled:()=>true},'next/server':{NextResponse:{json:(body,options)=>({body,...options})}},'@/lib/tournament-store':{getStoreAsync:async()=>store},
  '@/lib/tournament-access':{resolveAdminAccess:()=>access},'@/lib/constants':{GAMES_CONFIG:{FREE_FIRE:{},BGMI:{}}}};
  new Function('require','module','exports',source)(name=>mocks[name],module,module.exports);
  return body=>module.exports.POST({json:async()=>body});

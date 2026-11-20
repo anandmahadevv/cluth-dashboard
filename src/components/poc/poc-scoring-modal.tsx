@@ -17,6 +17,8 @@ import {
   FileImage,
   ExternalLink,
 } from "lucide-react";
+import { getCampusGameIds } from "@/lib/campus-games";
+import { GAMES_CONFIG } from "@/lib/constants";
 import { GameId } from "@/types";
 import { PLACEMENT_POINTS } from "@/lib/tournament-constants";
 
@@ -47,6 +49,7 @@ interface PocScoringModalProps {
 export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocScoringModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<GameId>(initialGame);
+  const [campusId, setCampusId] = useState(() => typeof window === "undefined" ? "mangalore" : new URLSearchParams(window.location.search).get("campus") || localStorage.getItem("clutch_selected_campus") || "mangalore");
   const [pocCode, setPocCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -87,12 +90,15 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
         return;
       }
 
+      const assignedGame: GameId = data.gameId;
+      setSelectedGame(assignedGame);
+      setCampusId(data.campusId);
       setTeams(data.teams);
 
       // Initialize empty score inputs for each team
       const initialScores: Record<string, TeamScoreInput> = {};
       data.teams.forEach((t: TeamEntry, idx: number) => {
-        const matrix = PLACEMENT_POINTS[selectedGame as "FREE_FIRE" | "BGMI"];
+        const matrix = PLACEMENT_POINTS[assignedGame];
         const defaultPlace = idx + 1;
         const defaultPlacePts = matrix && defaultPlace <= matrix.length ? matrix[defaultPlace - 1] : 0;
         initialScores[t.id] = {
@@ -119,7 +125,7 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
       const current = prev[teamId] || { teamId, placement: 1, kills: 0, placementPoints: 0, matchTotal: 0 };
       const updated = { ...current, [field]: value };
 
-      if (selectedGame === "FREE_FIRE" || selectedGame === "BGMI") {
+      if (selectedGame === "FREE_FIRE" || selectedGame === "BGMI" || selectedGame === "COD") {
         const matrix = PLACEMENT_POINTS[selectedGame];
         const placePts = updated.placement >= 1 && updated.placement <= matrix.length ? matrix[updated.placement - 1] : 0;
         updated.placementPoints = placePts;
@@ -229,6 +235,7 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: selectedGame,
+          campusId,
           pocCode: pocCode,
           matchNumber: matchNumber,
           proofUrl: proofUrl,
@@ -317,12 +324,7 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
                       Select Game Arena
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {[
-                        { id: "FREE_FIRE", label: "Free Fire", icon: Flame, color: "text-amber-500" },
-                        { id: "BGMI", label: "BGMI", icon: Crosshair, color: "text-blue-500" },
-                        { id: "FIFA", label: "FIFA", icon: Gamepad2, color: "text-emerald-500" },
-                        { id: "MATIKS", label: "MATIKS", icon: Brain, color: "text-purple-500" },
-                      ].map((g) => {
+                      {getCampusGameIds(campusId).map(id => ({id,label:GAMES_CONFIG[id].name,icon:Crosshair,color:"text-emerald-600"})).map((g) => {
                         const Icon = g.icon;
                         const isSelected = selectedGame === g.id;
                         return (

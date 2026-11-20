@@ -1,3 +1,4 @@
+import {getCampusGameIds} from "./campus-games";
 import {
   GameConfig,
   GameId,
@@ -84,10 +85,10 @@ export async function getTournamentStatus(campusId?: string): Promise<PublicApiR
   );
 }
 
-export async function getPublicGames(): Promise<PublicApiResponse<GameConfig[]>> {
-  const gamesList = Object.values(GAMES_CONFIG);
+export async function getPublicGames(campusId = "mangalore"): Promise<PublicApiResponse<GameConfig[]>> {
+  const gamesList = getCampusGameIds(campusId).map(id=>GAMES_CONFIG[id]);
   return safePublicFetch<GameConfig[]>(
-    API_ENDPOINTS.games,
+    `${API_ENDPOINTS.games}?campusId=${encodeURIComponent(campusId)}`,
     gamesList
   );
 }

@@ -1,3 +1,5 @@
+import { getCampusGameIds } from "@/lib/campus-games";
+import { GAMES_CONFIG } from "@/lib/constants";
 import { NextRequest, NextResponse } from "next/server";
 import { getGameLeaderboardAsync, getAwardsAsync } from "@/lib/tournament-store";
 import { GameId } from "@/types";
@@ -9,7 +11,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const campusId = searchParams.get("campusId") || "mangalore";
 
-  const games: GameId[] = ["FREE_FIRE", "BGMI", "VALORANT", "EFOOTBALL", "MATIKS"];
+  const games = getCampusGameIds(campusId);
   const winners: any[] = [];
 
   for (const g of games) {
@@ -21,7 +23,7 @@ export async function GET(req: NextRequest) {
       winners.push({
         gameId: g,
         game_id: g,
-        gameName: g === "FREE_FIRE" ? "Free Fire" : g.replace("_", " "),
+        gameName: GAMES_CONFIG[g].name,
         champion: awards.winnerTeam,
         winner: awards.winnerTeam,
         runnerUp: awards.runnerUpTeam || "TBD",
@@ -55,7 +57,7 @@ export async function GET(req: NextRequest) {
       winners.push({
         gameId: g,
         game_id: g,
-        gameName: g === "FREE_FIRE" ? "Free Fire" : g.replace("_", " "),
+        gameName: GAMES_CONFIG[g].name,
         champion: list[0].teamName,
         winner: list[0].teamName,
         totalPoints: list[0].totalPoints,

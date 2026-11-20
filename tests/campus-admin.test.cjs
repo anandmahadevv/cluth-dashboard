@@ -1,11 +1,13 @@
+const campusPolicySource = require('typescript').transpileModule(require('fs').readFileSync('src/lib/campus-games.ts','utf8'),{compilerOptions:{module:require('typescript').ModuleKind.CommonJS}}).outputText;
+const campusPolicy={};new Function('exports',campusPolicySource)(campusPolicy);
 const {adminPassword:TEST_ADMIN}=require('./access-test-env.cjs');
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),ts=require('typescript');
-function load(file,mocks={}) {const m={exports:{}};const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText;new Function('require','exports',code)(n=>n in mocks?mocks[n]:require(n),m.exports);return m.exports;}
+function load(file,mocks={}) {const m={exports:{}};const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText;new Function('require','exports',code)(n=>n in mocks?mocks[n]:(['./campus-games','@/lib/campus-games'].includes(n)?campusPolicy:require(n)),m.exports);return m.exports;}
 const publicConstants=load('src/lib/tournament-constants.ts');
 const constants={...publicConstants,...load('src/lib/tournament-access.ts',{'server-only':{},'./tournament-constants':publicConstants})},scope=load('src/lib/campus-admin-context.ts');
-const games=['FREE_FIRE','BGMI','VALORANT','EFOOTBALL','MATIKS'];
+const games=['FREE_FIRE','BGMI','VALORANT','EFOOTBALL','MATIKS','COD'];
 const keyset=campus=>({campusAdminKey:`TEST-${campus}-ADMIN`,gameKeys:Object.fromEntries(games.map(g=>[g,`TEST-${campus}-${g}`]))});
 function fixture(){
  const calls=[];

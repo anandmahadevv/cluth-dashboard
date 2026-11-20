@@ -1,3 +1,4 @@
+import { ALL_GAME_IDS, getCampusGameIds, isCampusGameEnabled } from "./campus-games";
 import { isSuperAdminCredential, VALID_GAME_CODES, ADMIN_PASSWORD_HASH, DEFAULT_CAMPUS_PASSKEYS, generateDefaultCampusPasskeys, resolveAdminAccess } from "./tournament-access";
 import { campusAdminCanManage, campusAdminContext } from "./campus-admin-context";
 import fs from "fs";
@@ -87,6 +88,7 @@ const SUPABASE_CACHE_TTL_MS = 2000; // 2 seconds in-memory deduplication cache
 
 function createInitialStoreData(): TournamentStoreData {
   const teamsMap: Record<GameId, TeamScoreEntry[]> = {
+    COD: [],
     FREE_FIRE: [],
     BGMI: [],
     VALORANT: [],
@@ -310,6 +312,8 @@ export function verifyGameCode(
     return { valid: true, gameId: targetGame || "FREE_FIRE", isSuperAdmin: true };
   }
 
+  if (targetGame && !isCampusGameEnabled(access.campusId, targetGame)) return { valid: false, error: "Game unavailable for this campus." };
+
   if (access.gameId === "ALL") {
     return { valid: true, gameId: targetGame || "FREE_FIRE", campusId: access.campusId, isSuperAdmin: false };
   }
@@ -324,12 +328,16 @@ export function verifyGameCode(
 /**
  * Get passkeys for a campus (reads from store, falls back to defaults)
  */
+function enabledCampusKeys(campusId: string, keys?: CampusPasskeys): CampusPasskeys {
+  return {campusAdminKey:keys?.campusAdminKey || "",gameKeys:Object.fromEntries(getCampusGameIds(campusId).map(game=>[game,keys?.gameKeys?.[game] || ""])) as Record<GameId,string>};
+}
+
 export async function getCampusPasskeysAsync(campusId: string = "mangalore"): Promise<CampusPasskeys> {
   const store = await getStoreAsync();
   if (store.campusPasskeys && store.campusPasskeys[campusId]) {
-    return store.campusPasskeys[campusId];
+    return enabledCampusKeys(campusId, store.campusPasskeys[campusId]);
   }
-  return DEFAULT_CAMPUS_PASSKEYS[campusId] || {campusAdminKey:"",gameKeys:{FREE_FIRE:"",BGMI:"",VALORANT:"",EFOOTBALL:"",MATIKS:""}};
+  return enabledCampusKeys(campusId, DEFAULT_CAMPUS_PASSKEYS[campusId]);
 }
 
 /**
@@ -342,10 +350,10 @@ export async function getAllCampusPasskeysAsync(): Promise<Record<string, Campus
     if (store.campusPasskeys && store.campusPasskeys[campusId]) {
       result[campusId] = store.campusPasskeys[campusId];
     } else {
-      result[campusId] = DEFAULT_CAMPUS_PASSKEYS[campusId] || {campusAdminKey:"",gameKeys:{FREE_FIRE:"",BGMI:"",VALORANT:"",EFOOTBALL:"",MATIKS:""}};
+      result[campusId] = DEFAULT_CAMPUS_PASSKEYS[campusId] || {campusAdminKey:"",gameKeys:{FREE_FIRE:"",BGMI:"",VALORANT:"",EFOOTBALL:"",MATIKS:"",COD:""}};
     }
   }
-  return result;
+  return Object.fromEntries(Object.entries(result).map(([campus,keys])=>[campus,enabledCampusKeys(campus,keys)]));
 }
 
 /**
@@ -372,7 +380,7 @@ export async function saveCampusPasskeysAsync(params: {
   }
 
   const gameKeys = passkeys.gameKeys || {} as Record<GameId,string>;
-  const games: GameId[] = ["FREE_FIRE", "BGMI", "VALORANT", "EFOOTBALL", "MATIKS"];
+  const games = getCampusGameIds(campusId);
   const uids = new Set<string>([passkeys.campusAdminKey.trim().toUpperCase()]);
 
   for (const g of games) {
@@ -398,14 +406,8 @@ export async function saveCampusPasskeysAsync(params: {
   }
 
   store.campusPasskeys[campusId] = {
-    campusAdminKey: passkeys.campusAdminKey.trim().toUpperCase(),
-    gameKeys: {
-      FREE_FIRE: gameKeys.FREE_FIRE.trim().toUpperCase(),
-      BGMI: gameKeys.BGMI.trim().toUpperCase(),
-      VALORANT: gameKeys.VALORANT.trim().toUpperCase(),
-      EFOOTBALL: gameKeys.EFOOTBALL.trim().toUpperCase(),
-      MATIKS: gameKeys.MATIKS.trim().toUpperCase(),
-    },
+    campusAdminKey:passkeys.campusAdminKey.trim().toUpperCase(),
+    gameKeys:Object.fromEntries(games.map(game=>[game,gameKeys[game].trim().toUpperCase()])) as Record<GameId,string>,
   };
 
   if (snapshot && !(await commitMatchWrite(store, snapshot.revision))) return {success:false,error:"Keys changed while saving. Reload the campus keys and retry."};
@@ -433,7 +435,7 @@ export async function regenerateCampusPasskeysAsync(params: {
   if(!CAMPUSES_REGISTRY[params.campusId]) return {success:false,error:"Unknown campus."};
   const prefix=params.campusId.toUpperCase().slice(0,3);
   const fresh=(kind:string)=>`CLT-${prefix}-${kind}-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
-  const newPasskeys:CampusPasskeys = {campusAdminKey:fresh("ADMIN"),gameKeys:{FREE_FIRE:fresh("FF"),BGMI:fresh("BG"),VALORANT:fresh("VL"),EFOOTBALL:fresh("EF"),MATIKS:fresh("MT")}};
+  const newPasskeys:CampusPasskeys = {campusAdminKey:fresh("ADMIN"),gameKeys:Object.fromEntries(getCampusGameIds(params.campusId).map(game=>[game,fresh(game)])) as Record<GameId,string>};
   return saveCampusPasskeysAsync({
     campusId: params.campusId,
     passkeys: newPasskeys,
@@ -530,7 +532,8 @@ export function getCampusTeamsList(
   }
   if (!store.campusTeams[campusId]) {
     store.campusTeams[campusId] = {
-      FREE_FIRE: [],
+      COD: [],
+    FREE_FIRE: [],
       BGMI: [],
       VALORANT: [],
       EFOOTBALL: [],
@@ -558,7 +561,8 @@ export function setCampusTeamsList(
   }
   if (!store.campusTeams[campusId]) {
     store.campusTeams[campusId] = {
-      FREE_FIRE: [],
+      COD: [],
+    FREE_FIRE: [],
       BGMI: [],
       VALORANT: [],
       EFOOTBALL: [],
@@ -598,6 +602,7 @@ export async function getGameLeaderboardAsync(
   includeHidden = false,
   campusId: string = "mangalore"
 ): Promise<TeamScoreEntry[]> {
+  if (!isCampusGameEnabled(campusId,gameId)) return [];
   const store = await getStoreAsync();
   const list = getCampusTeamsList(store, campusId, gameId);
   const filtered = includeHidden ? list : list.filter((t) => !t.hidden);
@@ -614,6 +619,7 @@ export async function getGameMatchesAsync(
 ): Promise<MatchSubmission[]> {
   const store = await getStoreAsync();
   return store.matches.filter((m) => {
+    if (!isCampusGameEnabled(m.campusId || "mangalore",m.gameId)) return false;
     if (campusId && (m.campusId || "mangalore") !== campusId) return false;
     if (gameId && m.gameId !== gameId) return false;
     if (approvedOnly && m.status && m.status !== "APPROVED") return false;
@@ -640,6 +646,7 @@ export async function recordMatchSubmissionAsync(params: {
   }[];
 }): Promise<{ success: boolean; pending?: boolean; submissionId?: string; leaderboard?: TeamScoreEntry[]; message?: string; error?: string }> {
   const campusId = params.campusId || "mangalore";
+  if (!isCampusGameEnabled(campusId,params.gameId)) return {success:false,error:"This game is not enabled for this campus."};
   const identity = matchSubmissionIdentity(params);
   for (let attempt = 0; attempt < 5; attempt++) {
     const snapshot = isSupabaseConfigured() ? await fetchMatchWriteSnapshot() : null;
@@ -782,6 +789,7 @@ export async function reviewMatchSubmissionAsync(params: {
   if (!superAccess && (!campusAccess || (match.campusId || "mangalore") !== campusAccess.campusId)) return {success:false,error:"Submission is outside your assigned campus."};
   if (!superAccess && isCampusLocked(store,campusAccess!.campusId)) return {success:false,error:"This campus is locked by Super Admin."};
   if (!superAccess && (!["APPROVE","REJECT"].includes(params.action) || match.status !== "PENDING")) return {success:false,error:"Campus admins can only approve or reject pending submissions."};
+  if (!isCampusGameEnabled(match.campusId || "mangalore",match.gameId)) return {success:false,error:"This game is not enabled for this campus."};
   const campusId = match.campusId || "mangalore";
 
   if (params.action === "APPROVE") {
@@ -863,6 +871,7 @@ export async function getAllSubmissionsAsync(options?: {
 }): Promise<MatchSubmission[]> {
   const store = await getStoreAsync();
   return store.matches.filter((m) => {
+    if (!isCampusGameEnabled(m.campusId || "mangalore",m.gameId)) return false;
     if (options?.campusId && (m.campusId || "mangalore") !== options.campusId) return false;
     if (options?.gameId && m.gameId !== options.gameId) return false;
     if (options?.status && options.status !== "ALL" && m.status !== options.status) return false;
@@ -878,6 +887,7 @@ export async function resetGameScoresAsync(
   targetGame?: GameId | "ALL",
   campusId: string = "mangalore"
 ): Promise<{ success: boolean; error?: string }> {
+  if (targetGame && targetGame !== "ALL" && !isCampusGameEnabled(campusId, targetGame)) return {success:false,error:"Game unavailable for this campus."};
   const auth = verifyGameCode(code);
   if (!auth.valid || !auth.isSuperAdmin) {
     return { success: false, error: "Unauthorized. Super Admin authorization is required to reset." };
@@ -898,7 +908,8 @@ export async function resetGameScoresAsync(
     if (!store.campusTeams) store.campusTeams = {};
     if (!targetGame || targetGame === "ALL") {
       store.campusTeams[campusId] = {
-        FREE_FIRE: [],
+        COD: [],
+    FREE_FIRE: [],
         BGMI: [],
         VALORANT: [],
         EFOOTBALL: [],
@@ -913,7 +924,8 @@ export async function resetGameScoresAsync(
     } else {
       if (!store.campusTeams[campusId]) {
         store.campusTeams[campusId] = {
-          FREE_FIRE: [],
+          COD: [],
+    FREE_FIRE: [],
           BGMI: [],
           VALORANT: [],
           EFOOTBALL: [],
@@ -953,6 +965,7 @@ export async function addTeamToGameAsync(params: {
 
   if (!isSuper) return {success:false,error:"Admin access required for roster management."};
   const campusId = params.campusId || "mangalore";
+  if (!isCampusGameEnabled(campusId,params.gameId)) return {success:false,error:"This game is not enabled for this campus."};
   const store = await getStoreAsync();
   if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
@@ -1006,6 +1019,7 @@ export async function removeTeamFromGameAsync(params: {
 
   if (!isSuper) return {success:false,error:"Admin access required for roster management."};
   const campusId = params.campusId || "mangalore";
+  if (!isCampusGameEnabled(campusId,params.gameId)) return {success:false,error:"This game is not enabled for this campus."};
   const store = await getStoreAsync();
   if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
@@ -1044,6 +1058,7 @@ export async function updateTeamNameAsync(params: {
 
   if (!isSuper) return {success:false,error:"Admin access required for roster management."};
   const campusId = params.campusId || "mangalore";
+  if (!isCampusGameEnabled(campusId,params.gameId)) return {success:false,error:"This game is not enabled for this campus."};
   const store = await getStoreAsync();
   if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
@@ -1107,6 +1122,7 @@ export async function toggleTeamVisibilityAsync(params: {
 
   if (!isSuper) return {success:false,error:"Admin access required for roster management."};
   const campusId = params.campusId || "mangalore";
+  if (!isCampusGameEnabled(campusId,params.gameId)) return {success:false,error:"This game is not enabled for this campus."};
   const store = await getStoreAsync();
   if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
@@ -1152,6 +1168,7 @@ export async function toggleTeamQualifiedAsync(params: {
     verifyAdminPassword(params.pocCode || "") || campusAdminCanManage(params.campusId || "mangalore");
 
   const campusId = params.campusId || "mangalore";
+  if (!isCampusGameEnabled(campusId,params.gameId)) return {success:false,error:"This game is not enabled for this campus."};
   const store = await getStoreAsync();
   if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
@@ -1254,6 +1271,7 @@ export async function saveAwardsAsync(params: {
     verifyAdminPassword(params.pocCode || "") || campusAdminCanManage(params.campusId || "mangalore");
 
   const campusId = params.campusId || "mangalore";
+  if (!isCampusGameEnabled(campusId,params.gameId)) return {success:false,error:"This game is not enabled for this campus."};
   const store = await getStoreAsync(true);
   if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
@@ -1360,6 +1378,7 @@ export async function getAwardsSubmissionsAsync(options?: {
   const store = await getStoreAsync();
   if (!store.awardsSubmissions) return [];
   return store.awardsSubmissions.filter((s) => {
+    if (!isCampusGameEnabled(s.campusId, s.gameId)) return false;
     if (options?.campusId && s.campusId !== options.campusId) return false;
     if (options?.gameId && s.gameId !== options.gameId) return false;
     if (options?.status && options.status !== "ALL" && s.status !== options.status) return false;
@@ -1374,6 +1393,7 @@ export async function getLatestAwardsSubmissionAsync(
   campusId: string,
   gameId: GameId
 ): Promise<AwardsSubmission | null> {
+  if (!isCampusGameEnabled(campusId, gameId)) return null;
   const store = await getStoreAsync();
   if (!store.awardsSubmissions || store.awardsSubmissions.length === 0) return null;
   const found = store.awardsSubmissions.find(
@@ -1416,6 +1436,7 @@ export async function reviewAwardsSubmissionAsync(params: {
   if (!superAccess && (!campusAccess || (sub.campusId || "mangalore") !== campusAccess.campusId)) return {success:false,error:"Submission is outside your assigned campus."};
   if (!superAccess && isCampusLocked(store,campusAccess!.campusId)) return {success:false,error:"This campus is locked by Super Admin."};
   if (!superAccess && (!["APPROVE","REJECT"].includes(params.action) || sub.status !== "PENDING")) return {success:false,error:"Campus admins can only approve or reject pending submissions."};
+  if (!isCampusGameEnabled(sub.campusId || "mangalore",sub.gameId)) return {success:false,error:"This game is not enabled for this campus."};
   if (params.action === "APPROVE") {
     sub.status = "APPROVED";
     sub.approvedAt = new Date().toISOString();
