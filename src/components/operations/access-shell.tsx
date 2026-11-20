@@ -4,9 +4,10 @@ import { ArrowLeft, ArrowUpRight, ShieldCheck, CheckCircle2 } from "lucide-react
 import type { ReactNode } from "react";
 import "./operations.css";
 
-export function AccessShell({ kind, children }: { kind: "admin" | "poc"; children: ReactNode }) {
-  const admin = kind === "admin";
-  const steps = admin ? ["Review submitted match evidence", "Publish verified scores and awards", "Manage campus access and rosters"] : ["Choose your assigned game", "Enter match scores and rankings", "Attach evidence for admin review"];
+export function AccessShell({ kind, children }: { kind: "admin" | "poc" | "campus-admin"; children: ReactNode }) {
+  const admin = kind !== "poc";
+  const campus = kind === "campus-admin";
+  const steps = admin ? ["Review submitted match evidence", "Publish verified scores and awards", campus ? "Manage your campus rosters" : "Manage campus access and rosters"] : ["Enter your assigned POC key", "Enter match scores and rankings", "Attach evidence for admin review"];
   return <div className="ops-panel ops-access min-h-screen bg-[#f5f4f0] px-4 py-5 text-[#17211e] sm:px-8 sm:py-8">
     <div className="mx-auto max-w-6xl">
       <div className="mb-8 flex items-center justify-between gap-4">
@@ -15,7 +16,7 @@ export function AccessShell({ kind, children }: { kind: "admin" | "poc"; childre
       </div>
       <div className="grid overflow-hidden rounded-[28px] border border-[#e0e3dc] bg-white shadow-[0_16px_60px_-32px_rgba(23,33,30,.2)] lg:min-h-[620px] lg:grid-cols-2">
         <div className="ops-access-story relative flex flex-col justify-between overflow-hidden bg-[#17211e] p-7 text-white sm:p-10 lg:p-12">
-          <div className="relative"><div className="mb-8 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#ffad83]"><span className="h-1.5 w-1.5 rounded-full bg-[#ff986b]" />{admin ? "Super admin" : "Referee access"}</div>
+          <div className="relative"><div className="mb-8 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#ffad83]"><span className="h-1.5 w-1.5 rounded-full bg-[#ff986b]" />{campus ? "Campus admin" : admin ? "Super admin" : "Referee access"}</div>
             <h1 className="max-w-md text-4xl font-extrabold leading-[1.05] tracking-[-.05em] sm:text-5xl">{admin ? <>Behind every<br />great <span className="text-[#ff986b]">game.</span></> : <>Your arena.<br />Your <span className="text-[#ff986b]">call.</span></>}</h1>
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-[#bdc9bf]">{admin ? "The control room for a championship that runs as well as it plays." : "A focused workspace for accurate scores, clear evidence, and a fair competition."}</p>
           </div>
@@ -26,10 +27,10 @@ export function AccessShell({ kind, children }: { kind: "admin" | "poc"; childre
           <div className="mb-7"><span className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff0e6] text-[#ad522b]"><ShieldCheck className="h-5 w-5" /></span>
             <p className="mb-2 text-[10px] font-bold uppercase tracking-[.17em] text-[#8a6552]">{admin ? "Admin workspace" : "Match operations"}</p>
             <h2 className="text-2xl font-extrabold tracking-tight">{admin ? "Welcome back." : "Get your arena ready."}</h2>
-            <p className="mt-2 text-xs leading-relaxed text-[#7d867f]">{admin ? "Sign in to review results and manage the championship." : "Select your game and use the verification code assigned to you."}</p>
+            <p className="mt-2 text-xs leading-relaxed text-[#7d867f]">{admin ? "Sign in to review results and manage the championship." : "Enter your assigned key. Your campus and game are selected automatically."}</p>
           </div>
           {children}
-          <div className="mt-7 flex items-start gap-2 border-t border-[#e8ece4] pt-5 text-[10px] leading-relaxed text-[#7d867f]"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />{admin ? "Restricted to authorized tournament administrators." : "Your access is scoped to your assigned game and campus."}</div>
+          <div className="mt-7 flex items-start gap-2 border-t border-[#e8ece4] pt-5 text-[10px] leading-relaxed text-[#7d867f]"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />{admin ? campus ? "Restricted to your assigned campus. Super Admin retains global controls." : "Restricted to authorized tournament administrators." : "Your access is scoped to your assigned game and campus."}</div>
         </div>
       </div>
     </div>

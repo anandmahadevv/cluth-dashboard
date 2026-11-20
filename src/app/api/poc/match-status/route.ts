@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStoreAsync } from "@/lib/tournament-store";
-import { resolveAdminAccess } from "@/lib/tournament-constants";
+import { resolveAdminAccess } from "@/lib/tournament-access";
 import { GAMES_CONFIG } from "@/lib/constants";
 import { GameId } from "@/types";
 

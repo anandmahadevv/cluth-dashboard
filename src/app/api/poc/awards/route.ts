@@ -1,3 +1,4 @@
+import { getStoreAsync, verifyAdminPassword, verifyGameCode } from "@/lib/tournament-store";
 import { NextRequest, NextResponse } from "next/server";
 import {
   saveAwardsAsync,
@@ -13,6 +14,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const gameId = searchParams.get("gameId") as GameId;
     const campusId = searchParams.get("campusId") || "mangalore";
+    const admin = verifyAdminPassword(req.headers.get("x-admin-password") || "");
+    const authStore = await getStoreAsync(true);
+    const poc = verifyGameCode(req.headers.get("x-poc-code") || "",gameId,authStore);
+    if(!admin && (!poc.valid || (!poc.isSuperAdmin && poc.campusId !== campusId))) return NextResponse.json({success:false,error:"Outside your assigned access."},{status:403,headers:{"Cache-Control":"no-store"}});
+
 
     if (!gameId) {
       return NextResponse.json(
@@ -29,7 +35,7 @@ export async function GET(req: NextRequest) {
       gameId,
       campusId,
       awards,
-      latestSubmission,
+      latestSubmission: latestSubmission ? {...latestSubmission,pocCode:undefined} : null,
     });
   } catch (err: any) {
     return NextResponse.json(

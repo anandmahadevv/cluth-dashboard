@@ -348,7 +348,7 @@ export function PocScoringModal({ initialGame = "FREE_FIRE", onSuccess }: PocSco
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
                       <span>Assigned Game Verification Code</span>
-                      <span className="text-[11px] text-slate-400 lowercase font-normal">(e.g. CLT-FF-2026X)</span>
+                      <span className="text-[11px] text-slate-400 lowercase font-normal">(use your assigned POC key)</span>
                     </label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />

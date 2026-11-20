@@ -4,7 +4,8 @@ import {
   getStoreAsync,
   isCampusLocked,
 } from "@/lib/tournament-store";
-import { resolveAdminAccess, CAMPUSES_REGISTRY } from "@/lib/tournament-constants";
+import { resolveAdminAccess } from "@/lib/tournament-access";
+import { CAMPUSES_REGISTRY } from "@/lib/tournament-constants";
 import { GameId } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const store = await getStoreAsync();
+    const store = await getStoreAsync(true);
     const access = resolveAdminAccess(code, store.campusPasskeys);
     if (!access.isValid) {
       return NextResponse.json(

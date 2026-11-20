@@ -1,17 +1,14 @@
+import { isSuperAdminCredential, VALID_GAME_CODES, ADMIN_PASSWORD_HASH, DEFAULT_CAMPUS_PASSKEYS, generateDefaultCampusPasskeys, resolveAdminAccess } from "./tournament-access";
+import { campusAdminCanManage, campusAdminContext } from "./campus-admin-context";
 import fs from "fs";
 import { matchSubmissionIdentity } from "./match-submission-identity";
 import path from "path";
 import crypto from "crypto";
 import { GameId, IndividualAwards, AwardsSubmission } from "@/types";
 import {
-  VALID_GAME_CODES,
   PLACEMENT_POINTS,
   INITIAL_TEAMS,
-  ADMIN_PASSWORD_HASH,
   CampusPasskeys,
-  DEFAULT_CAMPUS_PASSKEYS,
-  generateDefaultCampusPasskeys,
-  resolveAdminAccess,
   CAMPUSES_REGISTRY,
 } from "./tournament-constants";
 import {
@@ -302,6 +299,7 @@ export function verifyGameCode(
   targetGame?: GameId,
   storeData?: TournamentStoreData
 ): { valid: boolean; gameId?: GameId; campusId?: string; isSuperAdmin?: boolean; error?: string } {
+  if (verifyAdminPassword(code)) return {valid:true,gameId:targetGame || "FREE_FIRE",isSuperAdmin:true};
   const store = storeData || inMemoryStore || getStore();
   const access = resolveAdminAccess(code, store.campusPasskeys);
   if (!access.isValid) {
@@ -331,7 +329,7 @@ export async function getCampusPasskeysAsync(campusId: string = "mangalore"): Pr
   if (store.campusPasskeys && store.campusPasskeys[campusId]) {
     return store.campusPasskeys[campusId];
   }
-  return DEFAULT_CAMPUS_PASSKEYS[campusId] || generateDefaultCampusPasskeys(campusId);
+  return DEFAULT_CAMPUS_PASSKEYS[campusId] || {campusAdminKey:"",gameKeys:{FREE_FIRE:"",BGMI:"",VALORANT:"",EFOOTBALL:"",MATIKS:""}};
 }
 
 /**
@@ -344,7 +342,7 @@ export async function getAllCampusPasskeysAsync(): Promise<Record<string, Campus
     if (store.campusPasskeys && store.campusPasskeys[campusId]) {
       result[campusId] = store.campusPasskeys[campusId];
     } else {
-      result[campusId] = DEFAULT_CAMPUS_PASSKEYS[campusId] || generateDefaultCampusPasskeys(campusId);
+      result[campusId] = DEFAULT_CAMPUS_PASSKEYS[campusId] || {campusAdminKey:"",gameKeys:{FREE_FIRE:"",BGMI:"",VALORANT:"",EFOOTBALL:"",MATIKS:""}};
     }
   }
   return result;
@@ -361,20 +359,21 @@ export async function saveCampusPasskeysAsync(params: {
 }): Promise<{ success: boolean; passkeys?: CampusPasskeys; error?: string }> {
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
-    params.pocCode === "CLUTCH-SUPER-2026";
+    verifyAdminPassword(params.pocCode || "");
 
   if (!isSuper) {
     return { success: false, error: "Unauthorized: Super Admin authorization is required to change campus passkeys." };
   }
 
   const { campusId, passkeys } = params;
-  if (!passkeys.campusAdminKey?.trim()) {
+  if (!CAMPUSES_REGISTRY[campusId]) return {success:false,error:"Unknown campus."};
+  if (!passkeys?.campusAdminKey?.trim()) {
     return { success: false, error: "Campus admin key cannot be empty." };
   }
 
-  const gameKeys = passkeys.gameKeys;
+  const gameKeys = passkeys.gameKeys || {} as Record<GameId,string>;
   const games: GameId[] = ["FREE_FIRE", "BGMI", "VALORANT", "EFOOTBALL", "MATIKS"];
-  const uids = new Set<string>();
+  const uids = new Set<string>([passkeys.campusAdminKey.trim().toUpperCase()]);
 
   for (const g of games) {
     const val = (gameKeys[g] || "").trim().toUpperCase();
@@ -387,7 +386,13 @@ export async function saveCampusPasskeysAsync(params: {
     uids.add(val);
   }
 
-  const store = await getStoreAsync(true);
+  const snapshot = isSupabaseConfigured() ? await fetchMatchWriteSnapshot() : null;
+  const store = snapshot ? snapshot.store : structuredClone(await getStoreAsync(true));
+  for (const candidate of Array.from(uids)) {
+    const others = {...(store.campusPasskeys || {}), [campusId]: {campusAdminKey:"",gameKeys:{} as Record<GameId,string>}};
+    const access = resolveAdminAccess(candidate, others);
+    if (access.isValid || access.error?.includes("conflicting")) return {success:false,error:"A key is already assigned to another campus, game, or admin role. Use a unique key."};
+  }
   if (!store.campusPasskeys) {
     store.campusPasskeys = {};
   }
@@ -403,7 +408,8 @@ export async function saveCampusPasskeysAsync(params: {
     },
   };
 
-  await saveStoreAsync(store);
+  if (snapshot && !(await commitMatchWrite(store, snapshot.revision))) return {success:false,error:"Keys changed while saving. Reload the campus keys and retry."};
+  saveStore(store);
 
   return { success: true, passkeys: store.campusPasskeys[campusId] };
 }
@@ -418,13 +424,16 @@ export async function regenerateCampusPasskeysAsync(params: {
 }): Promise<{ success: boolean; passkeys?: CampusPasskeys; error?: string }> {
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
-    params.pocCode === "CLUTCH-SUPER-2026";
+    verifyAdminPassword(params.pocCode || "");
 
   if (!isSuper) {
     return { success: false, error: "Unauthorized: Super Admin authorization is required to regenerate UIDs." };
   }
 
-  const newPasskeys = generateDefaultCampusPasskeys(params.campusId);
+  if(!CAMPUSES_REGISTRY[params.campusId]) return {success:false,error:"Unknown campus."};
+  const prefix=params.campusId.toUpperCase().slice(0,3);
+  const fresh=(kind:string)=>`CLT-${prefix}-${kind}-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
+  const newPasskeys:CampusPasskeys = {campusAdminKey:fresh("ADMIN"),gameKeys:{FREE_FIRE:fresh("FF"),BGMI:fresh("BG"),VALORANT:fresh("VL"),EFOOTBALL:fresh("EF"),MATIKS:fresh("MT")}};
   return saveCampusPasskeysAsync({
     campusId: params.campusId,
     passkeys: newPasskeys,
@@ -465,32 +474,8 @@ export function getGameMatches(gameId?: GameId, approvedOnly = true): MatchSubmi
   });
 }
 
-const VALID_ADMIN_HASHES = new Set([
-  "bb9fc06955867332c18b234775cb22982f693e7ad56d430fb550a386840ef9fd", // 43517-AM
-  "374a65d56ae8b64ba9f40eb323db9fe887e6d332dcad781cb6a83d78f132f988", // CLUTCH-SUPER-2026
-  "b66cda7e46439a426696713d6f562c5da5713ba1d6006921b255d7ce0bd13e2a", // 43517
-  "26bc5cb9701166d1babbca2bcf1890ac6dcee4fb705b8f5d923a3414e26d3783", // CLUTCH@43517
-  "c91c2188b40a1b26d6c06a2ce0afdced642bc94ff1e87f93d58928fc1c5d9bdb", // clutchadmin
-]);
-
-/**
- * Verify Super Admin Security Password via Constant-Time Cryptographic Hash Comparison
- */
-export function verifyAdminPassword(password: string): boolean {
-  if (!password) return false;
-  const clean = password.trim();
-  if (
-    clean === "43517-AM" ||
-    clean === "CLUTCH-SUPER-2026" ||
-    clean === "43517" ||
-    clean === "CLUTCH@43517" ||
-    clean === "clutchadmin"
-  ) {
-    return true;
-  }
-  const hash = crypto.createHash("sha256").update(clean).digest("hex");
-  return hash === ADMIN_PASSWORD_HASH || VALID_ADMIN_HASHES.has(hash);
-}
+/** Server-only configured credential; published legacy aliases are no longer accepted. */
+export function verifyAdminPassword(password:string):boolean { return isSuperAdminCredential(password); }
 
 /**
  * Check if a campus is locked (read-only for non-super-admins)
@@ -513,7 +498,7 @@ export async function toggleCampusLockAsync(params: {
 }): Promise<{ success: boolean; isLocked?: boolean; error?: string }> {
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
-    params.pocCode === "CLUTCH-SUPER-2026";
+    verifyAdminPassword(params.pocCode || "");
 
   if (!isSuper) {
     return { success: false, error: "Unauthorized: Super Admin authorization is required to change campus lock." };
@@ -661,6 +646,7 @@ export async function recordMatchSubmissionAsync(params: {
     const store: TournamentStoreData = snapshot ? snapshot.store : await getStoreAsync();
     const currentAuth = verifyGameCode(params.pocCode, params.gameId, store);
     if (!currentAuth.valid) return { success: false, error: currentAuth.error };
+    if (!currentAuth.isSuperAdmin && currentAuth.campusId !== campusId) return {success:false,error:"This key is assigned to a different campus."};
     const existing = store.matches.find(match => match.status !== "REJECTED" && matchSubmissionIdentity(match).roundKey === identity.roundKey);
     if (existing) {
       if (existing.submissionFingerprint === identity.fingerprint) return {
@@ -670,7 +656,8 @@ export async function recordMatchSubmissionAsync(params: {
       return { success: false, error: "This match number already has a submission for these teams. Check its status with the admin before sending different scores." };
     }
 
-    const isSuperAdminCode = !!currentAuth.isSuperAdmin && params.pocCode === "CLUTCH-SUPER-2026";
+    const isSuperAdminCode = (!!currentAuth.isSuperAdmin && verifyAdminPassword(params.pocCode)) || campusAdminCanManage(campusId);
+    if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
     if (isCampusLocked(store, campusId) && !isSuperAdminCode) {
       return {
         success: false,
@@ -736,12 +723,12 @@ export async function recordMatchSubmissionAsync(params: {
       gameId: params.gameId,
       matchNumber: params.matchNumber,
       timestamp: new Date().toISOString(),
-      pocCode: params.pocCode,
+      pocCode: "",
       proofUrl: params.proofUrl,
       notes: params.notes || "",
       status: status,
       reviewedAt: shouldApprove ? new Date().toISOString() : undefined,
-      reviewedBy: shouldApprove ? "SuperAdmin" : undefined,
+      reviewedBy: shouldApprove ? (campusAdminCanManage(campusId) ? `CampusAdmin:${campusId}` : "SuperAdmin") : undefined,
       teamResults: detailedResults,
     };
 
@@ -780,7 +767,9 @@ export async function reviewMatchSubmissionAsync(params: {
   adminPassword: string;
   rejectionReason?: string;
 }): Promise<{ success: boolean; match?: MatchSubmission; leaderboard?: TeamScoreEntry[]; error?: string }> {
-  if (!verifyAdminPassword(params.adminPassword)) {
+  const superAccess = verifyAdminPassword(params.adminPassword);
+  const campusAccess = campusAdminContext.getStore();
+  if (!superAccess && !campusAccess) {
     return { success: false, error: "Invalid Super Admin password. Access denied." };
   }
 
@@ -790,6 +779,9 @@ export async function reviewMatchSubmissionAsync(params: {
     return { success: false, error: "Submission not found." };
   }
 
+  if (!superAccess && (!campusAccess || (match.campusId || "mangalore") !== campusAccess.campusId)) return {success:false,error:"Submission is outside your assigned campus."};
+  if (!superAccess && isCampusLocked(store,campusAccess!.campusId)) return {success:false,error:"This campus is locked by Super Admin."};
+  if (!superAccess && (!["APPROVE","REJECT"].includes(params.action) || match.status !== "PENDING")) return {success:false,error:"Campus admins can only approve or reject pending submissions."};
   const campusId = match.campusId || "mangalore";
 
   if (params.action === "APPROVE") {
@@ -812,7 +804,7 @@ export async function reviewMatchSubmissionAsync(params: {
 
     match.status = "APPROVED";
     match.reviewedAt = new Date().toISOString();
-    match.reviewedBy = "SuperAdmin";
+    match.reviewedBy = superAccess ? "SuperAdmin" : `CampusAdmin:${campusAccess!.campusId}`;
     match.rejectionReason = undefined;
     await saveStoreAsync(store);
 
@@ -853,7 +845,7 @@ export async function reviewMatchSubmissionAsync(params: {
     rollbackMatchScores(store, match);
     match.status = "REJECTED";
     match.reviewedAt = new Date().toISOString();
-    match.reviewedBy = "SuperAdmin";
+    match.reviewedBy = superAccess ? "SuperAdmin" : `CampusAdmin:${campusAccess!.campusId}`;
     match.rejectionReason = params.rejectionReason || "Submission rejected by Super Admin.";
     await saveStoreAsync(store);
 
@@ -957,10 +949,12 @@ export async function addTeamToGameAsync(params: {
 }): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; error?: string }> {
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
-    params.pocCode === "CLUTCH-SUPER-2026";
+    verifyAdminPassword(params.pocCode || "") || campusAdminCanManage(params.campusId || "mangalore");
 
+  if (!isSuper) return {success:false,error:"Admin access required for roster management."};
   const campusId = params.campusId || "mangalore";
   const store = await getStoreAsync();
+  if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
   if (isCampusLocked(store, campusId) && !isSuper) {
     return { success: false, error: `This campus (${campusId}) is LOCKED. Only Super Admin can modify teams.` };
@@ -1008,10 +1002,12 @@ export async function removeTeamFromGameAsync(params: {
 }): Promise<{ success: boolean; teams?: TeamScoreEntry[]; error?: string }> {
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
-    params.pocCode === "CLUTCH-SUPER-2026";
+    verifyAdminPassword(params.pocCode || "") || campusAdminCanManage(params.campusId || "mangalore");
 
+  if (!isSuper) return {success:false,error:"Admin access required for roster management."};
   const campusId = params.campusId || "mangalore";
   const store = await getStoreAsync();
+  if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
   if (isCampusLocked(store, campusId) && !isSuper) {
     return { success: false, error: `This campus (${campusId}) is LOCKED. Only Super Admin can modify teams.` };
@@ -1044,10 +1040,12 @@ export async function updateTeamNameAsync(params: {
 }): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; error?: string }> {
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
-    params.pocCode === "CLUTCH-SUPER-2026";
+    verifyAdminPassword(params.pocCode || "") || campusAdminCanManage(params.campusId || "mangalore");
 
+  if (!isSuper) return {success:false,error:"Admin access required for roster management."};
   const campusId = params.campusId || "mangalore";
   const store = await getStoreAsync();
+  if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
   if (isCampusLocked(store, campusId) && !isSuper) {
     return { success: false, error: `This campus (${campusId}) is LOCKED. Only Super Admin can modify teams.` };
@@ -1105,10 +1103,12 @@ export async function toggleTeamVisibilityAsync(params: {
 }): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; message?: string; error?: string }> {
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
-    params.pocCode === "CLUTCH-SUPER-2026";
+    verifyAdminPassword(params.pocCode || "") || campusAdminCanManage(params.campusId || "mangalore");
 
+  if (!isSuper) return {success:false,error:"Admin access required for roster management."};
   const campusId = params.campusId || "mangalore";
   const store = await getStoreAsync();
+  if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
   if (isCampusLocked(store, campusId) && !isSuper) {
     return { success: false, error: `This campus (${campusId}) is LOCKED. Only Super Admin can modify teams.` };
@@ -1149,10 +1149,11 @@ export async function toggleTeamQualifiedAsync(params: {
 }): Promise<{ success: boolean; team?: TeamScoreEntry; teams?: TeamScoreEntry[]; message?: string; error?: string }> {
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
-    params.pocCode === "CLUTCH-SUPER-2026";
+    verifyAdminPassword(params.pocCode || "") || campusAdminCanManage(params.campusId || "mangalore");
 
   const campusId = params.campusId || "mangalore";
   const store = await getStoreAsync();
+  if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
   if (isCampusLocked(store, campusId) && !isSuper) {
     return { success: false, error: `This campus (${campusId}) is LOCKED. Only Super Admin can modify teams.` };
@@ -1160,8 +1161,8 @@ export async function toggleTeamQualifiedAsync(params: {
 
   // Allow authorized POCs (with valid room code) or Super Admin
   if (params.pocCode) {
-    const check = verifyGameCode(params.pocCode, params.gameId);
-    if (!check.valid) {
+    const check = verifyGameCode(params.pocCode, params.gameId, store);
+    if (!check.valid || (!check.isSuperAdmin && check.campusId !== campusId)) {
       return { success: false, error: "Unauthorized: Invalid room verification code." };
     }
   } else if (!isSuper) {
@@ -1250,10 +1251,11 @@ export async function saveAwardsAsync(params: {
 }> {
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
-    params.pocCode === "CLUTCH-SUPER-2026";
+    verifyAdminPassword(params.pocCode || "") || campusAdminCanManage(params.campusId || "mangalore");
 
   const campusId = params.campusId || "mangalore";
   const store = await getStoreAsync(true);
+  if (campusAdminCanManage(campusId) && isCampusLocked(store,campusId)) return {success:false,error:"This campus is locked by Super Admin."};
 
   if (isCampusLocked(store, campusId) && !isSuper) {
     return {
@@ -1263,8 +1265,8 @@ export async function saveAwardsAsync(params: {
   }
 
   if (params.pocCode) {
-    const check = verifyGameCode(params.pocCode, params.gameId);
-    if (!check.valid) {
+    const check = verifyGameCode(params.pocCode, params.gameId, store);
+    if (!check.valid || (!check.isSuperAdmin && check.campusId !== campusId)) {
       return { success: false, error: "Unauthorized: Invalid room verification code." };
     }
   } else if (!isSuper) {
@@ -1284,7 +1286,7 @@ export async function saveAwardsAsync(params: {
       campusId,
       gameId: params.gameId,
       awards: params.awards,
-      pocCode: params.pocCode || "",
+      pocCode: "",
       status: "PENDING",
       timestamp: new Date().toISOString(),
     };
@@ -1395,7 +1397,9 @@ export async function reviewAwardsSubmissionAsync(params: {
   error?: string;
   message?: string;
 }> {
-  if (!verifyAdminPassword(params.adminPassword)) {
+  const superAccess = verifyAdminPassword(params.adminPassword);
+  const campusAccess = campusAdminContext.getStore();
+  if (!superAccess && !campusAccess) {
     return { success: false, error: "Invalid Super Admin password. Access denied." };
   }
 
@@ -1409,10 +1413,13 @@ export async function reviewAwardsSubmissionAsync(params: {
     return { success: false, error: "Awards submission not found." };
   }
 
+  if (!superAccess && (!campusAccess || (sub.campusId || "mangalore") !== campusAccess.campusId)) return {success:false,error:"Submission is outside your assigned campus."};
+  if (!superAccess && isCampusLocked(store,campusAccess!.campusId)) return {success:false,error:"This campus is locked by Super Admin."};
+  if (!superAccess && (!["APPROVE","REJECT"].includes(params.action) || sub.status !== "PENDING")) return {success:false,error:"Campus admins can only approve or reject pending submissions."};
   if (params.action === "APPROVE") {
     sub.status = "APPROVED";
     sub.approvedAt = new Date().toISOString();
-    sub.reviewedBy = "Super Admin";
+    sub.reviewedBy = superAccess ? "Super Admin" : `CampusAdmin:${campusAccess!.campusId}`;
 
     // Broadcast to campusAwards
     if (!store.campusAwards) store.campusAwards = {};
@@ -1452,4 +1459,3 @@ export async function reviewAwardsSubmissionAsync(params: {
 
   return { success: false, error: "Invalid review action." };
 }
-

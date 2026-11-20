@@ -9,7 +9,7 @@ function fixture(access) {
  {id:'other-campus',campusId:'b',gameId:'FREE_FIRE',timestamp:'2026-01-02',status:'PENDING',teamResults:[]},
  {id:'other-game',campusId:'a',gameId:'BGMI',timestamp:'2026-01-03',status:'APPROVED',teamResults:[]}]};
  const mocks={'next/server':{NextResponse:{json:(body,options)=>({body,...options})}},'@/lib/tournament-store':{getStoreAsync:async()=>store},
- '@/lib/tournament-constants':{resolveAdminAccess:()=>access},'@/lib/constants':{GAMES_CONFIG:{FREE_FIRE:{},BGMI:{}}}};
+ '@/lib/tournament-access':{resolveAdminAccess:()=>access},'@/lib/constants':{GAMES_CONFIG:{FREE_FIRE:{},BGMI:{}}}};
  new Function('require','module','exports',source)(name=>mocks[name],module,module.exports);
  return body=>module.exports.POST({json:async()=>body});
 }

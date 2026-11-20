@@ -1,3 +1,4 @@
+const {adminPassword:TEST_ADMIN}=require('./access-test-env.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -8,7 +9,7 @@ function loadTs(file, overrides = {}) {
   const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true },
   }).outputText;
-  new Function('require', 'module', 'exports', code)(name => name in overrides ? overrides[name] : require(name), mod, mod.exports);
+  new Function('require', 'module', 'exports', code)(name => name in overrides ? overrides[name] : name === './campus-admin-context' ? loadTs('src/lib/campus-admin-context.ts') : require(name), mod, mod.exports);
   return mod.exports;
 }
 const identity = loadTs('src/lib/match-submission-identity.ts');
@@ -30,9 +31,9 @@ function fixture() {
   };
   const mockFs = { existsSync: () => true, statSync: () => ({ mtimeMs: 1 }),
     readFileSync: () => JSON.stringify(remote), writeFileSync: () => {} };
-  const constants = { resolveAdminAccess: () => ({ isValid: true, isSuperAdmin: true }), PLACEMENT_POINTS: { FREE_FIRE: [12] } };
+  const constants = { isSuperAdminCredential:password=>password===TEST_ADMIN, resolveAdminAccess: () => ({ isValid: true, isSuperAdmin: true }), PLACEMENT_POINTS: { FREE_FIRE: [12] } };
   const instance = () => loadTs('src/lib/tournament-store.ts', { fs: mockFs, './supabase': database,
-    './tournament-constants': constants, './match-submission-identity': identity });
+    './tournament-access': constants, './tournament-constants': constants, './match-submission-identity': identity });
   return { instance, state: () => remote, unavailable: () => { unavailable = true; } };
 }
 test('simultaneous retries on independent instances create one pending submission', async () => {
@@ -45,7 +46,7 @@ test('simultaneous retries on independent instances create one pending submissio
 });
 test('auto-approved retries apply leaderboard points once', async () => {
   const f = fixture(), a = f.instance(), b = f.instance();
-  const params = { ...input, pocCode: 'CLUTCH-SUPER-2026', autoApprove: true };
+  const params = { ...input, pocCode: TEST_ADMIN, autoApprove: true };
   await Promise.all([a.recordMatchSubmissionAsync(params), b.recordMatchSubmissionAsync(params)]);
   assert.equal(f.state().matches.length, 1);
   assert.equal(f.state().teams.FREE_FIRE[0].matchesPlayed, 1);

@@ -52,7 +52,6 @@ import {
   PLACEMENT_POINTS,
   getFreeFireGroupInfo,
   CAMPUSES_REGISTRY,
-  SUPER_ADMIN_CODE,
 } from "@/lib/tournament-constants";
 import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 
@@ -99,9 +98,15 @@ interface SubmissionRecord {
   }[];
 }
 
-const SUPER_CODE = "CLUTCH-SUPER-2026";
+
 
 export default function SuperAdminPortalPage() {
+  // Super Admin credentials accompany private reads; campus-admin never calls these endpoints.
+  const adminFetch = (input: RequestInfo | URL, init: RequestInit = {}) => {
+    const headers = new Headers(init.headers);
+    if (adminPassword) headers.set("x-admin-password", adminPassword);
+    return fetch(input, {...init, headers});
+  };
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
@@ -252,7 +257,7 @@ export default function SuperAdminPortalPage() {
   // Campus Lock & Access Helpers
   const fetchCampusLocks = async () => {
     try {
-      const res = await fetch(`/api/poc/campus-lock?t=${Date.now()}`);
+      const res = await adminFetch(`/api/poc/campus-lock?t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.locks) {
         setCampusLocks(data.locks);
@@ -266,14 +271,14 @@ export default function SuperAdminPortalPage() {
     setOperationError("");
     setIsTogglingLock(true);
     try {
-      const res = await fetch("/api/poc/campus-lock", {
+      const res = await adminFetch("/api/poc/campus-lock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campusId,
           isLocked: newLock,
           adminPassword,
-          pocCode: SUPER_CODE,
+          pocCode: adminPassword,
         }),
       });
       const data = await res.json();
@@ -300,7 +305,7 @@ export default function SuperAdminPortalPage() {
     setIsLoadingPasskeys(true);
     setPasskeysErrorMsg("");
     try {
-      const res = await fetch(`/api/poc/campus-keys?campusId=${campusId}&t=${Date.now()}`);
+      const res = await adminFetch(`/api/poc/campus-keys?campusId=${campusId}&t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.passkeys) {
         setEditingCampusAdminKey(data.passkeys.campusAdminKey || "");
@@ -350,13 +355,13 @@ export default function SuperAdminPortalPage() {
     }
 
     try {
-      const res = await fetch("/api/poc/campus-keys", {
+      const res = await adminFetch("/api/poc/campus-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campusId: selectedCampus,
           adminPassword,
-          pocCode: SUPER_CODE,
+          pocCode: adminPassword,
           passkeys: {
             campusAdminKey: editingCampusAdminKey.trim().toUpperCase(),
             gameKeys: {
@@ -393,13 +398,13 @@ export default function SuperAdminPortalPage() {
     setPasskeysSuccessMsg("");
     setPasskeysErrorMsg("");
     try {
-      const res = await fetch("/api/poc/campus-keys", {
+      const res = await adminFetch("/api/poc/campus-keys", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campusId: selectedCampus,
           adminPassword,
-          pocCode: SUPER_CODE,
+          pocCode: adminPassword,
         }),
       });
 
@@ -508,7 +513,7 @@ ${editingCampusAdminKey}
   const fetchSubmissions = async (isBackground = false) => {
     if (!isBackground) setIsLoadingSubmissions(true);
     try {
-      const res = await fetch(`/api/poc/submissions?campusId=${selectedCampus}&t=${Date.now()}`, {
+      const res = await adminFetch(`/api/poc/submissions?campusId=${selectedCampus}&t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Cache-Control": "no-cache" },
       });
@@ -527,7 +532,7 @@ ${editingCampusAdminKey}
   const fetchTeamsForDirectGame = async (gameId: GameId, campusId: string = selectedCampus) => {
     setIsLoadingTeams(true);
     try {
-      const res = await fetch(`/api/poc/teams?gameId=${gameId}&campusId=${campusId}&includeHidden=true&t=${Date.now()}`);
+      const res = await adminFetch(`/api/poc/teams?gameId=${gameId}&campusId=${campusId}&includeHidden=true&t=${Date.now()}`);
 
       const data = await res.json();
       if (res.ok && data.success && Array.isArray(data.teams)) {
@@ -561,7 +566,7 @@ ${editingCampusAdminKey}
     setIsLoadingRoster(true);
     setRosterError("");
     try {
-      const res = await fetch(`/api/poc/teams?gameId=${gameId}&campusId=${campusId}&includeHidden=true&t=${Date.now()}`, {
+      const res = await adminFetch(`/api/poc/teams?gameId=${gameId}&campusId=${campusId}&includeHidden=true&t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Cache-Control": "no-cache" },
       });
@@ -588,7 +593,7 @@ ${editingCampusAdminKey}
   const fetchAdminAwards = async (game: GameId, campusId: string = selectedCampus) => {
     setIsLoadingAwards(true);
     try {
-      const res = await fetch(`/api/public/awards?gameId=${game}&campusId=${campusId}&t=${Date.now()}`);
+      const res = await adminFetch(`/api/public/awards?gameId=${game}&campusId=${campusId}&t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.awards) {
         setAdminWinnerTeam(data.awards.winnerTeam || "");
@@ -635,7 +640,7 @@ ${editingCampusAdminKey}
   const fetchAwardsSubmissions = async () => {
     setIsLoadingAwardsSubmissions(true);
     try {
-      const res = await fetch(`/api/poc/awards/submissions?t=${Date.now()}`);
+      const res = await adminFetch(`/api/poc/awards/submissions?t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.submissions) {
         setAwardsSubmissions(data.submissions);
@@ -653,9 +658,9 @@ ${editingCampusAdminKey}
     setAwardsErrorMsg("");
     try {
       const savedPass = typeof window !== "undefined" ? sessionStorage.getItem("clutch_admin_auth") || "" : "";
-      const pass = adminPassword || savedPass || "43517-AM";
+      const pass = adminPassword || savedPass;
 
-      const res = await fetch("/api/poc/awards/review", {
+      const res = await adminFetch("/api/poc/awards/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -701,9 +706,9 @@ ${editingCampusAdminKey}
 
     try {
       const savedPass = typeof window !== "undefined" ? sessionStorage.getItem("clutch_admin_auth") || "" : "";
-      const pass = adminPassword || savedPass || "43517-AM";
+      const pass = adminPassword || savedPass;
 
-      const res = await fetch("/api/poc/awards", {
+      const res = await adminFetch("/api/poc/awards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -752,7 +757,7 @@ ${editingCampusAdminKey}
     setRosterError("");
     setRosterSuccess("");
     try {
-      const res = await fetch("/api/poc/teams", {
+      const res = await adminFetch("/api/poc/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -801,7 +806,7 @@ ${editingCampusAdminKey}
     setRosterError("");
     setRosterSuccess("");
     try {
-      const res = await fetch("/api/poc/teams", {
+      const res = await adminFetch("/api/poc/teams", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -841,7 +846,7 @@ ${editingCampusAdminKey}
     setRosterError("");
     setRosterSuccess("");
     try {
-      const res = await fetch("/api/poc/teams", {
+      const res = await adminFetch("/api/poc/teams", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -890,9 +895,9 @@ ${editingCampusAdminKey}
 
     try {
       const savedPass = typeof window !== "undefined" ? sessionStorage.getItem("clutch_admin_auth") || "" : "";
-      const pass = adminPassword || savedPass || "43517-AM";
+      const pass = adminPassword || savedPass;
 
-      const res = await fetch("/api/poc/teams", {
+      const res = await adminFetch("/api/poc/teams", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -955,9 +960,9 @@ ${editingCampusAdminKey}
 
     try {
       const savedPass = typeof window !== "undefined" ? sessionStorage.getItem("clutch_admin_auth") || "" : "";
-      const pass = adminPassword || savedPass || "43517-AM";
+      const pass = adminPassword || savedPass;
 
-      const res = await fetch("/api/poc/teams", {
+      const res = await adminFetch("/api/poc/teams", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1057,7 +1062,7 @@ ${editingCampusAdminKey}
     setActionSuccessMsg("");
 
     try {
-      const res = await fetch("/api/poc/review-submission", {
+      const res = await adminFetch("/api/poc/review-submission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1095,7 +1100,7 @@ ${editingCampusAdminKey}
     setActionSuccessMsg("");
 
     try {
-      const res = await fetch("/api/poc/review-submission", {
+      const res = await adminFetch("/api/poc/review-submission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1133,7 +1138,7 @@ ${editingCampusAdminKey}
     setActionSuccessMsg("");
 
     try {
-      const res = await fetch("/api/poc/review-submission", {
+      const res = await adminFetch("/api/poc/review-submission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1169,7 +1174,7 @@ ${editingCampusAdminKey}
     setActionSuccessMsg("");
 
     try {
-      const res = await fetch("/api/poc/review-submission", {
+      const res = await adminFetch("/api/poc/review-submission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1422,13 +1427,13 @@ ${editingCampusAdminKey}
         kills: s.kills,
       }));
 
-      const res = await fetch("/api/poc/submit-match", {
+      const res = await adminFetch("/api/poc/submit-match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: directGame,
           campusId: selectedCampus,
-          pocCode: SUPER_CODE,
+          pocCode: adminPassword,
           matchNumber,
           proofUrl: directProofUrl,
           notes: directNotes,
@@ -1459,10 +1464,10 @@ ${editingCampusAdminKey}
     setOperationError("");
     setIsResetting(true);
     try {
-      const res = await fetch("/api/poc/reset", {
+      const res = await adminFetch("/api/poc/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: SUPER_CODE, gameId: directGame }),
+        body: JSON.stringify({ code: adminPassword, gameId: directGame, campusId: selectedCampus }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -3308,7 +3313,7 @@ ${editingCampusAdminKey}
                               </span>
                             </div>
                             <div className="text-[11px] text-[#69776d]">
-                              Submitted by POC: <code className="font-mono font-bold text-[#17211e]">{sub.pocCode}</code> • {new Date(sub.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              Verified campus nomination • {new Date(sub.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </div>
                           </div>
 
@@ -3768,14 +3773,14 @@ ${editingCampusAdminKey}
                   </span>
                 </div>
                 <p className="text-xs text-[#69776d]">
-                  Entering this key at <code className="px-1.5 py-0.5 rounded bg-[#edf0e9] font-mono text-[11px]">/poc</code> grants access to submit and approve scores for <strong>all 5 games</strong> in {CAMPUSES_REGISTRY[selectedCampus]?.name}.
+                  Entering this key at <code className="px-1.5 py-0.5 rounded bg-[#edf0e9] font-mono text-[11px]">/campus-admin</code> opens the campus admin dashboard to manage rosters, scores and awards for <strong>all 5 games</strong> in {CAMPUSES_REGISTRY[selectedCampus]?.name}.
                 </p>
                 <div className="flex items-center gap-2 pt-1">
                   <input
                     type="text"
                     value={editingCampusAdminKey}
                     onChange={(e) => setEditingCampusAdminKey(e.target.value.toUpperCase())}
-                    placeholder="e.g. CLT-KY-ADMIN-2026"
+                    placeholder="Enter a unique campus-admin key"
                     className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#f7f8f4] border border-[#dfe4db] font-mono font-bold text-sm text-[#17211e] focus:border-emerald-500 outline-none uppercase"
                   />
                   <button
@@ -4076,20 +4081,20 @@ ${editingCampusAdminKey}
               <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-500/50 flex items-center justify-between">
                 <div>
                   <div className="text-xs font-black text-emerald-700 uppercase tracking-wider">SUPER ADMIN (YOU)</div>
-                  <div className="text-[11px] text-[#69776d]">Master omnipotent key across all campuses</div>
-                  <div className="font-mono text-sm font-bold text-[#17211e] mt-1">CLUTCH-SUPER-2026</div>
+                  <div className="text-[11px] text-[#69776d]">Server-configured access across all campuses</div>
+                  <div className="text-xs text-[#69776d] mt-1">Your Super Admin password is configured privately on the server.</div>
                 </div>
                 <button
-                  onClick={() => copyToClipboard("CLUTCH-SUPER-2026", "SUPER")}
+                  onClick={() => setShowKeysModal(false)}
                   className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-[#17211e] text-xs font-bold transition flex items-center gap-1 shrink-0"
                 >
                   {copiedKey === "SUPER" ? <Check className="w-3.5 h-3.5" /> : null}
-                  <span>{copiedKey === "SUPER" ? "Copied!" : "Copy"}</span>
+                  <span>Close</span>
                 </button>
               </div>
 
               {/* Campus Keys */}
-              {Object.values(CAMPUSES_REGISTRY).map((camp) => (
+              {Object.values(CAMPUSES_REGISTRY).filter(camp => camp.id === selectedCampus).map((camp) => (
                 <div key={camp.id} className="p-3.5 rounded-2xl bg-[#f7f8f4]/70 border border-[#dfe4db] flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2">
@@ -4099,10 +4104,10 @@ ${editingCampusAdminKey}
                       </span>
                     </div>
                     <div className="text-[11px] text-[#69776d]">{camp.university}</div>
-                    <div className="font-mono text-xs font-bold text-amber-700 mt-1">{camp.adminCode}</div>
+                    <div className="font-mono text-xs font-bold text-amber-700 mt-1">{editingCampusAdminKey || "Loading key…"}</div>
                   </div>
                   <button
-                    onClick={() => copyToClipboard(camp.adminCode, camp.id)}
+                    onClick={() => copyToClipboard(editingCampusAdminKey, camp.id)}
                     className="px-3 py-1.5 rounded-xl bg-[#edf0e9] hover:bg-[#dfe6db] text-[#3f4b43] text-xs font-bold transition flex items-center gap-1 border border-[#d1d9ce] shrink-0"
                   >
                     {copiedKey === camp.id ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : null}

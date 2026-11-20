@@ -135,7 +135,7 @@ export function Navbar() {
     { name: "Winners", href: "/winners" },
   ];
 
-  if (pathname === "/43517" || pathname === "/poc") return null;
+  if (pathname === "/43517" || pathname === "/poc" || pathname === "/campus-admin") return null;
 
   return (
     <>

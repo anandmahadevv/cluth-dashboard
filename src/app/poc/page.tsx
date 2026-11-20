@@ -132,7 +132,7 @@ export default function PocPortalPage() {
 
   const fetchAwards = async () => {
     try {
-      const res = await fetch(`/api/poc/awards?gameId=${selectedGame}&campusId=${campusId}&t=${Date.now()}`);
+      const res = await fetch(`/api/poc/awards?gameId=${selectedGame}&campusId=${campusId}&t=${Date.now()}`, {headers:{"x-poc-code":pocCode},cache:"no-store"});
       const data = await res.json();
       if (data.success) {
         if (data.latestSubmission) {
@@ -176,6 +176,12 @@ export default function PocPortalPage() {
       }
     } catch {}
   };
+
+  useEffect(() => {
+    if (isUnlocked) void fetchAwards();
+    // Fetch only after the verified assignment has committed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUnlocked, campusId, selectedGame]);
 
   const handleSaveAwards = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,7 +239,7 @@ export default function PocPortalPage() {
     try {
       const res = await fetch(
         `/api/poc/teams?gameId=${selectedGame}&campusId=${campusId}&includeHidden=true&t=${Date.now()}`,
-        { cache: "no-store", headers: { "Cache-Control": "no-cache" } }
+        { cache: "no-store", headers: { "Cache-Control": "no-cache", "x-poc-code": pocCode } }
       );
       const data = await res.json();
       if (res.ok && data.success && Array.isArray(data.teams)) {
@@ -395,6 +401,16 @@ export default function PocPortalPage() {
         return;
       }
 
+      const assignedGame = data.gameId as GameId;
+      if (!GAMES_CONFIG[assignedGame] || !data.campusId) throw new Error("The key has no valid campus/game assignment. Contact your admin.");
+      setSelectedGame(assignedGame);
+      setWinnerTeam(""); setWinnerScore(""); setRunnerUpTeam(""); setRunnerUpScore("");
+      setMvpName(""); setMvpTeam(""); setMvpStats("");
+      setTopFraggerName(""); setTopFraggerTeam(""); setTopFraggerKills("");
+      setAwardsSubmission(null); setAwardsMessage(""); setAwardsError("");
+      setActiveScoringTeam(null);
+      setSearchFilter("");
+      setFfGroupFilter("ALL");
       if (data.campusId) setCampusId(data.campusId);
       if (data.campusName) setCampusName(data.campusName);
       if (data.isLocked !== undefined) setIsLocked(data.isLocked);
@@ -408,7 +424,7 @@ export default function PocPortalPage() {
       const initialScores: Record<string, TeamScoreInput> = {};
       teamIdList.forEach((id: string, idx: number) => {
         const place = idx + 1;
-        const pts = calcMatchPoints(place, 0, selectedGame);
+        const pts = calcMatchPoints(place, 0, assignedGame);
         initialScores[id] = {
           teamId: id,
           placement: place,
@@ -427,7 +443,7 @@ export default function PocPortalPage() {
       setDraftNotice("");
       setDraftStorageError(false);
       try {
-        const key = pocDraftKey(data.campusId || "mangalore", selectedGame);
+        const key = pocDraftKey(data.campusId, assignedGame);
         const raw = localStorage.getItem(key);
         const draft = parsePocDraft(raw, teamIdList);
         if (draft) {
@@ -447,7 +463,7 @@ export default function PocPortalPage() {
       } catch { setDraftStorageError(true); }
       setScores(initialScores);
       setIsUnlocked(true);
-      fetchAwards();
+
     } catch (err: any) {
       setAuthError(err.message || "Network error. Please try again.");
     } finally {
@@ -598,6 +614,9 @@ export default function PocPortalPage() {
               onSubmit={handleVerify}
               className="space-y-5"
             >
+              <p className="text-xs leading-relaxed text-[#69776d]">Enter your game POC key. Your campus and game open automatically.</p>
+              <p className="text-xs text-[#69776d]">Campus organizers: <Link href="/campus-admin" className="font-bold text-emerald-800 underline">open Campus Admin</Link>.</p>
+              <details className="text-xs text-[#69776d]"><summary className="cursor-pointer font-semibold">Super Admin game selection</summary>
               {/* Game Selector */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-[#48564d] uppercase tracking-wider block">
@@ -632,6 +651,8 @@ export default function PocPortalPage() {
                   })}
                 </div>
               </div>
+
+              </details>
 
               {/* POC Code Input */}
               <div className="space-y-1.5">
@@ -724,7 +745,7 @@ export default function PocPortalPage() {
               <div><p className="text-[10px] font-bold uppercase tracking-wider text-[#69776d]">Referee workspace · {campusName}</p>
                 <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#17211e]">{GAMES_CONFIG[selectedGame].name} score desk</h1>
                 <p className="mt-1 text-xs text-[#69776d]">{teams.length} teams · Score, attach evidence, then review.</p></div>
-              <button type="button" onClick={() => setIsUnlocked(false)} className="rounded-lg border border-[#dfe4db] bg-white px-3 py-2 text-xs font-semibold text-[#48564d]">Switch game</button>
+              <button type="button" onClick={() => { setIsUnlocked(false); setPocCode(""); }} className="rounded-lg border border-[#dfe4db] bg-white px-3 py-2 text-xs font-semibold text-[#48564d]">Use another key</button>
             </div>
             {!submitSuccess && <div className="poc-match-toolbar" role="region" aria-label="Current match controls">
               <div className="flex items-center gap-2">

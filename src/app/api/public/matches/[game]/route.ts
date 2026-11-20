@@ -17,7 +17,8 @@ export async function GET(
   return NextResponse.json({
     success: true,
     campusId,
-    data: matches,
+    data: matches.map(m => ({id:m.id,campusId:m.campusId,gameId:m.gameId,matchNumber:m.matchNumber,
+      timestamp:m.timestamp,status:m.status,reviewedAt:m.reviewedAt,proofUrl:m.proofUrl,teamResults:m.teamResults})),
     meta: {
       source: "INTERNAL_STORE",
       approvedOnly: true,

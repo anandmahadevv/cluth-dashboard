@@ -1,3 +1,4 @@
+import { verifyAdminPassword } from "@/lib/tournament-store";
 import { NextRequest, NextResponse } from "next/server";
 import {
   getCampusPasskeysAsync,
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 // GET /api/poc/campus-keys?campusId=kanyakumari
 export async function GET(req: NextRequest) {
+  if(!verifyAdminPassword(req.headers.get("x-admin-password") || "")) return NextResponse.json({success:false,error:"Super Admin access required."},{status:401,headers:{"Cache-Control":"no-store"}});
   try {
     const { searchParams } = new URL(req.url);
     const campusId = searchParams.get("campusId");

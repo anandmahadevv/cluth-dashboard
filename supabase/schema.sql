@@ -15,20 +15,12 @@ CREATE TABLE IF NOT EXISTS tournament_state (
 -- 2. Enable Row Level Security (RLS)
 ALTER TABLE tournament_state ENABLE ROW LEVEL SECURITY;
 
--- 3. Allow public read access (for dashboards, leaderboards, and spectators)
+-- 3. Private server-owned state: the JSON contains campus access keys.
+-- Set SUPABASE_SERVICE_ROLE_KEY on the deployment server before using this policy.
 DROP POLICY IF EXISTS "Allow public read access" ON tournament_state;
-CREATE POLICY "Allow public read access"
-  ON tournament_state
-  FOR SELECT
-  USING (true);
-
--- 4. Allow insert and update
 DROP POLICY IF EXISTS "Allow public insert and update" ON tournament_state;
-CREATE POLICY "Allow public insert and update"
-  ON tournament_state
-  FOR ALL
-  USING (true)
-  WITH CHECK (true);
+REVOKE ALL ON TABLE public.tournament_state FROM anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.tournament_state TO service_role;
 
 -- 5. Optional Real-time broadcast for live websockets
 ALTER PUBLICATION supabase_realtime ADD TABLE tournament_state;
