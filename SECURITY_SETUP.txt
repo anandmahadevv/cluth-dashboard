@@ -1,0 +1,59 @@
+CLUTCH — required production security setup
+
+Code commit: 9e05732
+Local checks: 28 tests passed; TypeScript passed; production build passed.
+The code is ready. Database protection and credential rotation require owner action.
+
+1. CONFIGURE VERCEL SERVER VARIABLES
+Open the Vercel project that owns clutch.niat.me, then Settings > Environment Variables.
+If both cluth-dashboard and cluth-mangalore use this database, configure both active projects.
+Set for Production (and Preview if preview deployments need database access):
+  SUPABASE_SERVICE_ROLE_KEY = your Supabase server secret/service_role key
+  ADMIN_PASSWORD_HASH = SHA-256 hash generated in step 2
+Never use NEXT_PUBLIC_ for either variable. Never paste a secret into chat or GitHub.
+Keep the existing Supabase URL configuration.
+Leave CLUTCH_DEFAULT_PASSKEYS unset in production. Generate persistent campus keys in /43517 instead.
+Supabase API key documentation: https://supabase.com/docs/guides/getting-started/api-keys
+
+2. GENERATE A NEW SUPER ADMIN PASSWORD HASH LOCALLY
+Open PowerShell in the project directory and run:
+  .\scripts\admin-password-hash.ps1
+Enter a NEW strong Super Admin password when prompted. The password is hidden.
+Copy only the printed 64-character hash into Vercel's ADMIN_PASSWORD_HASH variable.
+Remember the password itself privately; use it to sign in, not the hash.
+Old published aliases are no longer supported by the new version.
+
+3. REDEPLOY THE LATEST COMMIT
+In Vercel, redeploy the latest main deployment AFTER adding the variables.
+Confirm that /campus-admin loads and /43517 accepts the password configured in step 2.
+Do not apply step 4 before confirming the service-role variable is configured on the active project.
+Vercel documentation: https://vercel.com/docs/environment-variables/managing-environment-variables
+
+4. CLOSE DIRECT DATABASE ACCESS
+Open the same Supabase project > SQL Editor > New query.
+Copy and run the ENTIRE file:
+  supabase/secure-tournament-state.sql
+It removes public policies/grants from tournament_state and keeps service-role access.
+It removes old POC-code copies from match/awards history. Scores and active key assignments are retained.
+Public scoreboards continue through the server API; browsers must not read this private state table directly.
+The verification query should show RLS enabled and no anonymous/authenticated access policies.
+Do not reapply old versions of schema.sql, because older versions granted public reads and writes.
+
+5. ROTATE ALL CAMPUS KEYS
+After step 4, sign in at https://clutch.niat.me/43517 with your new Super Admin password.
+For each campus, open Campus Keys & UIDs and generate/save a fresh keyset.
+Do this for all four campuses, because old defaults and historical keys were published.
+Send each organizer ONLY their campus-admin key and /campus-admin link.
+Send each game POC ONLY their assigned game key and /poc link.
+Keep your Super Admin password private. Re-login using the new keys after rotation.
+
+6. VERIFY BEFORE DISTRIBUTING ACCESS
+  /campus-admin loads successfully.
+  Anonymous GET /api/poc/campus-keys returns 401 with no keys.
+  Public match API responses do not contain pocCode, passkeys or password fields.
+  Anonymous direct Supabase reads of tournament_state return 401/403, not 200.
+  Campus admin can only manage its assigned campus; game POC can only submit its assigned game/campus.
+  Public leaderboard/results/winners pages continue loading the current official data.
+Old source history cannot be made secret by a normal push. Rotation in step 5 invalidates its credentials.
+
+When these steps are finished, ask for another read-only production verification.
