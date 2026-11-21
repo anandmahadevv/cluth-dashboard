@@ -1215,6 +1215,7 @@ export async function getAwardsAsync(
   gameId: GameId,
   campusId: string = "mangalore"
 ): Promise<IndividualAwards> {
+  if(gameId!=="FREE_FIRE")return {};
   let store = await getStoreAsync();
 
   if (campusId === "mangalore") {
@@ -1266,6 +1267,7 @@ export async function saveAwardsAsync(params: {
   error?: string;
   message?: string;
 }> {
+  if(params.gameId!=="FREE_FIRE")return {success:false,error:"Special awards are available only for Free Fire."};
   const isSuper =
     (params.adminPassword && verifyAdminPassword(params.adminPassword)) ||
     verifyAdminPassword(params.pocCode || "") || campusAdminCanManage(params.campusId || "mangalore");
@@ -1378,6 +1380,7 @@ export async function getAwardsSubmissionsAsync(options?: {
   const store = await getStoreAsync();
   if (!store.awardsSubmissions) return [];
   return store.awardsSubmissions.filter((s) => {
+    if(s.gameId!=="FREE_FIRE")return false;
     if (!isCampusGameEnabled(s.campusId, s.gameId)) return false;
     if (options?.campusId && s.campusId !== options.campusId) return false;
     if (options?.gameId && s.gameId !== options.gameId) return false;
@@ -1394,6 +1397,7 @@ export async function getLatestAwardsSubmissionAsync(
   gameId: GameId
 ): Promise<AwardsSubmission | null> {
   if (!isCampusGameEnabled(campusId, gameId)) return null;
+  if(gameId!=="FREE_FIRE")return null;
   const store = await getStoreAsync();
   if (!store.awardsSubmissions || store.awardsSubmissions.length === 0) return null;
   const found = store.awardsSubmissions.find(
@@ -1436,6 +1440,7 @@ export async function reviewAwardsSubmissionAsync(params: {
   if (!superAccess && (!campusAccess || (sub.campusId || "mangalore") !== campusAccess.campusId)) return {success:false,error:"Submission is outside your assigned campus."};
   if (!superAccess && isCampusLocked(store,campusAccess!.campusId)) return {success:false,error:"This campus is locked by Super Admin."};
   if (!superAccess && (!["APPROVE","REJECT"].includes(params.action) || sub.status !== "PENDING")) return {success:false,error:"Campus admins can only approve or reject pending submissions."};
+  if(sub.gameId!=="FREE_FIRE")return {success:false,error:"Special awards are available only for Free Fire."};
   if (!isCampusGameEnabled(sub.campusId || "mangalore",sub.gameId)) return {success:false,error:"This game is not enabled for this campus."};
   if (params.action === "APPROVE") {
     sub.status = "APPROVED";

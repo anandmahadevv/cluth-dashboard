@@ -10,15 +10,7 @@ import { ShareModal } from "@/components/shared/share-modal";
 import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 
 export default function WinnersPage() {
-  const [currentCampusId, setCurrentCampusId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const urlCampus = params.get("campus") || params.get("college");
-      const stored = localStorage.getItem("clutch_selected_campus");
-      return urlCampus || stored || "mangalore";
-    }
-    return "mangalore";
-  });
+  const [currentCampusId, setCurrentCampusId] = useState<string>("mangalore");
 
   useEffect(() => {
     if (typeof window !== "undefined") {

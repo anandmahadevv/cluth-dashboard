@@ -25,7 +25,6 @@ import {
   useGameAwards,
 } from "@/hooks/use-tournament-data";
 import { Podium } from "@/components/leaderboards/podium";
-import { PreMatchShowcase } from "@/components/leaderboards/pre-match-showcase";
 import { LeaderboardTable } from "@/components/games/leaderboard-table";
 import { SpecialAwardsCard } from "@/components/games/special-awards-card";
 import { ShareModal } from "@/components/shared/share-modal";
@@ -34,15 +33,7 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [selectedGame, setSelectedGame] = useState<GameId>("FREE_FIRE");
   const [isProjectorMode, setIsProjectorMode] = useState<boolean>(false);
-  const [currentCampusId, setCurrentCampusId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const urlCampus = params.get("campus") || params.get("college");
-      const stored = localStorage.getItem("clutch_selected_campus");
-      return urlCampus || stored || "mangalore";
-    }
-    return "mangalore";
-  });
+  const [currentCampusId, setCurrentCampusId] = useState<string>("mangalore");
 
   useEffect(() => {
     setMounted(true);
@@ -245,18 +236,11 @@ export default function HomePage() {
       {first ? (
         <Podium first={first} second={second} third={third} isProjector={isProjectorMode} />
       ) : (
-        <PreMatchShowcase
-          gameName={currentGameConfig.name}
-          teamCount={currentLeaderboard.length}
-          format={currentGameConfig.format}
-          isProjector={isProjectorMode}
-          campusName={activeCampusMeta.name}
-          university={activeCampusMeta.university}
-        />
+        <div className="flex flex-col gap-4 rounded-2xl border border-[#dfe4db] bg-[#eef2eb] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"><div className="flex items-start gap-3"><div className="rounded-xl border border-[#d8e0d4] bg-white p-2.5"><ShieldCheck className="h-5 w-5 text-[#526c5a]"/></div><div><p className="text-sm font-bold text-[#24372b]">Ready for the first verified result</p><p className="mt-1 max-w-lg text-xs leading-relaxed text-[#69766d]">The {currentGameConfig.name} standings will update after a match is approved. Browse the roster below.</p></div></div><span className="self-start rounded-full border border-[#d4ded0] bg-white px-3 py-1.5 text-[10px] font-semibold text-[#526c5a]">Awaiting scores</span></div>
       )}
       <section className="mt-7 rounded-[22px] border border-[#e0e3dc] bg-white p-4 shadow-[0_4px_24px_-16px_rgba(23,33,30,0.18)] sm:p-6" aria-label={`${currentGameConfig.name} standings`}>
         <div className="mb-5 flex items-center justify-between gap-3"><h3 className="text-sm font-bold text-[#17211e]">Overall standings</h3><span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-[#7d867f]"><ShieldCheck className="h-3.5 w-3.5" />Verified results</span></div>
-        <LeaderboardTable entries={currentLeaderboard} gameName={currentGameConfig.name} isProjector={isProjectorMode} />
+        <LeaderboardTable key={`${currentCampusId}-${selectedGame}`} entries={currentLeaderboard} gameName={currentGameConfig.name} isProjector={isProjectorMode} />
       </section>
       {selectedGame === "FREE_FIRE" && <div className="dashboard-awards mt-7"><SpecialAwardsCard awards={awards} isProjector={isProjectorMode} /></div>}
       <div className="mt-9 flex flex-col justify-between gap-2 border-t border-[#dddeda] pt-5 text-[10px] text-[#7d867f] sm:flex-row">

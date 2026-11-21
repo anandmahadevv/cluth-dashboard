@@ -3219,7 +3219,7 @@ ${getCampusGameIds(selectedCampus).map(game=>`• ${GAMES_CONFIG[game].name} UID
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#dfe4db]/80">
                 <span className="text-xs font-semibold text-[#69776d] mr-2">Select Arena:</span>
                 {(
-                  campusGames
+                  campusGames.filter(game=>game.id==="FREE_FIRE")
                 ).map(({ id, name, icon: Icon }) => (
                   <button
                     key={id}

@@ -1,4 +1,5 @@
 "use client";
+import {UniversityBadge} from "@/components/games/university-badge";
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -38,6 +39,7 @@ import { GAMES_CONFIG } from "@/lib/constants";
 import { PLACEMENT_POINTS, getFreeFireGroupInfo } from "@/lib/tournament-constants";
 
 interface TeamEntry {
+  university?: string;
   id: string;
   teamName: string;
   gameId: GameId;
@@ -180,7 +182,7 @@ export default function PocPortalPage() {
   };
 
   useEffect(() => {
-    if (isUnlocked) void fetchAwards();
+    if (isUnlocked && selectedGame === "FREE_FIRE") void fetchAwards();
     // Fetch only after the verified assignment has committed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked, campusId, selectedGame]);
@@ -1067,6 +1069,7 @@ export default function PocPortalPage() {
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="w-full break-words font-bold text-[#17211e] text-sm leading-snug">
                                   {t.teamName}
+                                  <UniversityBadge university={t.university}/>
                                 </span>
                                 {selectedGame === "FREE_FIRE" && (() => {
                                   const grp = getFreeFireGroupInfo(t.teamName);
@@ -1275,7 +1278,7 @@ export default function PocPortalPage() {
             )}
 
             {/* Special Accolades Editor (MVP & Top Fragger) */}
-            <div className="bg-white border border-[#dfe4db] rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+            {selectedGame === "FREE_FIRE" && (<div className="bg-white border border-[#dfe4db] rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dfe4db] pb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold">
@@ -1561,7 +1564,7 @@ export default function PocPortalPage() {
                   )}
                 </button>
               </form>
-            </div>
+            </div>)}
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { UniversityBadge } from "./university-badge";
 import { useState } from "react";
 import { Search, ArrowUpDown, Trophy, Medal, Award, Crown, Sparkles } from "lucide-react";
 import {
@@ -139,6 +140,7 @@ export function LeaderboardTable({
               <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs flex-wrap">
                 <button
                   type="button"
+                  aria-pressed={groupFilter === "ALL"}
                   onClick={() => setGroupFilter("ALL")}
                   className={cn(
                     "px-3 py-1.5 rounded-lg transition font-bold text-xs",
@@ -151,6 +153,7 @@ export function LeaderboardTable({
                 </button>
                 <button
                   type="button"
+                  aria-pressed={groupFilter === "A"}
                   onClick={() => setGroupFilter("A")}
                   className={cn(
                     "px-3 py-1.5 rounded-lg transition font-bold text-xs flex items-center gap-1.5",
@@ -171,6 +174,7 @@ export function LeaderboardTable({
                 </button>
                 <button
                   type="button"
+                  aria-pressed={groupFilter === "B"}
                   onClick={() => setGroupFilter("B")}
                   className={cn(
                     "px-3 py-1.5 rounded-lg transition font-bold text-xs flex items-center gap-1.5",
@@ -191,6 +195,7 @@ export function LeaderboardTable({
                 </button>
                 <button
                   type="button"
+                  aria-pressed={groupFilter === "QUALIFIED"}
                   onClick={() => setGroupFilter("QUALIFIED")}
                   className={cn(
                     "px-3 py-1.5 rounded-lg transition font-bold text-xs flex items-center gap-1.5",
@@ -322,6 +327,7 @@ export function LeaderboardTable({
                         {entry.teamName}
                       </span>
 
+                      <UniversityBadge university={entry.university}/>
                       {isFreeFire && (() => {
                         const grp = getFreeFireGroupInfo(entry.teamName);
                         return (
@@ -407,13 +413,14 @@ export function LeaderboardTable({
                 <td colSpan={isValorant ? 4 : 6} className="py-12 px-4 text-center">
                   <div className="max-w-md mx-auto space-y-2">
                     <p className="text-xs font-black uppercase tracking-wider text-amber-700">
-                      Arena Ready • The Crown Has To Be Earned
+                      {entries.length ? "No teams match these filters" : "Roster awaiting publication"}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <div className="text-xs text-slate-500">
                       {searchQuery
                         ? `No contenders found matching "${searchQuery}".`
-                        : "Opening battles are underway. Standings will populate automatically upon referee verification of Match 1."}
-                    </p>
+                        : entries.length ? "Try another group, or clear your filters." : "Registered teams will appear here once added by the event admin."}
+                      {(searchQuery || groupFilter!=="ALL") && <button type="button" onClick={()=>{setSearchQuery("");setGroupFilter("ALL");}} className="mx-auto mt-4 block rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Clear filters</button>}
+                    </div>
                   </div>
                 </td>
               </tr>

@@ -63,16 +63,7 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedCampus, setSelectedCampus] = useState<CampusItem>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const urlCampus = params.get("campus") || params.get("college");
-      const stored = localStorage.getItem("clutch_selected_campus");
-      const targetId = urlCampus || stored || "mangalore";
-      return CAMPUSES.find((c) => c.id === targetId) || CAMPUSES[0];
-    }
-    return CAMPUSES[0];
-  });
+  const [selectedCampus, setSelectedCampus] = useState<CampusItem>(CAMPUSES[0]);
   const [campusDropdownOpen, setCampusDropdownOpen] = useState(false);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);

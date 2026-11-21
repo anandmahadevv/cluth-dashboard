@@ -32,10 +32,10 @@ export async function POST(req: NextRequest) {
     const action=body.action;
     if(action === "LOAD") {
       const matches=store.matches.filter(m=>(m.campusId || "mangalore")===campusId && m.gameId===gameId).map(({pocCode: _key,...safe})=>safe);
-      const awardsSubmissions=(store.awardsSubmissions || []).filter(m=>m.campusId===campusId && m.gameId===gameId).map(({pocCode: _key,...safe})=>safe);
+      const awardsSubmissions=(store.awardsSubmissions || []).filter(m=>m.gameId==="FREE_FIRE" && m.campusId===campusId && m.gameId===gameId).map(({pocCode: _key,...safe})=>safe);
       return reply({success:true,campusId,campusName:CAMPUSES_REGISTRY[campusId]?.name || campusId,isLocked:isCampusLocked(store,campusId),
         teams:getCampusTeamsList(store,campusId,gameId),matches,awardsSubmissions,
-        awards:store.campusAwards?.[campusId]?.[gameId] || (campusId === "mangalore" ? store.awards?.[gameId] : null) || null});
+        awards:gameId!=="FREE_FIRE" ? null : store.campusAwards?.[campusId]?.[gameId] || (campusId === "mangalore" ? store.awards?.[gameId] : null) || null});
     }
     if(isCampusLocked(store,campusId)) return reply({success:false,error:"This campus is locked by Super Admin. Viewing is available; changes are disabled."},403);
     const allowed=["ADD_TEAM","RENAME_TEAM","REMOVE_TEAM","SET_VISIBILITY","SET_QUALIFIED","REVIEW_MATCH","REVIEW_AWARDS","SAVE_AWARDS","SUBMIT_MATCH"];

@@ -26,7 +26,7 @@ function storeFixture(){
  const lists=c=>Object.fromEntries(games.map(g=>[g,[team(c,g)]]));
  let remote={teams:lists('mangalore'),campusTeams:Object.fromEntries(['bangalore','coimbatore','kanyakumari'].map(c=>[c,lists(c)])),campusLocks:Object.fromEntries(Object.keys(fixtures).map(c=>[c,false])),campusPasskeys:structuredClone(fixtures),matches:[]};
  let revision=0;
- const db={isSupabaseConfigured:()=>true,fetchMatchWriteSnapshot:async()=>({store:structuredClone(remote),revision}),commitMatchWrite:async(store,expected)=>{if(expected!==revision)return false;remote=structuredClone(store);revision++;return true;},fetchStoreFromSupabase:async()=>structuredClone(remote)};
+ const db={persistStoreToSupabase:async store=>{remote=structuredClone(store);revision++;return true;},isSupabaseConfigured:()=>true,fetchMatchWriteSnapshot:async()=>({store:structuredClone(remote),revision}),commitMatchWrite:async(store,expected)=>{if(expected!==revision)return false;remote=structuredClone(store);revision++;return true;},fetchStoreFromSupabase:async()=>structuredClone(remote)};
  const disk={existsSync:()=>true,statSync:()=>({mtimeMs:1}),readFileSync:()=>JSON.stringify(remote),writeFileSync:()=>{}};
  const api=load('src/lib/tournament-store.ts',{'fs':disk,'./supabase':db,'./tournament-access':constants,'./tournament-constants':constants,'./match-submission-identity':load('src/lib/match-submission-identity.ts')});
  return {api,state:()=>remote};
@@ -96,4 +96,20 @@ test('Call of Duty uses configured placement plus kills without changing Mangalo
  const {api,state}=storeFixture();const original=structuredClone(state().teams);
  const result=await api.recordMatchSubmissionAsync({campusId:'bangalore',gameId:'COD',pocCode:fixtures.bangalore.gameKeys.COD,matchNumber:1,proofUrl:'fixture',teamResults:[{teamId:'bangalore-COD-1',placement:1,kills:7}]});
  assert.equal(result.success,true);assert.equal(state().matches[0].teamResults[0].matchPoints,22);assert.deepEqual(state().teams,original);
+});
+
+test('special awards are Free Fire only; legacy other-game awards stay stored but hidden',async()=>{
+ const {api,state}=storeFixture();
+ state().campusAwards={bangalore:{BGMI:{winnerTeam:'Legacy winner',mvp:{playerName:'Legacy MVP'}}}};
+ state().awardsSubmissions=[{id:'legacy-bgmi-award',campusId:'bangalore',gameId:'BGMI',status:'PENDING',awards:{winnerTeam:'Legacy winner'}}];
+ for(const gameId of ['BGMI','COD','MATIKS','VALORANT','EFOOTBALL']){
+  assert.equal((await api.saveAwardsAsync({campusId:'bangalore',gameId,adminPassword:TEST_ADMIN,awards:{winnerTeam:'Blocked'}})).success,false);
+  assert.deepEqual(await api.getAwardsAsync(gameId,'bangalore'),{});
+  assert.equal(await api.getLatestAwardsSubmissionAsync('bangalore',gameId),null);
+ }
+ assert.deepEqual(await api.getAwardsSubmissionsAsync(),[]);
+ assert.equal((await api.reviewAwardsSubmissionAsync({submissionId:'legacy-bgmi-award',action:'APPROVE',adminPassword:TEST_ADMIN})).success,false);
+ assert.equal(state().campusAwards.bangalore.BGMI.winnerTeam,'Legacy winner');
+ assert.equal(state().awardsSubmissions[0].status,'PENDING');
+ assert.equal((await api.saveAwardsAsync({campusId:'bangalore',gameId:'FREE_FIRE',adminPassword:TEST_ADMIN,awards:{winnerTeam:'Free Fire winner'}})).success,true);
 });
